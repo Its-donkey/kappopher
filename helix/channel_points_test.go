@@ -50,7 +50,7 @@ func TestClient_GetCustomRewards(t *testing.T) {
 				},
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -85,7 +85,7 @@ func TestClient_GetCustomRewards_ByIDs(t *testing.T) {
 				{ID: "reward2", Title: "Reward 2"},
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -110,7 +110,7 @@ func TestClient_GetCustomRewards_OnlyManageable(t *testing.T) {
 		}
 
 		resp := Response[CustomReward]{Data: []CustomReward{}}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -159,7 +159,7 @@ func TestClient_CreateCustomReward(t *testing.T) {
 				},
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -199,7 +199,7 @@ func TestClient_UpdateCustomReward(t *testing.T) {
 				{ID: "reward123", Title: "Updated Reward", Cost: 2000},
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -296,7 +296,7 @@ func TestClient_GetCustomRewardRedemptions(t *testing.T) {
 			},
 			Pagination: &Pagination{Cursor: "next"},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -341,7 +341,7 @@ func TestClient_UpdateRedemptionStatus(t *testing.T) {
 		}
 
 		var params UpdateRedemptionStatusParams
-		json.NewDecoder(r.Body).Decode(&params)
+		_ = json.NewDecoder(r.Body).Decode(&params)
 		if params.Status != "FULFILLED" {
 			t.Errorf("expected status FULFILLED, got %s", params.Status)
 		}
@@ -352,7 +352,7 @@ func TestClient_UpdateRedemptionStatus(t *testing.T) {
 				{ID: "redemption2", Status: "FULFILLED"},
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -377,7 +377,7 @@ func TestClient_UpdateRedemptionStatus(t *testing.T) {
 func TestClient_UpdateRedemptionStatus_Cancel(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		var params UpdateRedemptionStatusParams
-		json.NewDecoder(r.Body).Decode(&params)
+		_ = json.NewDecoder(r.Body).Decode(&params)
 		if params.Status != "CANCELED" {
 			t.Errorf("expected status CANCELED, got %s", params.Status)
 		}
@@ -387,7 +387,7 @@ func TestClient_UpdateRedemptionStatus_Cancel(t *testing.T) {
 				{ID: "redemption1", Status: "CANCELED"},
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 

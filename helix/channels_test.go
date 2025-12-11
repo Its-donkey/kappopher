@@ -43,7 +43,7 @@ func TestClient_GetChannelInformation(t *testing.T) {
 				},
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -77,7 +77,7 @@ func TestClient_ModifyChannelInformation(t *testing.T) {
 		}
 
 		var body ModifyChannelInformationParams
-		json.NewDecoder(r.Body).Decode(&body)
+		_ = json.NewDecoder(r.Body).Decode(&body)
 
 		if body.Title != "New Title" {
 			t.Errorf("expected title 'New Title', got %s", body.Title)
@@ -118,7 +118,7 @@ func TestClient_GetChannelEditors(t *testing.T) {
 				},
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -156,7 +156,7 @@ func TestClient_GetFollowedChannels(t *testing.T) {
 		}
 		total := 100
 		resp.Total = &total
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -193,7 +193,7 @@ func TestClient_GetFollowedChannels_WithBroadcasterFilter(t *testing.T) {
 				},
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -234,7 +234,7 @@ func TestClient_GetChannelFollowers(t *testing.T) {
 		}
 		total := 1000
 		resp.Total = &total
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -262,7 +262,7 @@ func TestClient_GetVIPs(t *testing.T) {
 				{UserID: "22222", UserLogin: "vip2", UserName: "VIP2"},
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 

@@ -496,7 +496,7 @@ func (c *Client) GetAllSubscriptions(ctx context.Context, params *GetEventSubSub
 		if resp.Pagination == nil || resp.Pagination.Cursor == "" {
 			break
 		}
-		params.PaginationParams.After = resp.Pagination.Cursor
+		params.After = resp.Pagination.Cursor
 	}
 	return all, nil
 }

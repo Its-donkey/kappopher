@@ -93,7 +93,7 @@ func (c *Client) GetChannelICalendar(ctx context.Context, broadcasterID string) 
 	if err != nil {
 		return "", err
 	}
-	defer httpReq.Body.Close()
+	defer func() { _ = httpReq.Body.Close() }()
 
 	body := make([]byte, 0)
 	if _, err := httpReq.Body.Read(body); err != nil {

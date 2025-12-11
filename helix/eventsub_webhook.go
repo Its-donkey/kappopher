@@ -121,7 +121,7 @@ func (h *EventSubWebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Failed to read body", http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
+	defer func() { _ = r.Body.Close() }()
 
 	// Verify signature
 	if h.secret != "" {
@@ -214,7 +214,7 @@ func (h *EventSubWebhookHandler) handleVerification(w http.ResponseWriter, msg *
 	if accept {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(msg.Challenge))
+		_, _ = w.Write([]byte(msg.Challenge))
 	} else {
 		http.Error(w, "Subscription rejected", http.StatusBadRequest)
 	}

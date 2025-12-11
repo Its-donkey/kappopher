@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- Fixed errcheck lint issues (unchecked error returns) across all source and test files
+- Fixed staticcheck lint issues (unnecessary embedded field selectors) in auth.go and eventsub.go
 
 ## [0.3.0] - 2025-12-11
 

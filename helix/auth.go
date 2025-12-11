@@ -795,7 +795,7 @@ func (c *AuthClient) ExchangeCodeForOIDCToken(ctx context.Context, code string) 
 		return nil, fmt.Errorf("parsing token response: %w", err)
 	}
 
-	token.Token.setExpiry()
+	token.setExpiry()
 	c.SetToken(&token.Token)
 
 	return &token, nil

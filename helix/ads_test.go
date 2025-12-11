@@ -37,7 +37,7 @@ func TestClient_StartCommercial(t *testing.T) {
 				},
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -71,7 +71,7 @@ func TestClient_StartCommercial_DifferentLengths(t *testing.T) {
 						{Length: length, Message: "OK", RetryAfter: 480},
 					},
 				}
-				json.NewEncoder(w).Encode(resp)
+				_ = json.NewEncoder(w).Encode(resp)
 			})
 			defer server.Close()
 
@@ -117,7 +117,7 @@ func TestClient_GetAdSchedule(t *testing.T) {
 				},
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -145,7 +145,7 @@ func TestClient_GetAdSchedule_NoSchedule(t *testing.T) {
 		resp := Response[AdSchedule]{
 			Data: []AdSchedule{},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -185,7 +185,7 @@ func TestClient_SnoozeNextAd(t *testing.T) {
 				},
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -207,7 +207,7 @@ func TestClient_SnoozeNextAd_NoSnoozeAvailable(t *testing.T) {
 		resp := Response[SnoozeNextAdResponse]{
 			Data: []SnoozeNextAdResponse{},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 

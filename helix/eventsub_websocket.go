@@ -187,7 +187,7 @@ func (c *EventSubWebSocketClient) Connect(ctx context.Context) (string, error) {
 	// Wait for welcome message
 	sessionID, err := c.waitForWelcome(ctx)
 	if err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return "", err
 	}
 
@@ -205,8 +205,8 @@ func (c *EventSubWebSocketClient) Connect(ctx context.Context) (string, error) {
 // waitForWelcome waits for and processes the welcome message.
 func (c *EventSubWebSocketClient) waitForWelcome(ctx context.Context) (string, error) {
 	// Set read deadline for welcome message (10 seconds per Twitch docs)
-	c.conn.SetReadDeadline(time.Now().Add(10 * time.Second))
-	defer c.conn.SetReadDeadline(time.Time{})
+	_ = c.conn.SetReadDeadline(time.Now().Add(10 * time.Second))
+	defer func() { _ = c.conn.SetReadDeadline(time.Time{}) }()
 
 	_, data, err := c.conn.ReadMessage()
 	if err != nil {
@@ -244,7 +244,7 @@ func (c *EventSubWebSocketClient) readLoop() {
 		c.mu.Lock()
 		c.connected = false
 		if c.conn != nil {
-			c.conn.Close()
+			_ = c.conn.Close()
 		}
 		c.mu.Unlock()
 	}()
@@ -261,7 +261,7 @@ func (c *EventSubWebSocketClient) readLoop() {
 		timeout := c.keepaliveTimeout
 		c.mu.RUnlock()
 		if timeout > 0 {
-			c.conn.SetReadDeadline(time.Now().Add(timeout + 10*time.Second))
+			_ = c.conn.SetReadDeadline(time.Now().Add(timeout + 10*time.Second))
 		}
 
 		_, data, err := c.conn.ReadMessage()
@@ -406,13 +406,13 @@ func (c *EventSubWebSocketClient) Reconnect(ctx context.Context, url string) (st
 	// Wait for welcome on new connection
 	sessionID, err := c.waitForWelcome(ctx)
 	if err != nil {
-		newConn.Close()
+		_ = newConn.Close()
 		return "", err
 	}
 
 	// Close old connection
 	if oldConn != nil {
-		oldConn.Close()
+		_ = oldConn.Close()
 	}
 
 	c.mu.Lock()

@@ -131,7 +131,7 @@ func TestEventSubWebSocketClient_Connect(t *testing.T) {
 				},
 			}),
 		}
-		conn.WriteJSON(welcome)
+		_ = conn.WriteJSON(welcome)
 
 		// Keep connection alive for a bit
 		time.Sleep(100 * time.Millisecond)
@@ -205,7 +205,7 @@ func TestEventSubWebSocketClient_HandleNotification(t *testing.T) {
 				},
 			}),
 		}
-		conn.WriteJSON(welcome)
+		_ = conn.WriteJSON(welcome)
 
 		// Give time for connection setup
 		time.Sleep(50 * time.Millisecond)
@@ -237,7 +237,7 @@ func TestEventSubWebSocketClient_HandleNotification(t *testing.T) {
 				Event: eventData,
 			}),
 		}
-		conn.WriteJSON(notification)
+		_ = conn.WriteJSON(notification)
 
 		// Keep alive
 		time.Sleep(200 * time.Millisecond)
@@ -301,7 +301,7 @@ func TestEventSubWebSocketClient_HandleKeepalive(t *testing.T) {
 				},
 			}),
 		}
-		conn.WriteJSON(welcome)
+		_ = conn.WriteJSON(welcome)
 
 		time.Sleep(50 * time.Millisecond)
 
@@ -314,7 +314,7 @@ func TestEventSubWebSocketClient_HandleKeepalive(t *testing.T) {
 			},
 			Payload: mustMarshal(struct{}{}),
 		}
-		conn.WriteJSON(keepalive)
+		_ = conn.WriteJSON(keepalive)
 
 		time.Sleep(100 * time.Millisecond)
 	})
@@ -370,7 +370,7 @@ func TestEventSubWebSocketClient_HandleReconnect(t *testing.T) {
 				},
 			}),
 		}
-		conn.WriteJSON(welcome)
+		_ = conn.WriteJSON(welcome)
 
 		time.Sleep(50 * time.Millisecond)
 
@@ -389,7 +389,7 @@ func TestEventSubWebSocketClient_HandleReconnect(t *testing.T) {
 				},
 			}),
 		}
-		conn.WriteJSON(reconnect)
+		_ = conn.WriteJSON(reconnect)
 
 		time.Sleep(100 * time.Millisecond)
 	})
@@ -445,7 +445,7 @@ func TestEventSubWebSocketClient_HandleRevocation(t *testing.T) {
 				},
 			}),
 		}
-		conn.WriteJSON(welcome)
+		_ = conn.WriteJSON(welcome)
 
 		time.Sleep(50 * time.Millisecond)
 
@@ -464,7 +464,7 @@ func TestEventSubWebSocketClient_HandleRevocation(t *testing.T) {
 				},
 			}),
 		}
-		conn.WriteJSON(revocation)
+		_ = conn.WriteJSON(revocation)
 
 		time.Sleep(100 * time.Millisecond)
 	})
@@ -555,7 +555,7 @@ func TestEventSubWebSocketClient_ConnectAlreadyConnected(t *testing.T) {
 				},
 			}),
 		}
-		conn.WriteJSON(welcome)
+		_ = conn.WriteJSON(welcome)
 		time.Sleep(200 * time.Millisecond)
 	})
 	defer mock.Close()

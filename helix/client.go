@@ -414,19 +414,19 @@ func (c *Client) updateRateLimit(resp *http.Response) {
 
 	if limit := resp.Header.Get("Ratelimit-Limit"); limit != "" {
 		var l int
-		fmt.Sscanf(limit, "%d", &l)
+		_, _ = fmt.Sscanf(limit, "%d", &l)
 		c.rateLimitLimit = l
 	}
 
 	if remaining := resp.Header.Get("Ratelimit-Remaining"); remaining != "" {
 		var r int
-		fmt.Sscanf(remaining, "%d", &r)
+		_, _ = fmt.Sscanf(remaining, "%d", &r)
 		c.rateLimitRemaining = r
 	}
 
 	if reset := resp.Header.Get("Ratelimit-Reset"); reset != "" {
 		var r int64
-		fmt.Sscanf(reset, "%d", &r)
+		_, _ = fmt.Sscanf(reset, "%d", &r)
 		c.rateLimitReset = time.Unix(r, 0)
 	}
 }
