@@ -18,7 +18,7 @@ A comprehensive Go client library for the Twitch Helix API with full OAuth authe
 ## Installation
 
 ```bash
-go get github.com/jeffreymkabot/twitch-bot
+go get github.com/Its-donkey/helix
 ```
 
 ## Documentation

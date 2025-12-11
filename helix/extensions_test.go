@@ -1,0 +1,438 @@
+package helix
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"testing"
+)
+
+func TestClient_GetExtensionConfigurationSegment(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		if r.URL.Path != "/extensions/configurations" {
+			t.Errorf("expected /extensions/configurations, got %s", r.URL.Path)
+		}
+
+		resp := Response[ExtensionConfigurationSegment]{
+			Data: []ExtensionConfigurationSegment{
+				{
+					Segment:        "broadcaster",
+					BroadcasterID:  "12345",
+					Content:        `{"setting": "value"}`,
+					Version:        "1.0",
+				},
+			},
+		}
+		json.NewEncoder(w).Encode(resp)
+	})
+	defer server.Close()
+
+	resp, err := client.GetExtensionConfigurationSegment(context.Background(), &GetExtensionConfigurationSegmentParams{
+		ExtensionID:   "ext123",
+		Segment:       []string{"broadcaster"},
+		BroadcasterID: "12345",
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resp.Data) != 1 {
+		t.Fatalf("expected 1 segment, got %d", len(resp.Data))
+	}
+}
+
+func TestClient_SetExtensionConfigurationSegment(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Errorf("expected PUT, got %s", r.Method)
+		}
+
+		var body SetExtensionConfigurationSegmentParams
+		json.NewDecoder(r.Body).Decode(&body)
+
+		if body.ExtensionID != "ext123" {
+			t.Errorf("expected extension_id 'ext123', got %s", body.ExtensionID)
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+	defer server.Close()
+
+	err := client.SetExtensionConfigurationSegment(context.Background(), &SetExtensionConfigurationSegmentParams{
+		ExtensionID:   "ext123",
+		Segment:       "broadcaster",
+		BroadcasterID: "12345",
+		Content:       `{"setting": "new_value"}`,
+		Version:       "1.1",
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestClient_SetExtensionRequiredConfiguration(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Errorf("expected PUT, got %s", r.Method)
+		}
+		if r.URL.Path != "/extensions/required_configuration" {
+			t.Errorf("expected /extensions/required_configuration, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+	defer server.Close()
+
+	err := client.SetExtensionRequiredConfiguration(context.Background(), &SetExtensionRequiredConfigurationParams{
+		ExtensionID:           "ext123",
+		ExtensionVersion:      "1.0.0",
+		RequiredConfiguration: "config_version_1",
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestClient_SendExtensionPubSubMessage(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		if r.URL.Path != "/extensions/pubsub" {
+			t.Errorf("expected /extensions/pubsub, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+	defer server.Close()
+
+	err := client.SendExtensionPubSubMessage(context.Background(), &SendExtensionPubSubMessageParams{
+		Target:        []string{"broadcast"},
+		BroadcasterID: "12345",
+		Message:       `{"data": "test"}`,
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestClient_GetExtensionLiveChannels(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/extensions/live" {
+			t.Errorf("expected /extensions/live, got %s", r.URL.Path)
+		}
+
+		resp := Response[ExtensionLiveChannel]{
+			Data: []ExtensionLiveChannel{
+				{
+					BroadcasterID:   "12345",
+					BroadcasterName: "TestUser",
+					GameName:        "Test Game",
+					GameID:          "game123",
+					Title:           "Live Stream",
+				},
+			},
+		}
+		json.NewEncoder(w).Encode(resp)
+	})
+	defer server.Close()
+
+	resp, err := client.GetExtensionLiveChannels(context.Background(), &GetExtensionLiveChannelsParams{
+		ExtensionID: "ext123",
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resp.Data) != 1 {
+		t.Fatalf("expected 1 channel, got %d", len(resp.Data))
+	}
+}
+
+func TestClient_GetExtensionSecrets(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/extensions/jwt/secrets" {
+			t.Errorf("expected /extensions/jwt/secrets, got %s", r.URL.Path)
+		}
+
+		resp := Response[ExtensionSecret]{
+			Data: []ExtensionSecret{
+				{
+					FormatVersion: 1,
+					Secrets: []ExtensionSecretData{
+						{
+							Content:   "secret123",
+							ActiveAt:  "2024-01-01T00:00:00Z",
+							ExpiresAt: "2024-12-31T23:59:59Z",
+						},
+					},
+				},
+			},
+		}
+		json.NewEncoder(w).Encode(resp)
+	})
+	defer server.Close()
+
+	resp, err := client.GetExtensionSecrets(context.Background(), "ext123")
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resp.Data) != 1 {
+		t.Fatalf("expected 1 secret set, got %d", len(resp.Data))
+	}
+}
+
+func TestClient_CreateExtensionSecret(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+
+		resp := Response[ExtensionSecret]{
+			Data: []ExtensionSecret{
+				{
+					FormatVersion: 1,
+					Secrets: []ExtensionSecretData{
+						{Content: "newsecret"},
+					},
+				},
+			},
+		}
+		json.NewEncoder(w).Encode(resp)
+	})
+	defer server.Close()
+
+	resp, err := client.CreateExtensionSecret(context.Background(), "ext123", 300)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resp.Data) != 1 {
+		t.Fatalf("expected 1 secret set, got %d", len(resp.Data))
+	}
+}
+
+func TestClient_SendExtensionChatMessage(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		if r.URL.Path != "/extensions/chat" {
+			t.Errorf("expected /extensions/chat, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+	defer server.Close()
+
+	err := client.SendExtensionChatMessage(context.Background(), &SendExtensionChatMessageParams{
+		BroadcasterID:    "12345",
+		Text:             "Hello from extension!",
+		ExtensionID:      "ext123",
+		ExtensionVersion: "1.0.0",
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestClient_GetExtensions(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/extensions" {
+			t.Errorf("expected /extensions, got %s", r.URL.Path)
+		}
+
+		resp := Response[Extension]{
+			Data: []Extension{
+				{
+					ID:                       "ext123",
+					Name:                     "Test Extension",
+					Version:                  "1.0.0",
+					State:                    "Released",
+					AuthorName:               "TestDev",
+					CanInstall:               true,
+					HasChatSupport:           true,
+					ConfigurationLocation:    "hosted",
+					Description:              "A test extension",
+					EULAToSURL:               "https://example.com/eula",
+					IconURL:                  "https://example.com/icon.png",
+					PrivacyPolicyURL:         "https://example.com/privacy",
+					RequestIdentityLink:      false,
+					SubscriptionsSupportLevel: "optional",
+					Summary:                  "Test summary",
+				},
+			},
+		}
+		json.NewEncoder(w).Encode(resp)
+	})
+	defer server.Close()
+
+	resp, err := client.GetExtensions(context.Background(), "ext123", "")
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resp.Data) != 1 {
+		t.Fatalf("expected 1 extension, got %d", len(resp.Data))
+	}
+	if resp.Data[0].Name != "Test Extension" {
+		t.Errorf("expected name 'Test Extension', got %s", resp.Data[0].Name)
+	}
+}
+
+func TestClient_GetReleasedExtensions(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/extensions/released" {
+			t.Errorf("expected /extensions/released, got %s", r.URL.Path)
+		}
+
+		resp := Response[Extension]{
+			Data: []Extension{
+				{
+					ID:      "ext123",
+					Name:    "Released Extension",
+					Version: "2.0.0",
+					State:   "Released",
+				},
+			},
+		}
+		json.NewEncoder(w).Encode(resp)
+	})
+	defer server.Close()
+
+	resp, err := client.GetReleasedExtensions(context.Background(), "ext123", "")
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resp.Data) != 1 {
+		t.Fatalf("expected 1 extension, got %d", len(resp.Data))
+	}
+}
+
+func TestClient_GetExtensionBitsProducts(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/bits/extensions" {
+			t.Errorf("expected /bits/extensions, got %s", r.URL.Path)
+		}
+
+		resp := Response[ExtensionBitsProduct]{
+			Data: []ExtensionBitsProduct{
+				{
+					SKU:        "product123",
+					Cost:       ExtensionBitsCost{Amount: 100, Type: "bits"},
+					InDevelopment: false,
+					DisplayName:   "Test Product",
+					Expiration:    "",
+					IsBroadcast:   true,
+				},
+			},
+		}
+		json.NewEncoder(w).Encode(resp)
+	})
+	defer server.Close()
+
+	resp, err := client.GetExtensionBitsProducts(context.Background(), &GetExtensionBitsProductsParams{
+		ShouldIncludeAll: true,
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resp.Data) != 1 {
+		t.Fatalf("expected 1 product, got %d", len(resp.Data))
+	}
+}
+
+func TestClient_UpdateExtensionBitsProduct(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Errorf("expected PUT, got %s", r.Method)
+		}
+
+		resp := Response[ExtensionBitsProduct]{
+			Data: []ExtensionBitsProduct{
+				{
+					SKU:         "product123",
+					DisplayName: "Updated Product",
+				},
+			},
+		}
+		json.NewEncoder(w).Encode(resp)
+	})
+	defer server.Close()
+
+	resp, err := client.UpdateExtensionBitsProduct(context.Background(), &UpdateExtensionBitsProductParams{
+		SKU:           "product123",
+		Cost:          ExtensionBitsCost{Amount: 200, Type: "bits"},
+		DisplayName:   "Updated Product",
+		InDevelopment: false,
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resp.Data) != 1 {
+		t.Fatalf("expected 1 product, got %d", len(resp.Data))
+	}
+}
+
+func TestClient_GetExtensionTransactions(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/extensions/transactions" {
+			t.Errorf("expected /extensions/transactions, got %s", r.URL.Path)
+		}
+
+		extensionID := r.URL.Query().Get("extension_id")
+		if extensionID != "ext123" {
+			t.Errorf("expected extension_id 'ext123', got %s", extensionID)
+		}
+
+		resp := Response[ExtensionTransaction]{
+			Data: []ExtensionTransaction{
+				{
+					ID:               "tx123",
+					Timestamp:        "2024-01-15T12:00:00Z",
+					BroadcasterID:    "12345",
+					BroadcasterLogin: "testuser",
+					BroadcasterName:  "TestUser",
+					UserID:           "67890",
+					UserLogin:        "buyer",
+					UserName:         "Buyer",
+					ProductType:      "BITS_IN_EXTENSION",
+					ProductData: ExtensionTransactionProduct{
+						SKU:           "product123",
+						Cost:          ExtensionBitsCost{Amount: 100, Type: "bits"},
+						InDevelopment: false,
+						DisplayName:   "Test Product",
+					},
+				},
+			},
+			Pagination: &Pagination{Cursor: "next-cursor"},
+		}
+		json.NewEncoder(w).Encode(resp)
+	})
+	defer server.Close()
+
+	resp, err := client.GetExtensionTransactions(context.Background(), &GetExtensionTransactionsParams{
+		ExtensionID: "ext123",
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resp.Data) != 1 {
+		t.Fatalf("expected 1 transaction, got %d", len(resp.Data))
+	}
+	if resp.Data[0].ProductData.SKU != "product123" {
+		t.Errorf("expected SKU 'product123', got %s", resp.Data[0].ProductData.SKU)
+	}
+}

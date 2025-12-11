@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Test binaries
+*.test
+
+# Coverage
+coverage.out
+
+# Environment
+.env
+.env.local
