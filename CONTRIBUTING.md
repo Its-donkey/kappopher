@@ -1,4 +1,4 @@
-# Contributing to Twitch Bot
+# Contributing to Twitch Helix API Client
 
 Thank you for your interest in contributing to this project! This document provides guidelines and instructions for contributing.
 
@@ -18,12 +18,12 @@ Please be respectful and constructive in all interactions. We welcome contributo
 1. Fork the repository
 2. Clone your fork:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/twitch-bot.git
-   cd twitch-bot
+   git clone https://github.com/YOUR_USERNAME/helix.git
+   cd helix
    ```
 3. Add the upstream remote:
    ```bash
-   git remote add upstream https://github.com/jeffkabot/twitch-bot.git
+   git remote add upstream https://github.com/Its-donkey/helix.git
    ```
 4. Install dependencies:
    ```bash
