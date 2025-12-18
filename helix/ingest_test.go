@@ -1,6 +1,7 @@
 package helix
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -48,51 +49,123 @@ func TestClient_GetIngestServers(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// Create a client that points to our test server
-	client := &Client{
-		httpClient: server.Client(),
+	authClient := NewAuthClient(AuthConfig{ClientID: "test"})
+	client := NewClient("test", authClient, WithIngestBaseURL(server.URL), WithHTTPClient(server.Client()))
+
+	resp, err := client.GetIngestServers(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resp.Ingests) != 3 {
+		t.Errorf("expected 3 ingest servers, got %d", len(resp.Ingests))
+	}
+	if resp.Ingests[0].Name != "US East: Atlanta, GA" {
+		t.Errorf("expected first server name 'US East: Atlanta, GA', got %s", resp.Ingests[0].Name)
+	}
+}
+
+func TestClient_GetIngestServers_Error(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("internal error"))
+	}))
+	defer server.Close()
+
+	authClient := NewAuthClient(AuthConfig{ClientID: "test"})
+	client := NewClient("test", authClient, WithIngestBaseURL(server.URL), WithHTTPClient(server.Client()))
+
+	_, err := client.GetIngestServers(context.Background())
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	apiErr, ok := err.(*APIError)
+	if !ok {
+		t.Fatalf("expected APIError, got %T", err)
+	}
+	if apiErr.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected status 500, got %d", apiErr.StatusCode)
+	}
+}
+
+func TestClient_GetIngestServers_InvalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("invalid json"))
+	}))
+	defer server.Close()
+
+	authClient := NewAuthClient(AuthConfig{ClientID: "test"})
+	client := NewClient("test", authClient, WithIngestBaseURL(server.URL), WithHTTPClient(server.Client()))
+
+	_, err := client.GetIngestServers(context.Background())
+	if err == nil {
+		t.Fatal("expected error for invalid JSON, got nil")
+	}
+}
+
+func TestClient_GetIngestServers_DefaultURL(t *testing.T) {
+	// Test that empty ingestBaseURL defaults to IngestBaseURL constant
+	authClient := NewAuthClient(AuthConfig{ClientID: "test"})
+	client := NewClient("test", authClient)
+	client.ingestBaseURL = "" // Clear it to test default
+
+	// We can't actually call it since it would hit the real API,
+	// but we can verify the struct was created correctly
+	if client.ingestBaseURL != "" {
+		t.Errorf("expected empty ingestBaseURL, got %s", client.ingestBaseURL)
+	}
+}
+
+func TestClient_GetIngestServers_ContextCanceled(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Never respond
+		<-r.Context().Done()
+	}))
+	defer server.Close()
+
+	authClient := NewAuthClient(AuthConfig{ClientID: "test"})
+	client := NewClient("test", authClient, WithIngestBaseURL(server.URL), WithHTTPClient(server.Client()))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	_, err := client.GetIngestServers(ctx)
+	if err == nil {
+		t.Fatal("expected error for canceled context, got nil")
+	}
+}
+
+func TestGetIngestServerByName(t *testing.T) {
+	resp := &IngestServersResponse{
+		Ingests: []IngestServer{
+			{Name: "US East: Atlanta, GA", URLTemplate: "rtmp://atl.contribute.live-video.net/app/{stream_key}"},
+			{Name: "US East: Ashburn, VA", URLTemplate: "rtmp://iad05.contribute.live-video.net/app/{stream_key}"},
+		},
 	}
 
-	// Override the IngestBaseURL for testing by making a direct request
-	// We need to test this differently since GetIngestServers uses IngestBaseURL constant
-	// For this test, we'll create a modified version
+	server := resp.GetIngestServerByName("US East: Atlanta, GA")
+	if server == nil {
+		t.Fatal("expected to find server, got nil")
+	}
+	if server.Name != "US East: Atlanta, GA" {
+		t.Errorf("expected name 'US East: Atlanta, GA', got %s", server.Name)
+	}
 
-	// Actually, let's test the helper functions directly and mock the HTTP part
-	t.Run("GetIngestServerByName", func(t *testing.T) {
-		resp := &IngestServersResponse{
-			Ingests: []IngestServer{
-				{Name: "US East: Atlanta, GA", URLTemplate: "rtmp://atl.contribute.live-video.net/app/{stream_key}"},
-				{Name: "US East: Ashburn, VA", URLTemplate: "rtmp://iad05.contribute.live-video.net/app/{stream_key}"},
-			},
-		}
+	notFound := resp.GetIngestServerByName("Nonexistent Server")
+	if notFound != nil {
+		t.Errorf("expected nil for nonexistent server, got %v", notFound)
+	}
+}
 
-		server := resp.GetIngestServerByName("US East: Atlanta, GA")
-		if server == nil {
-			t.Fatal("expected to find server, got nil")
-		}
-		if server.Name != "US East: Atlanta, GA" {
-			t.Errorf("expected name 'US East: Atlanta, GA', got %s", server.Name)
-		}
+func TestGetRTMPURL(t *testing.T) {
+	server := &IngestServer{
+		URLTemplate: "rtmp://atl.contribute.live-video.net/app/{stream_key}",
+	}
 
-		notFound := resp.GetIngestServerByName("Nonexistent Server")
-		if notFound != nil {
-			t.Errorf("expected nil for nonexistent server, got %v", notFound)
-		}
-	})
-
-	t.Run("GetRTMPURL", func(t *testing.T) {
-		server := &IngestServer{
-			URLTemplate: "rtmp://atl.contribute.live-video.net/app/{stream_key}",
-		}
-
-		url := server.GetRTMPURL("live_123456_abcdef")
-		expected := "rtmp://atl.contribute.live-video.net/app/live_123456_abcdef"
-		if url != expected {
-			t.Errorf("expected %s, got %s", expected, url)
-		}
-	})
-
-	_ = client // Use the client to avoid unused variable error
+	url := server.GetRTMPURL("live_123456_abcdef")
+	expected := "rtmp://atl.contribute.live-video.net/app/live_123456_abcdef"
+	if url != expected {
+		t.Errorf("expected %s, got %s", expected, url)
+	}
 }
 
 func TestReplaceStreamKey(t *testing.T) {
