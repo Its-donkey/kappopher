@@ -134,6 +134,8 @@ if err != nil {
 
 Get all users allowed to moderate a broadcaster's chat room.
 
+**Note:** This endpoint returns both Moderators and Lead Moderators, as Lead Moderators are also Moderators with additional privileges.
+
 **Requires:** `moderation:read`
 
 ```go
