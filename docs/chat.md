@@ -261,6 +261,116 @@ for _, badgeSet := range resp.Data {
 }
 ```
 
+## Badge Constants and Helpers
+
+The library provides constants for common badge SetIDs and helper functions for working with badges in EventSub chat events.
+
+### Badge Constants
+
+```go
+// Channel role badges
+helix.BadgeBroadcaster   // "broadcaster"
+helix.BadgeModerator     // "moderator"
+helix.BadgeLeadModerator // "lead_moderator"
+helix.BadgeVIP           // "vip"
+
+// Subscription badges
+helix.BadgeSubscriber    // "subscriber"
+helix.BadgeFounder       // "founder"
+helix.BadgeSubGifter     // "sub-gifter"
+
+// Bits badges
+helix.BadgeBits          // "bits"
+helix.BadgeBitsLeader    // "bits-leader"
+
+// Twitch staff badges
+helix.BadgeStaff         // "staff"
+helix.BadgeAdmin         // "admin"
+helix.BadgeGlobalMod     // "global_mod"
+
+// Other badges
+helix.BadgePartner       // "partner"
+helix.BadgePremium       // "premium"
+helix.BadgeArtist        // "artist"
+helix.BadgePredictions   // "predictions"
+helix.BadgeHypeTrain     // "hype-train"
+```
+
+### Lead Moderator Badge
+
+The `lead_moderator` badge was introduced for the Lead Moderator role. Lead Moderators have additional privileges to help streamers manage their mod teams. They can choose to display either the Lead Moderator badge or the regular Moderator badge.
+
+**Important:** If your application checks for the `moderator` badge to confirm moderator privileges, you should update your logic to check for either `moderator` OR `lead_moderator`. Use the `HasModeratorPrivileges()` helper method for this purpose.
+
+### Badge Helper Methods
+
+Convert EventSub badges to use helper methods:
+
+```go
+// In an EventSub chat message handler
+func handleChatMessage(event *helix.ChannelChatMessageEvent) {
+    // Convert badges to use helper methods
+    badges := helix.ToChatEventBadges(event.Badges)
+
+    // Check for moderator privileges (handles both moderator and lead_moderator)
+    if badges.HasModeratorPrivileges() {
+        fmt.Printf("%s is a moderator\n", event.ChatterUserName)
+    }
+
+    // Check for broadcaster
+    if badges.HasBroadcasterPrivileges() {
+        fmt.Printf("%s is the broadcaster\n", event.ChatterUserName)
+    }
+
+    // Check for VIP
+    if badges.HasVIPStatus() {
+        fmt.Printf("%s is a VIP\n", event.ChatterUserName)
+    }
+
+    // Check for subscriber (includes founders)
+    if badges.IsSubscriber() {
+        fmt.Printf("%s is a subscriber\n", event.ChatterUserName)
+    }
+
+    // Check for Twitch staff (staff, admin, global_mod)
+    if badges.IsStaff() {
+        fmt.Printf("%s is Twitch staff\n", event.ChatterUserName)
+    }
+}
+```
+
+### Available Helper Methods
+
+| Method | Description |
+|--------|-------------|
+| `HasBadge(setID)` | Check if user has a specific badge |
+| `HasAnyBadge(setIDs...)` | Check if user has any of the specified badges |
+| `HasModeratorPrivileges()` | Check for `moderator` OR `lead_moderator` badge |
+| `HasBroadcasterPrivileges()` | Check for `broadcaster` badge |
+| `HasVIPStatus()` | Check for `vip` badge |
+| `IsSubscriber()` | Check for `subscriber` OR `founder` badge |
+| `IsStaff()` | Check for `staff`, `admin`, OR `global_mod` badge |
+| `GetBadge(setID)` | Get a specific badge or nil if not found |
+
+### Example: Moderator Check with Lead Moderator Support
+
+```go
+// OLD: Only checks for moderator badge (misses Lead Moderators)
+func isModeratorOld(badges []helix.ChatEventBadge) bool {
+    for _, badge := range badges {
+        if badge.SetID == "moderator" {
+            return true
+        }
+    }
+    return false
+}
+
+// NEW: Properly checks for both moderator and lead_moderator
+func isModeratorNew(badges []helix.ChatEventBadge) bool {
+    return helix.ToChatEventBadges(badges).HasModeratorPrivileges()
+}
+```
+
 ## GetChatSettings
 
 Get chat settings for a broadcaster's chat room.
