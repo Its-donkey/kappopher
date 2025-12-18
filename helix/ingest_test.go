@@ -3,10 +3,21 @@ package helix
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
+
+// roundTripperFunc is a helper type for testing custom HTTP transports.
+type roundTripperFunc struct {
+	fn func(*http.Request) (*http.Response, error)
+}
+
+func (rt *roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return rt.fn(req)
+}
 
 func TestClient_GetIngestServers(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -104,14 +115,32 @@ func TestClient_GetIngestServers_InvalidJSON(t *testing.T) {
 
 func TestClient_GetIngestServers_DefaultURL(t *testing.T) {
 	// Test that empty ingestBaseURL defaults to IngestBaseURL constant
+	// Use a custom transport to intercept the request and verify the URL
+	var requestedURL string
+	transport := &roundTripperFunc{fn: func(req *http.Request) (*http.Response, error) {
+		requestedURL = req.URL.String()
+		// Return a valid response
+		resp := &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(`{"ingests":[]}`)),
+			Header:     make(http.Header),
+		}
+		return resp, nil
+	}}
+
 	authClient := NewAuthClient(AuthConfig{ClientID: "test"})
-	client := NewClient("test", authClient)
+	client := NewClient("test", authClient, WithHTTPClient(&http.Client{Transport: transport}))
 	client.ingestBaseURL = "" // Clear it to test default
 
-	// We can't actually call it since it would hit the real API,
-	// but we can verify the struct was created correctly
-	if client.ingestBaseURL != "" {
-		t.Errorf("expected empty ingestBaseURL, got %s", client.ingestBaseURL)
+	_, err := client.GetIngestServers(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Verify the default URL was used
+	expectedURL := IngestBaseURL + "/ingests"
+	if requestedURL != expectedURL {
+		t.Errorf("expected URL %s, got %s", expectedURL, requestedURL)
 	}
 }
 
