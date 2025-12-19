@@ -102,6 +102,22 @@ func (r *OperationsRegistry) loadKnownOperations() {
 			DiscoveredAt: now,
 		},
 		{
+			Name:        "UserRolesCacheQuery",
+			Type:        OperationQuery,
+			Description: "Get all user roles for a channel (editors, mods, VIPs, artists, lead mods)",
+			SHA256Hash:  "5dc1290081dfd59b1a481cbe961d23f9b0636ddfd439d1f13f3a0f35bf818bb5",
+			Variables: []VariableDefinition{
+				{Name: "channelID", Type: "ID!", Required: true},
+				{Name: "includeEditors", Type: "Boolean", Required: false},
+				{Name: "includeMods", Type: "Boolean", Required: false},
+				{Name: "includeVIPs", Type: "Boolean", Required: false},
+				{Name: "includeArtists", Type: "Boolean", Required: false},
+				{Name: "includeLeadMods", Type: "Boolean", Required: false},
+			},
+			Source:      SourceKnownList,
+			DiscoveredAt: now,
+		},
+		{
 			Name:        "UserByID",
 			Type:        OperationQuery,
 			Description: "Get user by ID",
