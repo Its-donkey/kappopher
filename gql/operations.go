@@ -475,6 +475,23 @@ func (r *OperationsRegistry) loadKnownOperations() {
 			DiscoveredAt: now,
 		},
 
+		// Analytics/Telemetry mutations
+		{
+			Name:        "SendEvents",
+			Type:        OperationMutation,
+			Description: "Send analytics/telemetry events to Spade",
+			Query: `mutation SendEvents($input: SendSpadeEventsInput!) {
+    sendSpadeEvents(input: $input) {
+      statusCode
+    }
+  }`,
+			Variables: []VariableDefinition{
+				{Name: "input", Type: "SendSpadeEventsInput!", Required: true},
+			},
+			Source:      SourceKnownList,
+			DiscoveredAt: now,
+		},
+
 		// Moderation mutations
 		{
 			Name:        "Chat_BanUserFromChatRoom",
