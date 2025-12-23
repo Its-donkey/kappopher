@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -540,12 +541,12 @@ func TestClientHandleMessageWithNilHandlers(t *testing.T) {
 }
 
 func TestClientReconnect(t *testing.T) {
-	connectCount := 0
-	reconnectCalled := false
-	disconnectCalled := false
+	var connectCount int32
+	var reconnectCalled int32
+	var disconnectCalled int32
 
 	server := createMockIRCServer(t, func(conn *websocket.Conn) {
-		connectCount++
+		count := atomic.AddInt32(&connectCount, 1)
 		for {
 			_, data, err := conn.ReadMessage()
 			if err != nil {
@@ -558,7 +559,7 @@ func TestClientReconnect(t *testing.T) {
 			} else if strings.HasPrefix(msg, "NICK") {
 				_ = conn.WriteMessage(websocket.TextMessage, []byte(":tmi.twitch.tv 001 testuser :Welcome\r\n"))
 				// On first connect, close immediately to trigger reconnect
-				if connectCount == 1 {
+				if count == 1 {
 					return
 				}
 			}
@@ -572,8 +573,8 @@ func TestClientReconnect(t *testing.T) {
 		WithURL(wsURL),
 		WithAutoReconnect(true),
 		WithReconnectDelay(100*time.Millisecond),
-		WithReconnectHandler(func() { reconnectCalled = true }),
-		WithDisconnectHandler(func() { disconnectCalled = true }),
+		WithReconnectHandler(func() { atomic.StoreInt32(&reconnectCalled, 1) }),
+		WithDisconnectHandler(func() { atomic.StoreInt32(&disconnectCalled, 1) }),
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -587,16 +588,16 @@ func TestClientReconnect(t *testing.T) {
 	// Wait for reconnect
 	time.Sleep(500 * time.Millisecond)
 
-	if !disconnectCalled {
+	if atomic.LoadInt32(&disconnectCalled) == 0 {
 		t.Error("Disconnect handler should be called")
 	}
 
-	if !reconnectCalled {
+	if atomic.LoadInt32(&reconnectCalled) == 0 {
 		t.Error("Reconnect handler should be called")
 	}
 
-	if connectCount < 2 {
-		t.Errorf("Should have connected at least twice, got %d", connectCount)
+	if atomic.LoadInt32(&connectCount) < 2 {
+		t.Errorf("Should have connected at least twice, got %d", atomic.LoadInt32(&connectCount))
 	}
 
 	_ = client.Close()
@@ -873,11 +874,11 @@ func TestWaitForAuthImproperFormat(t *testing.T) {
 }
 
 func TestReconnectWithError(t *testing.T) {
-	connectCount := 0
-	errorReceived := false
+	var connectCount int32
+	var errorReceived int32
 
 	server := createMockIRCServer(t, func(conn *websocket.Conn) {
-		connectCount++
+		count := atomic.AddInt32(&connectCount, 1)
 		for {
 			_, data, err := conn.ReadMessage()
 			if err != nil {
@@ -888,7 +889,7 @@ func TestReconnectWithError(t *testing.T) {
 			if strings.HasPrefix(msg, "CAP REQ") {
 				_ = conn.WriteMessage(websocket.TextMessage, []byte(":tmi.twitch.tv CAP * ACK :twitch.tv/tags\r\n"))
 			} else if strings.HasPrefix(msg, "NICK") {
-				if connectCount == 1 {
+				if count == 1 {
 					_ = conn.WriteMessage(websocket.TextMessage, []byte(":tmi.twitch.tv 001 testuser :Welcome\r\n"))
 					return // Close to trigger reconnect
 				} else {
@@ -907,7 +908,7 @@ func TestReconnectWithError(t *testing.T) {
 		WithURL(wsURL),
 		WithAutoReconnect(true),
 		WithReconnectDelay(50*time.Millisecond),
-		WithErrorHandler(func(err error) { errorReceived = true }),
+		WithErrorHandler(func(err error) { atomic.StoreInt32(&errorReceived, 1) }),
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -923,7 +924,7 @@ func TestReconnectWithError(t *testing.T) {
 
 	_ = client.Close()
 
-	if !errorReceived {
+	if atomic.LoadInt32(&errorReceived) == 0 {
 		t.Error("Error handler should be called on reconnect failure")
 	}
 }
@@ -1167,12 +1168,11 @@ func TestPingNotConnected(t *testing.T) {
 }
 
 func TestChannelsRejoinedOnReconnect(t *testing.T) {
-	connectCount := 0
-	joinCount := 0
+	var connectCount int32
+	var joinCount int32
 
 	server := createMockIRCServer(t, func(conn *websocket.Conn) {
-		connectCount++
-		currentConnect := connectCount
+		currentConnect := atomic.AddInt32(&connectCount, 1)
 		for {
 			_, data, err := conn.ReadMessage()
 			if err != nil {
@@ -1185,7 +1185,7 @@ func TestChannelsRejoinedOnReconnect(t *testing.T) {
 			} else if strings.HasPrefix(msg, "NICK") {
 				_ = conn.WriteMessage(websocket.TextMessage, []byte(":tmi.twitch.tv 001 testuser :Welcome\r\n"))
 			} else if strings.HasPrefix(msg, "JOIN") {
-				joinCount++
+				atomic.AddInt32(&joinCount, 1)
 				if currentConnect == 1 {
 					// Close after first connect to trigger reconnect
 					time.Sleep(10 * time.Millisecond)
@@ -1220,11 +1220,11 @@ func TestChannelsRejoinedOnReconnect(t *testing.T) {
 
 	_ = client.Close()
 
-	if connectCount < 2 {
-		t.Errorf("Should have connected at least twice, got %d", connectCount)
+	if atomic.LoadInt32(&connectCount) < 2 {
+		t.Errorf("Should have connected at least twice, got %d", atomic.LoadInt32(&connectCount))
 	}
 
-	if joinCount < 2 {
-		t.Errorf("JOIN should be sent at least twice (initial + reconnect), got %d", joinCount)
+	if atomic.LoadInt32(&joinCount) < 2 {
+		t.Errorf("JOIN should be sent at least twice (initial + reconnect), got %d", atomic.LoadInt32(&joinCount))
 	}
 }
