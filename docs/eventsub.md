@@ -235,6 +235,34 @@ The following constants are available for EventSub subscription types:
 - `EventSubTypeChannelHypeTrainProgress` - Hype Train progress update
 - `EventSubTypeChannelHypeTrainEnd` - Hype Train ended
 
+**Version Support:** Hype Train events default to v2. Use version constants for explicit selection:
+
+```go
+// Use v2 (default) - includes Type, IsSharedTrain, SharedTrainParticipants
+resp, err := client.CreateEventSubSubscription(ctx, &helix.CreateEventSubSubscriptionParams{
+    Type:    helix.EventSubTypeChannelHypeTrainBegin,
+    Version: helix.EventSubVersionHypeTrainV2, // or omit for default v2
+    // ...
+})
+
+// Use v1 for backwards compatibility - includes IsGoldenKappaTrain
+resp, err := client.CreateEventSubSubscription(ctx, &helix.CreateEventSubSubscriptionParams{
+    Type:    helix.EventSubTypeChannelHypeTrainBegin,
+    Version: helix.EventSubVersionHypeTrainV1,
+    // ...
+})
+```
+
+**V2 Fields:**
+- `Type` - Hype train type: `regular`, `golden_kappa`, or `shared`
+- `IsSharedTrain` - Whether this is a shared hype train across multiple channels
+- `SharedTrainParticipants` - List of participating broadcasters (for shared trains)
+- `AllTimeHighLevel` - Channel's all-time highest hype train level
+- `AllTimeHighTotal` - Channel's all-time highest hype train total
+
+**V1 Compatibility:**
+- `IsGoldenKappaTrain` - Only present in v1 events (deprecated in v2, use `Type == "golden_kappa"` instead)
+
 ### Stream Events
 
 - `EventSubTypeStreamOnline` - Stream went online
