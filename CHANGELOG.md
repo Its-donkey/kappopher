@@ -13,6 +13,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.0.1] - 2026-01-18 ([#37](https://github.com/Its-donkey/kappopher/pull/37))
+
+### Added
+- Separate `docs/hype-train.md` documentation for Hype Train API
+- Documentation for `GetHypeTrainStatus` endpoint (previously undocumented)
+
+### Changed
+- Separated Hype Train API into its own file (`helix/hype_train.go`) to match Twitch API structure
+- Updated Goals and Hype Train tests to use official Twitch API response samples
+- Updated `docs/goals.md` to focus on Goals API only
+- Updated `docs/README.md` to list Goals and Hype Train as separate entries
+
+### Fixed
+- WebSocket `Close()` and `Reconnect()` now set an immediate read deadline before closing to ensure `ReadMessage` unblocks quickly
+- WebSocket error handler no longer reports expected close errors (connection closed, timeout during shutdown)
+- IRC `Reconnect()` now properly triggers auto-reconnect when Twitch sends a RECONNECT command
+- IRC reconnect loop now checks if auto-reconnect was disabled during the delay period
+
 ## [1.0.0] - 2026-01-15 ([#34](https://github.com/Its-donkey/kappopher/pull/34))
 
 ### Added
