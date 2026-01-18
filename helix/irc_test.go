@@ -2076,56 +2076,31 @@ func TestIRCClient_Join_SendError(t *testing.T) {
 }
 
 func TestIRCClient_Part_SendError(t *testing.T) {
-	closeSignal := make(chan struct{})
-	mock := newMockIRCServer(func(conn *websocket.Conn) {
-		defer func() { _ = conn.Close() }()
-		_ = conn.WriteMessage(websocket.TextMessage, []byte(":tmi.twitch.tv 001 testuser :Welcome\r\n"))
-		select {
-		case <-closeSignal:
-		case <-time.After(5 * time.Second):
-		}
-	})
-	defer mock.Close()
-
+	// Test that Part returns an error when the connection is nil
+	// We simulate this by setting connected=true but conn=nil on a fresh client
 	client := NewIRCClient("testuser", "token",
-		WithIRCURL(mock.URL()),
 		WithAutoReconnect(false),
 	)
 
-	// Join first
+	// Join a channel (this just records the channel, doesn't actually send)
 	_ = client.Join("testchannel")
 
-	ctx := context.Background()
-	err := client.Connect(ctx)
-	if err != nil {
-		t.Fatalf("Connect failed: %v", err)
-	}
-
-	// Nil out the connection to cause send error
-	// Note: we don't actually close it here since closing a websocket
-	// doesn't guarantee WriteMessage will fail immediately
-	// We must also keep connected=true to prevent Part from returning early
+	// Manually set connected=true to simulate a "connected" state
+	// but leave conn=nil to cause the send to fail
 	client.mu.Lock()
-	savedConn := client.conn
-	client.conn = nil
-	client.connected = true // Keep connected=true so Part tries to send
+	client.connected = true
 	client.mu.Unlock()
 
-	close(closeSignal)
-
 	// Part should fail due to nil connection
-	err = client.Part("testchannel")
+	err := client.Part("testchannel")
 	if err == nil {
 		t.Error("expected error for Part with nil connection")
 	}
 
-	// Restore and close properly
+	// Reset state for cleanup
 	client.mu.Lock()
-	client.conn = savedConn
-	client.connected = true
+	client.connected = false
 	client.mu.Unlock()
-
-	_ = client.Close()
 }
 
 func TestIRCClient_Ping_SendError(t *testing.T) {
