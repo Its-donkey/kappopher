@@ -86,4 +86,5 @@ jobs:
           report: true
           chart: true
           amend: true
+          github-token: ${{ secrets.COVERAGE_TOKEN }}
         if: github.event_name == 'push'
