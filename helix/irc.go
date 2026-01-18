@@ -1,6 +1,7 @@
 package helix
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -79,8 +80,8 @@ type IRCClient struct {
 	mu           sync.RWMutex
 	connected    bool
 	stopChan     chan struct{}
-	stopOnce     sync.Once       // ensures stopChan is closed only once
-	wg           sync.WaitGroup  // tracks readLoop goroutine
+	stopOnce     sync.Once      // ensures stopChan is closed only once
+	wg           sync.WaitGroup // tracks readLoop goroutine
 	writeMu      sync.Mutex
 	globalState  *GlobalUserState
 	pongReceived chan struct{}
@@ -95,9 +96,8 @@ type IRCClient struct {
 type IRCOption func(*IRCClient)
 
 // NewIRCClient creates a new IRC client.
-// Returns nil if nick or token is empty.
 func NewIRCClient(nick, token string, opts ...IRCOption) *IRCClient {
-	// Validate inputs
+	// Validate required inputs
 	if nick == "" || token == "" {
 		return nil
 	}
@@ -279,7 +279,6 @@ func (c *IRCClient) Connect(ctx context.Context) error {
 	c.mu.Lock()
 	c.conn = conn
 	c.stopChan = make(chan struct{})
-	c.stopOnce = sync.Once{} // reset for new connection
 	c.mu.Unlock()
 
 	// Request capabilities
@@ -385,7 +384,6 @@ func (c *IRCClient) readLoop() {
 	defer func() {
 		c.mu.Lock()
 		wasConnected := c.connected
-		autoReconnect := c.autoReconnect
 		c.connected = false
 		if c.conn != nil {
 			_ = c.conn.Close()
@@ -397,10 +395,12 @@ func (c *IRCClient) readLoop() {
 		}
 
 		// Auto-reconnect
-		if wasConnected && autoReconnect {
+		if wasConnected && c.autoReconnect {
 			go c.reconnect()
 		}
 	}()
+
+	reader := bufio.NewReader(nil)
 
 	for {
 		// Capture connection and stopChan under lock
@@ -428,6 +428,8 @@ func (c *IRCClient) readLoop() {
 			}
 			return
 		}
+
+		reader.Reset(strings.NewReader(string(data)))
 
 		lines := strings.Split(string(data), "\r\n")
 		for _, line := range lines {
@@ -537,29 +539,25 @@ func (c *IRCClient) handleMessage(raw string) {
 		}
 
 	case ircRECONNECT:
-		// Twitch is requesting we reconnect - close connection and let readLoop handle reconnection.
-		// Don't set connected=false here; readLoop's defer will do it after capturing wasConnected=true.
+		// Twitch is requesting we reconnect
+		if c.onReconnect != nil {
+			c.onReconnect()
+		}
 		c.mu.Lock()
 		if c.conn != nil {
 			_ = c.conn.Close()
 		}
 		c.mu.Unlock()
+		// Note: connected stays true so readLoop's defer will trigger auto-reconnect
 	}
 }
 
 // reconnect attempts to reconnect to IRC.
 func (c *IRCClient) reconnect() {
 	for {
-		// Capture state under lock
 		c.mu.RLock()
 		stopChan := c.stopChan
-		autoReconnect := c.autoReconnect
 		c.mu.RUnlock()
-
-		// Check if we should stop reconnecting
-		if !autoReconnect {
-			return
-		}
 
 		select {
 		case <-stopChan:
@@ -567,11 +565,11 @@ func (c *IRCClient) reconnect() {
 		case <-time.After(c.reconnectDelay):
 		}
 
-		// Re-check autoReconnect after delay
+		// Check if auto-reconnect was disabled during the delay
 		c.mu.RLock()
-		autoReconnect = c.autoReconnect
+		shouldReconnect := c.autoReconnect
 		c.mu.RUnlock()
-		if !autoReconnect {
+		if !shouldReconnect {
 			return
 		}
 
@@ -612,24 +610,22 @@ func (c *IRCClient) send(message string) error {
 // Close closes the IRC connection.
 func (c *IRCClient) Close() error {
 	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	if !c.connected {
-		c.mu.Unlock()
 		return nil
 	}
 
 	c.autoReconnect = false
 	c.connected = false
 
-	// Signal readLoop to stop (only once to prevent panic)
 	if c.stopChan != nil {
-		c.stopOnce.Do(func() {
-			close(c.stopChan)
-		})
+		close(c.stopChan)
 	}
-	c.mu.Unlock()
 
-	// Wait for readLoop to finish (it will close the connection)
-	c.wg.Wait()
+	if c.conn != nil {
+		return c.conn.Close()
+	}
 
 	return nil
 }
@@ -724,14 +720,10 @@ func (c *IRCClient) GetJoinedChannels() []string {
 
 // Ping sends a PING and waits for PONG.
 func (c *IRCClient) Ping(ctx context.Context) error {
-	// Drain all pending pongs
-	for {
-		select {
-		case <-c.pongReceived:
-			continue
-		default:
-		}
-		break
+	// Clear any pending pong
+	select {
+	case <-c.pongReceived:
+	default:
 	}
 
 	if err := c.send("PING :tmi.twitch.tv"); err != nil {
