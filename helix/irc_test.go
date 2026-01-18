@@ -2104,9 +2104,11 @@ func TestIRCClient_Part_SendError(t *testing.T) {
 	// Nil out the connection to cause send error
 	// Note: we don't actually close it here since closing a websocket
 	// doesn't guarantee WriteMessage will fail immediately
+	// We must also keep connected=true to prevent Part from returning early
 	client.mu.Lock()
 	savedConn := client.conn
 	client.conn = nil
+	client.connected = true // Keep connected=true so Part tries to send
 	client.mu.Unlock()
 
 	close(closeSignal)
@@ -2120,6 +2122,7 @@ func TestIRCClient_Part_SendError(t *testing.T) {
 	// Restore and close properly
 	client.mu.Lock()
 	client.conn = savedConn
+	client.connected = true
 	client.mu.Unlock()
 
 	_ = client.Close()

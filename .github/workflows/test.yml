@@ -66,6 +66,8 @@ jobs:
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -79,12 +81,21 @@ jobs:
       - name: Run tests with coverage
         run: go test -coverprofile=coverage.out ./...
 
-      - name: Generate coverage report
+      - name: Generate coverage badge
         uses: ncruces/go-coverage-report@v0
         with:
           coverage-file: coverage.out
-          report: true
-          chart: true
-          amend: true
-          github-token: ${{ secrets.COVERAGE_TOKEN }}
+          output-dir: .github
+          report: false
+          chart: false
+          amend: false
+        if: github.event_name == 'push'
+
+      - name: Commit coverage badge
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/coverage.svg
+          git diff --staged --quiet || git commit -m "Update coverage badge"
+          git push
         if: github.event_name == 'push'
