@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, test]
   pull_request:
-    branches: [main]
+    branches: [main, test]
 
 jobs:
   test:
@@ -16,10 +16,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
 
@@ -33,9 +33,7 @@ jobs:
         uses: codecov/codecov-action@v5
         if: matrix.go-version == '1.24'
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage.out
-          fail_ci_if_error: false
+          file: coverage.out
 
   lint:
     name: Lint
@@ -43,15 +41,15 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v5
         with:
           go-version: '1.24'
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v9
+        uses: golangci/golangci-lint-action@v6
         with:
           version: latest
 
@@ -61,10 +59,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v5
         with:
           go-version: '1.24'
 
