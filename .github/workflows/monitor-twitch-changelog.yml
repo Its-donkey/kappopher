@@ -64,6 +64,19 @@ jobs:
           # Check if there's already an open issue for this
           EXISTING_ISSUE=$(gh issue list --state open --label "twitch-changelog" --json number --jq '.[0].number // empty')
 
+          ISSUE_BODY="The Twitch API changelog has been updated.
+
+          **Review the changes:** $CHANGELOG_URL
+
+          ## Action needed
+          - [ ] Review the changelog for new/updated/deprecated endpoints
+          - [ ] Update kappopher to support any new endpoints
+          - [ ] Update kappopher if any endpoints have changed
+          - [ ] Close this issue when changes are addressed
+
+          ---
+          *This issue was automatically created by the changelog monitor workflow.*"
+
           if [ -n "$EXISTING_ISSUE" ]; then
             echo "Open issue #$EXISTING_ISSUE already exists, adding comment"
             gh issue comment "$EXISTING_ISSUE" --body "Another change detected on $(date -u +%Y-%m-%d). Please review: $CHANGELOG_URL"
@@ -72,21 +85,7 @@ jobs:
             gh issue create \
               --title "Twitch API changelog updated - $(date -u +%Y-%m-%d)" \
               --label "twitch-changelog" \
-              --body "$(cat <<EOF
-The Twitch API changelog has been updated.
-
-**Review the changes:** $CHANGELOG_URL
-
-## Action needed
-- [ ] Review the changelog for new/updated/deprecated endpoints
-- [ ] Update kappopher to support any new endpoints
-- [ ] Update kappopher if any endpoints have changed
-- [ ] Close this issue when changes are addressed
-
----
-*This issue was automatically created by the changelog monitor workflow.*
-EOF
-)"
+              --body "$ISSUE_BODY"
           fi
 
           # Update the stored hash
