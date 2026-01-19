@@ -233,14 +233,19 @@ body {
   padding-left: var(--space-sm);
 }
 
-.sidebar-section ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.sidebar-section ul,
+.sidebar .sidebar-section ul,
+.sidebar-nav .sidebar-section ul {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
-.sidebar-section li {
-  margin: 0;
+.sidebar-section li,
+.sidebar .sidebar-section li,
+.sidebar-nav .sidebar-section li {
+  margin: 0 !important;
+  list-style: none !important;
 }
 
 .sidebar-section a {
