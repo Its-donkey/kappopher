@@ -14,6 +14,7 @@
 </p>
 
 A comprehensive Twitch API toolkit for Go.
+**[View Full Documentation](https://its-donkey.github.io/kappopher/)**
 
 ## Features
 
@@ -75,20 +76,6 @@ func main() {
 
 - [Quick Start Guide](./docs/quickstart.md) - Installation, authentication, and basic usage
 - [API Reference](./docs/README.md) - Full endpoint documentation
-
-## Comparison
-
-| Feature | Kappopher | Other Helix wrappers |
-|---------|-----------|----------------------|
-| IRC/TMI Chat | Yes | Varies |
-| EventSub WebSocket | Yes | No |
-| EventSub Conduits | Yes | Varies |
-| PubSub Compatibility Layer | Yes | No |
-| Middleware System | Yes | No |
-| Caching Layer | Yes | No |
-| Batch Operations | Yes | No |
-| All OAuth Flows | Yes | Partial |
-| Extension JWT | Full | Basic |
 
 ## License
 
