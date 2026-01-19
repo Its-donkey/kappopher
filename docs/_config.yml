@@ -1,7 +1,7 @@
 title: Kappopher
 description: A comprehensive Go wrapper for the Twitch Helix API
-url: ""
-baseurl: ""
+url: "https://its-donkey.github.io"
+baseurl: "/kappopher"
 
 # Syntax highlighting
 highlighter: rouge
