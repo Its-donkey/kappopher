@@ -1,9 +1,8 @@
 ---
 layout: default
 title: API Reference
+text: Complete documentation for all Twitch Helix API endpoints.
 ---
-
-Complete documentation for all Twitch Helix API endpoints.
 
 ## Authentication
 - [Authentication API](auth.md) - OAuth flows and token management
