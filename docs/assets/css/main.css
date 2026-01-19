@@ -118,16 +118,11 @@ body {
   font-size: 1.125rem;
 }
 
-.brand-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, var(--purple-primary) 0%, var(--purple-dark) 100%);
+.brand-logo {
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-md);
-  font-weight: 700;
-  font-size: 1.25rem;
+  object-fit: contain;
 }
 
 .brand-text {

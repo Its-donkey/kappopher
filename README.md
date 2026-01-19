@@ -1,11 +1,17 @@
-# Kappopher
+<p align="center">
+  <img src="docs/assets/images/logo.png" alt="Kappopher" width="180">
+</p>
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/Its-donkey/kappopher.svg)](https://pkg.go.dev/github.com/Its-donkey/kappopher)
-[![Go Report Card](https://goreportcard.com/badge/github.com/Its-donkey/kappopher)](https://goreportcard.com/report/github.com/Its-donkey/kappopher)
-[![Tests](https://github.com/Its-donkey/kappopher/actions/workflows/test.yml/badge.svg)](https://github.com/Its-donkey/kappopher/actions/workflows/test.yml)
-[![Coverage](https://raw.githubusercontent.com/Its-donkey/kappopher/main/.github/coverage.svg)](https://github.com/Its-donkey/kappopher/actions/workflows/test.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Go Version](https://img.shields.io/github/go-mod/go-version/Its-donkey/kappopher)](https://github.com/Its-donkey/kappopher)
+<h1 align="center">Kappopher</h1>
+
+<p align="center">
+  <a href="https://pkg.go.dev/github.com/Its-donkey/kappopher"><img src="https://pkg.go.dev/badge/github.com/Its-donkey/kappopher.svg" alt="Go Reference"></a>
+  <a href="https://goreportcard.com/report/github.com/Its-donkey/kappopher"><img src="https://goreportcard.com/badge/github.com/Its-donkey/kappopher" alt="Go Report Card"></a>
+  <a href="https://github.com/Its-donkey/kappopher/actions/workflows/test.yml"><img src="https://github.com/Its-donkey/kappopher/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
+  <a href="https://github.com/Its-donkey/kappopher/actions/workflows/test.yml"><img src="https://raw.githubusercontent.com/Its-donkey/kappopher/main/.github/coverage.svg" alt="Coverage"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://github.com/Its-donkey/kappopher"><img src="https://img.shields.io/github/go-mod/go-version/Its-donkey/kappopher" alt="Go Version"></a>
+</p>
 
 A comprehensive Twitch API toolkit for Go.
 
