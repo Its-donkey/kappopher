@@ -1,7 +1,8 @@
 ---
 layout: default
 title: API Reference
-Complete documentation for all Twitch Helix API endpoints.
+description: Complete documentation for all Twitch Helix API endpoints.
+---
 
 ## Authentication
 - [Authentication API](auth.md) - OAuth flows and token management
@@ -58,6 +59,4 @@ Complete documentation for all Twitch Helix API endpoints.
 - [Ingest Servers API](ingest.md) - Streaming servers
 - [Guest Star API](guest-star.md) - Guest Star (beta)
 - [Content Classification](ccl.md) - Content labels
-description: - [Advanced Features](advanced.md) - Batch, caching, middleware
----
-
+- [Advanced Features](advanced.md) - Batch, caching, middleware
