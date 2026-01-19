@@ -1,6 +1,8 @@
-# Streams API
-
-Get information about active streams and manage stream markers.
+---
+layout: default
+title: Streams API
+description: Get information about active streams and manage stream markers.
+---
 
 ## GetStreams
 
@@ -389,4 +391,5 @@ if resp.Pagination.Cursor != "" {
   - `ID` (string): Marker ID
   - `CreatedAt` (string): UTC timestamp when the marker was created
   - `Description` (string): Marker description
-  - `PositionSeconds` (int): Position in the stream (in seconds)
+- `PositionSeconds` (int): Position in the stream (in seconds)
+

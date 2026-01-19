@@ -1,6 +1,8 @@
-# Authentication API
-
-OAuth 2.0 authentication client for Twitch, supporting multiple authorization flows and OIDC.
+---
+layout: default
+title: Authentication API
+description: OAuth 2.0 authentication client for Twitch, supporting multiple authorization flows and OIDC.
+---
 
 ## Setup
 
@@ -610,3 +612,4 @@ if err != nil {
     }
 }
 ```
+

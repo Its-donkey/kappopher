@@ -1,6 +1,8 @@
-# Users API
-
-Retrieve and manage Twitch user information, blocks, and extensions.
+---
+layout: default
+title: Users API
+description: Retrieve and manage Twitch user information, blocks, and extensions.
+---
 
 ## GetUsers
 
@@ -465,3 +467,4 @@ fmt.Printf("Scopes: %v\n", auth.Scopes)
   ]
 }
 ```
+

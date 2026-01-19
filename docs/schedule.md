@@ -1,6 +1,8 @@
-# Schedule API
-
-Manage Twitch channel stream schedules.
+---
+layout: default
+title: Schedule API
+description: Manage Twitch channel stream schedules.
+---
 
 ## GetChannelStreamSchedule
 
@@ -319,3 +321,4 @@ if err != nil {
 
 **Sample Response:**
 This endpoint returns no content on success (HTTP 204 No Content).
+

@@ -1,11 +1,13 @@
-# Quick Start Guide
-
-Get up and running with the Twitch Helix API wrapper.
+---
+layout: default
+title: Quick Start
+description: Get up and running with the Twitch Helix API wrapper.
+---
 
 ## Installation
 
 ```bash
-go get github.com/Its-donkey/helix
+go get github.com/Its-donkey/kappopher
 ```
 
 ## Basic Example
@@ -18,7 +20,7 @@ import (
     "fmt"
     "log"
 
-    "github.com/Its-donkey/helix/helix"
+    "github.com/Its-donkey/kappopher/helix"
 )
 
 func main() {
@@ -200,6 +202,6 @@ fmt.Printf("Requests remaining: %d, resets at: %s\n", remaining, reset)
 
 ## Next Steps
 
-- Browse the [Available Endpoints](README.md#available-endpoints) to see all API methods
-- Check out [complete examples](./examples/) for working code samples
+- Browse the [API Reference](api-reference.md) to see all available endpoints
+- Check out [complete examples](cookbook.md) for working code samples
 - Read the [Auth documentation](auth.md) for detailed authentication info

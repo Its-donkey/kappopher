@@ -1,6 +1,8 @@
-# Raids API
-
-Manage raids between Twitch channels.
+---
+layout: default
+title: Raids API
+description: Manage raids between Twitch channels.
+---
 
 ## StartRaid
 
@@ -61,3 +63,4 @@ fmt.Println("Raid cancelled successfully")
 ```
 No response body. Returns 204 No Content on success.
 ```
+

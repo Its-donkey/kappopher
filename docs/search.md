@@ -1,6 +1,8 @@
-# Search API
-
-Search for categories (games) and channels on Twitch.
+---
+layout: default
+title: Search API
+description: Search for categories (games) and channels on Twitch.
+---
 
 ## SearchCategories
 
@@ -147,3 +149,4 @@ if resp.Pagination.Cursor != "" {
   }
 }
 ```
+

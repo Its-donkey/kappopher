@@ -1,6 +1,8 @@
-# Ingest Servers API
-
-Get information about Twitch ingest servers for streaming.
+---
+layout: default
+title: Ingest Servers API
+description: Get information about Twitch ingest servers for streaming.
+---
 
 > **Note:** This endpoint uses a different base URL (`ingest.twitch.tv`) than the Helix API.
 
@@ -143,3 +145,4 @@ if server != nil {
 
 **Returns:**
 - `string`: Complete RTMP URL ready for use with streaming software
+

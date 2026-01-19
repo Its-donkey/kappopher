@@ -1,6 +1,8 @@
-# Drops Entitlements API
-
-Manage Twitch Drops entitlements for games and viewers.
+---
+layout: default
+title: Drops Entitlements API
+description: Manage Twitch Drops entitlements for games and viewers.
+---
 
 ## GetDropsEntitlements
 
@@ -154,3 +156,4 @@ for _, status := range resp.Data {
 - `NOT_FOUND`: The entitlement was not found
 - `UNAUTHORIZED`: The app or user is not authorized to update this entitlement
 - `UPDATE_FAILED`: The update failed for an unknown reason
+

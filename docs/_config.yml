@@ -1,0 +1,31 @@
+title: Kappopher
+description: A comprehensive Go wrapper for the Twitch Helix API
+url: "https://its-donkey.github.io"
+baseurl: "/kappopher"
+
+# Syntax highlighting
+highlighter: rouge
+markdown: kramdown
+kramdown:
+  syntax_highlighter: rouge
+  input: GFM
+
+# Default front matter for all pages
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: "default"
+  - scope:
+      path: "examples"
+    values:
+      layout: "default"
+
+# Exclude files
+exclude:
+  - General.html
+  - "*.sh"
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor

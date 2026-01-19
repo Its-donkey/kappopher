@@ -1,6 +1,8 @@
-# Analytics API
-
-Retrieve analytics reports for extensions and games, including downloadable CSV reports.
+---
+layout: default
+title: Analytics API
+description: Retrieve analytics reports for extensions and games, including downloadable CSV reports.
+---
 
 ## GetExtensionAnalytics
 
@@ -85,3 +87,4 @@ for _, report := range resp.Data {
   }
 }
 ```
+

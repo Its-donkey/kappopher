@@ -1,6 +1,8 @@
-# Guest Star API
-
-> **Note:** These are BETA endpoints and may be subject to changes.
+---
+layout: default
+title: Guest Star API
+description: > **Note:** These are BETA endpoints and may be subject to changes.
+---
 
 ## GetChannelGuestStarSettings
 
@@ -343,5 +345,5 @@ if err != nil {
     fmt.Printf("Failed to update slot settings: %v\n", err)
 }
 ```
-
 **Returns:** No response body on success (HTTP 204 No Content)
+

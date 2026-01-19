@@ -1,6 +1,8 @@
-# Extension JWT Authentication
-
-Certain Twitch Extension API endpoints require a special **Extension JWT** (JSON Web Token) instead of a regular OAuth access token.
+---
+layout: default
+title: Extension JWT Authentication
+description: Certain Twitch Extension API endpoints require a special **Extension JWT** (JSON Web Token) instead of a regular OAuth access token.
+---
 
 ## How It Works
 
@@ -68,3 +70,4 @@ resp, err := client.GetExtensionConfigurationSegment(ctx, &helix.GetExtensionCon
     BroadcasterID: "67890",
 })
 ```
+

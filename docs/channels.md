@@ -1,6 +1,8 @@
-# Channels API
-
-Retrieve and manage Twitch channel information, followers, editors, and VIPs.
+---
+layout: default
+title: Channels API
+description: Retrieve and manage Twitch channel information, followers, editors, and VIPs.
+---
 
 ## GetChannelInformation
 
@@ -281,5 +283,5 @@ if err != nil {
 ```json
 {}
 ```
-
 Note: This endpoint returns no content on success (204 No Content).
+

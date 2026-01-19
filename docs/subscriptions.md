@@ -1,6 +1,8 @@
-# Subscriptions API
-
-Retrieve subscriber information for Twitch channels.
+---
+layout: default
+title: Subscriptions API
+description: Retrieve subscriber information for Twitch channels.
+---
 
 ## GetBroadcasterSubscriptions
 
@@ -156,3 +158,4 @@ if sub != nil {
 
 **Response:**
 - Returns `UserSubscription` object if subscribed, `nil` if not subscribed
+

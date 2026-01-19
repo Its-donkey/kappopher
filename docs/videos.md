@@ -1,6 +1,8 @@
-# Videos API
-
-Retrieve and manage Twitch videos (VODs, highlights, and uploads).
+---
+layout: default
+title: Videos API
+description: Retrieve and manage Twitch videos (VODs, highlights, and uploads).
+---
 
 ## GetVideos
 
@@ -117,3 +119,4 @@ for _, videoID := range resp.Data {
 
 **Returns:**
 - Array of deleted video IDs
+

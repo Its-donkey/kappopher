@@ -1,6 +1,8 @@
-# Whispers API
-
-Send private whisper messages between Twitch users.
+---
+layout: default
+title: Whispers API
+description: Send private whisper messages between Twitch users.
+---
 
 ## SendWhisper
 
@@ -26,5 +28,5 @@ if err != nil {
 - `Message` (string, required): The whisper message to send (max 500 characters)
 
 **Sample Response:**
-
 Returns `204 No Content` on success with an empty response body.
+

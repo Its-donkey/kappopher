@@ -1,6 +1,8 @@
-# Games API
-
-Retrieve information about games and categories on Twitch.
+---
+layout: default
+title: Games API
+description: Retrieve information about games and categories on Twitch.
+---
 
 ## GetGames
 
@@ -111,3 +113,4 @@ if resp.Pagination.Cursor != "" {
   }
 }
 ```
+

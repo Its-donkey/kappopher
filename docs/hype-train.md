@@ -1,6 +1,8 @@
-# Hype Train API
-
-Manage hype train events for Twitch channels.
+---
+layout: default
+title: Hype Train API
+description: Manage hype train events for Twitch channels.
+---
 
 > **Note:** The Get Hype Train Events endpoint is deprecated and will be removed January 15, 2026. Use [EventSub](eventsub.md) for real-time hype train events instead.
 
@@ -187,5 +189,5 @@ For real-time hype train events, use EventSub subscriptions instead of polling t
 - `channel.hype_train.begin` - Hype train starts
 - `channel.hype_train.progress` - Hype train level increases
 - `channel.hype_train.end` - Hype train ends
-
 See [EventSub documentation](eventsub.md) for more details.
+

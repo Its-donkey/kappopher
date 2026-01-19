@@ -1,6 +1,8 @@
-# Teams API
-
-Retrieve information about Twitch teams and their members.
+---
+layout: default
+title: Teams API
+description: Retrieve information about Twitch teams and their members.
+---
 
 ## GetChannelTeams
 
@@ -111,3 +113,4 @@ for _, team := range resp.Data {
   ]
 }
 ```
+

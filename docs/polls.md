@@ -1,6 +1,8 @@
-# Polls API
-
-Manage Twitch polls for a broadcaster's channel.
+---
+layout: default
+title: Polls API
+description: Manage Twitch polls for a broadcaster's channel.
+---
 
 ## GetPolls
 
@@ -270,3 +272,4 @@ fmt.Printf("Ended poll: %s with status %s\n", resp.Data[0].Title, resp.Data[0].S
   ]
 }
 ```
+

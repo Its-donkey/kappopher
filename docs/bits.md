@@ -1,6 +1,8 @@
-# Bits API
-
-Retrieve Bits leaderboards and cheermote information for Twitch channels.
+---
+layout: default
+title: Bits API
+description: Retrieve Bits leaderboards and cheermote information for Twitch channels.
+---
 
 ## GetBitsLeaderboard
 
@@ -294,3 +296,4 @@ for _, cheermote := range resp.Data {
   ]
 }
 ```
+

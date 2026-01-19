@@ -1,6 +1,8 @@
-# Charity API
-
-Manage charity campaigns and donations for Twitch channels.
+---
+layout: default
+title: Charity API
+description: Manage charity campaigns and donations for Twitch channels.
+---
 
 ## GetCharityCampaign
 
@@ -119,3 +121,4 @@ if resp.Pagination.Cursor != "" {
   }
 }
 ```
+
