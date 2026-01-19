@@ -20,6 +20,12 @@ Complete documentation for all Twitch Helix API endpoints.
 ### [Cookbook](cookbook.md)
 Practical code examples and recipes for common use cases.
 
+## Help
+
+- [FAQ](faq.md) - Frequently asked questions
+- [Troubleshooting](troubleshooting.md) - Common issues and solutions
+- [Migration Guide](migration.md) - Migrating from other libraries or PubSub
+
 ## Features
 
 - **Full Helix API Coverage** - All endpoints implemented with typed responses
