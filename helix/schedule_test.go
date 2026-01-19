@@ -3,10 +3,35 @@ package helix
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"testing"
 	"time"
 )
+
+// scheduleErrorTransport is a RoundTripper that always returns an error.
+type scheduleErrorTransport struct{}
+
+func (t *scheduleErrorTransport) RoundTrip(*http.Request) (*http.Response, error) {
+	return nil, errors.New("network error")
+}
+
+// scheduleErrorBodyTransport returns a response with a body that errors on read.
+type scheduleErrorBodyTransport struct{}
+
+func (t *scheduleErrorBodyTransport) RoundTrip(*http.Request) (*http.Response, error) {
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(&scheduleErrorReader{}),
+	}, nil
+}
+
+type scheduleErrorReader struct{}
+
+func (r *scheduleErrorReader) Read([]byte) (int, error) {
+	return 0, errors.New("read error")
+}
 
 func TestClient_GetChannelStreamSchedule(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
@@ -341,6 +366,7 @@ func TestClient_DeleteChannelStreamScheduleSegment(t *testing.T) {
 }
 
 func TestClient_GetChannelICalendar(t *testing.T) {
+	expectedBody := "BEGIN:VCALENDAR\nVERSION:2.0\nEND:VCALENDAR"
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -355,28 +381,45 @@ func TestClient_GetChannelICalendar(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "text/calendar")
-		_, _ = w.Write([]byte("BEGIN:VCALENDAR\nVERSION:2.0\nEND:VCALENDAR"))
+		_, _ = w.Write([]byte(expectedBody))
 	})
 	defer server.Close()
 
-	// The function has a bug - it creates a zero-length slice and reads into it
-	// So it will always return an empty string, but let's test the code path
-	_, err := client.GetChannelICalendar(context.Background(), "12345")
-	// The read will return io.EOF because the body is empty after first read into zero-length slice
-	// We don't check err here because the behavior depends on the implementation bug
-	_ = err
+	result, err := client.GetChannelICalendar(context.Background(), "12345")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != expectedBody {
+		t.Errorf("expected %q, got %q", expectedBody, result)
+	}
 }
 
 func TestClient_GetChannelICalendar_Error(t *testing.T) {
-	// Test with a server that returns an error
-	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	})
-	defer server.Close()
+	client := &Client{
+		httpClient: &http.Client{
+			Transport: &scheduleErrorTransport{},
+		},
+		baseURL: "http://invalid",
+	}
 
 	_, err := client.GetChannelICalendar(context.Background(), "12345")
-	// Expected to get EOF error due to empty body read
-	_ = err
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestClient_GetChannelICalendar_ReadError(t *testing.T) {
+	client := &Client{
+		httpClient: &http.Client{
+			Transport: &scheduleErrorBodyTransport{},
+		},
+		baseURL: "http://test",
+	}
+
+	_, err := client.GetChannelICalendar(context.Background(), "12345")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
 }
 
 func TestClient_CreateChannelStreamScheduleSegment_EmptyResponse(t *testing.T) {
