@@ -60,3 +60,8 @@ description: Complete documentation for all Twitch Helix API endpoints.
 - [Guest Star API](guest-star.md) - Guest Star (beta)
 - [Content Classification](ccl.md) - Content labels
 - [Advanced Features](advanced.md) - Batch, caching, middleware
+
+## Help
+- [FAQ](faq.md) - Frequently asked questions
+- [Troubleshooting](troubleshooting.md) - Common issues and solutions
+- [Migration Guide](migration.md) - Migrating from other libraries
