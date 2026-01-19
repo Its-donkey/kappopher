@@ -8,13 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- `AddSuspiciousUserStatus` - Add a suspicious status to a chat user (POST /moderation/suspicious_users)
-- `RemoveSuspiciousUserStatus` - Remove a suspicious status from a chat user (DELETE /moderation/suspicious_users)
-- `ScopeModeratorManageSuspiciousUsers` scope constant for suspicious user management
 
 ### Changed
 
 ### Fixed
+
+## [1.1.0] - 2026-01-20
+
+### Added
+- `AddSuspiciousUserStatus` - Add a suspicious status to a chat user (POST /moderation/suspicious_users)
+- `RemoveSuspiciousUserStatus` - Remove a suspicious status from a chat user (DELETE /moderation/suspicious_users)
+- `ScopeModeratorManageSuspiciousUsers` scope constant for suspicious user management
+- GitHub Action workflow to monitor Twitch changelog for API updates
+
+### Fixed
+- `GetChannelICalendar` now correctly reads the response body using `io.ReadAll`
 
 ## [1.0.2] - 2026-01-19 ([#45](https://github.com/Its-donkey/kappopher/pull/45))
 
