@@ -261,7 +261,18 @@ jobs:
 
           echo "✅ Added PR #${PR_NUMBER} link to CHANGELOG.md"
 
-      - name: Auto-merge PR and create tag
+      - name: Enable auto-merge on PR
+        if: ${{ github.event.inputs.auto_merge == 'true' }}
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "🔄 Enabling auto-merge on PR #${PR_NUMBER}..."
+          gh pr merge "$PR_NUMBER" --auto --merge --delete-branch=false
+          echo "✅ Auto-merge enabled - PR will merge when status checks pass"
+
+      - name: Wait for PR to merge and create tag
         if: ${{ github.event.inputs.auto_merge == 'true' }}
         env:
           TAG_NAME: ${{ steps.version.outputs.tag }}
@@ -271,15 +282,26 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "🔄 Merging PR #${PR_NUMBER}..."
+          echo "⏳ Waiting for PR #${PR_NUMBER} to merge..."
+          TIMEOUT=600
+          ELAPSED=0
+          INTERVAL=15
 
-          # Wait for any status checks to complete
-          sleep 5
+          while [ "$ELAPSED" -lt "$TIMEOUT" ]; do
+            STATE=$(gh pr view "$PR_NUMBER" --json state --jq '.state')
+            if [ "$STATE" = "MERGED" ]; then
+              echo "✅ PR #${PR_NUMBER} merged to $TARGET_BRANCH"
+              break
+            fi
+            echo "  PR state: $STATE (${ELAPSED}s elapsed, checking again in ${INTERVAL}s)"
+            sleep "$INTERVAL"
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
 
-          # Merge the PR
-          gh pr merge "$PR_NUMBER" --merge --delete-branch=false
-
-          echo "✅ PR #${PR_NUMBER} merged to $TARGET_BRANCH"
+          if [ "$STATE" != "MERGED" ]; then
+            echo "❌ Timed out waiting for PR to merge after ${TIMEOUT}s"
+            exit 1
+          fi
 
           # Fetch latest target branch
           git fetch origin "$TARGET_BRANCH"
