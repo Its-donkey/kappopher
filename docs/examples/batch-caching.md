@@ -546,6 +546,67 @@ func main() {
 }
 ```
 
+## Concurrent Requests with Different Tokens
+
+When endpoints require user-specific tokens (e.g., `Get Channel Followers` requires `moderator:read:followers`), use `WithToken` to override the client token per-request:
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+    "sync"
+
+    "github.com/Its-donkey/kappopher/helix"
+)
+
+func main() {
+    ctx := context.Background()
+
+    authClient := helix.NewAuthClient(helix.AuthConfig{
+        ClientID:     "your-client-id",
+        ClientSecret: "your-client-secret",
+    })
+    client := helix.NewClient("your-client-id", authClient)
+
+    // Each channel's user token (obtained via Authorization Code flow)
+    type ChannelToken struct {
+        BroadcasterID string
+        Token         *helix.Token
+    }
+
+    channels := []ChannelToken{
+        {BroadcasterID: "111", Token: &helix.Token{AccessToken: "token-a"}},
+        {BroadcasterID: "222", Token: &helix.Token{AccessToken: "token-b"}},
+        {BroadcasterID: "333", Token: &helix.Token{AccessToken: "token-c"}},
+    }
+
+    var wg sync.WaitGroup
+    for _, ch := range channels {
+        wg.Add(1)
+        go func(ch ChannelToken) {
+            defer wg.Done()
+
+            // Override token for this request only
+            reqCtx := helix.WithToken(ctx, ch.Token)
+            followers, err := client.GetChannelFollowers(reqCtx, &helix.GetChannelFollowersParams{
+                BroadcasterID: ch.BroadcasterID,
+            })
+            if err != nil {
+                log.Printf("Error: %v", err)
+                return
+            }
+            fmt.Printf("Channel %s: %d followers\n", ch.BroadcasterID, *followers.Total)
+        }(ch)
+    }
+    wg.Wait()
+}
+```
+
+The client's rate limiter, cache, and middleware are shared across all requests regardless of which token is used. When caching is enabled, requests with different tokens produce different cache keys automatically.
+
 ## Complete Example: Efficient Multi-Channel Dashboard
 
 ```go
