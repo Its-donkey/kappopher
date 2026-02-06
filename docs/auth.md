@@ -312,6 +312,29 @@ auth.SetToken(&helix.Token{
 token := auth.GetToken()
 ```
 
+### WithToken (Per-Request Override)
+
+Override the client-level token for a single request. This is useful when making
+concurrent requests that each require a different user token (e.g., fetching
+followers for multiple channels where each requires `moderator:read:followers`).
+
+```go
+// Each request uses a different user's token
+ctx := helix.WithToken(context.Background(), &helix.Token{
+    AccessToken: "user-specific-token",
+})
+followers, err := client.GetChannelFollowers(ctx, &helix.GetChannelFollowersParams{
+    BroadcasterID: "12345",
+})
+```
+
+The token resolution order is:
+1. Per-request token from `WithToken` context (if set)
+2. Client-level `AuthClient` token
+3. Client-level `TokenProvider` (e.g., Extension JWT)
+
+See [Batch & Caching Examples](examples/batch-caching.md) for a complete concurrent multi-token example.
+
 ## OIDC (OpenID Connect)
 
 Support for Twitch's OIDC implementation for identity verification.
