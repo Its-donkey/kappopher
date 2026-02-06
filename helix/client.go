@@ -26,6 +26,24 @@ type TokenProvider interface {
 	GetToken() *Token
 }
 
+// tokenContextKey is the context key for per-request token overrides.
+type tokenContextKey struct{}
+
+// WithToken returns a context that overrides the client-level token for a
+// single request. This is useful when making concurrent requests that each
+// require a different user token.
+func WithToken(ctx context.Context, token *Token) context.Context {
+	return context.WithValue(ctx, tokenContextKey{}, token)
+}
+
+// tokenFromContext retrieves a per-request token override from context.
+func tokenFromContext(ctx context.Context) *Token {
+	if token, ok := ctx.Value(tokenContextKey{}).(*Token); ok {
+		return token
+	}
+	return nil
+}
+
 // Client is a Twitch Helix API client.
 type Client struct {
 	clientID      string
@@ -382,9 +400,11 @@ func (c *Client) doOnceWithResponse(ctx context.Context, req *Request, result in
 		}
 	}
 
-	// Set authorization
+	// Set authorization (per-request context override takes precedence)
 	var token *Token
-	if c.authClient != nil {
+	if ctxToken := tokenFromContext(ctx); ctxToken != nil {
+		token = ctxToken
+	} else if c.authClient != nil {
 		token = c.authClient.GetToken()
 	} else if c.tokenProvider != nil {
 		token = c.tokenProvider.GetToken()

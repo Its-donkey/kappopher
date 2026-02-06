@@ -165,6 +165,17 @@ batcher := helix.NewBatcher(client, helix.BatchConfig{
 results := batcher.GetUsers(ctx, userIDs)
 ```
 
+### Can I use different tokens for different requests?
+
+Yes. Use `WithToken` to override the client-level token on a per-request basis:
+
+```go
+ctx := helix.WithToken(ctx, &helix.Token{AccessToken: "other-user-token"})
+followers, err := client.GetChannelFollowers(ctx, params)
+```
+
+This is useful when making concurrent requests that each require a different user token (e.g., fetching followers for multiple channels). See the [Authentication Examples](examples/authentication.md) for a complete example.
+
 ---
 
 ## Troubleshooting

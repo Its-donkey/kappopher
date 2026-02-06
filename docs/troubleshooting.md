@@ -64,6 +64,8 @@ description: Solutions to common issues when using Kappopher.
 - Use the correct Client ID that matches the token
 - Generate a new token with your Client ID
 
+**Note:** When using `WithToken` for per-request token overrides, all tokens must belong to the same Client ID as the client. Twitch requires the `Client-Id` header and `Authorization` token to match.
+
 ---
 
 ## EventSub Issues

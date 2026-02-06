@@ -338,6 +338,54 @@ func CustomHeadersMiddleware(headers map[string]string) Middleware {
 }
 ```
 
+## Per-Request Token Override
+
+Override the client-level token for individual requests using `WithToken`. This enables concurrent requests with different user tokens through a single client, without creating multiple client instances.
+
+```go
+// Override token for a single request
+ctx := helix.WithToken(ctx, &helix.Token{AccessToken: "user-token"})
+followers, err := client.GetChannelFollowers(ctx, &helix.GetChannelFollowersParams{
+    BroadcasterID: "12345",
+})
+```
+
+### Token Resolution Order
+
+1. Per-request token from `WithToken(ctx, token)` (highest priority)
+2. Client-level `AuthClient` token
+3. Client-level `TokenProvider` (e.g., Extension JWT)
+
+### Concurrent Multi-Token Requests
+
+Fetch data for multiple channels where each requires its own user token:
+
+```go
+type ChannelToken struct {
+    BroadcasterID string
+    Token         *helix.Token
+}
+
+channels := []ChannelToken{
+    {BroadcasterID: "111", Token: &helix.Token{AccessToken: "token-a"}},
+    {BroadcasterID: "222", Token: &helix.Token{AccessToken: "token-b"}},
+    {BroadcasterID: "333", Token: &helix.Token{AccessToken: "token-c"}},
+}
+
+results := make(chan error, len(channels))
+for _, ch := range channels {
+    go func(ch ChannelToken) {
+        ctx := helix.WithToken(ctx, ch.Token)
+        _, err := client.GetChannelFollowers(ctx, &helix.GetChannelFollowersParams{
+            BroadcasterID: ch.BroadcasterID,
+        })
+        results <- err
+    }(ch)
+}
+```
+
+This works with all context-aware features including caching (`NoCacheContext`), middleware, and batch operations.
+
 ## Low-Level Request Execution
 
 For advanced use cases, you can execute raw requests directly.

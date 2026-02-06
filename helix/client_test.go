@@ -1223,3 +1223,121 @@ func TestClient_ResponseBodyReadError(t *testing.T) {
 		}
 	}
 }
+
+func TestWithToken_OverridesClientToken(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("Authorization"); got != "Bearer per-request-token" {
+			t.Errorf("expected per-request token, got %s", got)
+		}
+		_ = json.NewEncoder(w).Encode(Response[User]{Data: []User{}})
+	}))
+	defer server.Close()
+
+	authClient := NewAuthClient(AuthConfig{ClientID: "test"})
+	authClient.SetToken(&Token{AccessToken: "client-level-token"})
+	client := NewClient("test-client-id", authClient, WithBaseURL(server.URL))
+
+	ctx := WithToken(context.Background(), &Token{AccessToken: "per-request-token"})
+
+	req := &Request{
+		Method:   "GET",
+		Endpoint: "/users",
+	}
+
+	var result Response[User]
+	if err := client.Do(ctx, req, &result); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestWithToken_FallsBackToClientToken(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("Authorization"); got != "Bearer client-level-token" {
+			t.Errorf("expected client-level token, got %s", got)
+		}
+		_ = json.NewEncoder(w).Encode(Response[User]{Data: []User{}})
+	}))
+	defer server.Close()
+
+	authClient := NewAuthClient(AuthConfig{ClientID: "test"})
+	authClient.SetToken(&Token{AccessToken: "client-level-token"})
+	client := NewClient("test-client-id", authClient, WithBaseURL(server.URL))
+
+	req := &Request{
+		Method:   "GET",
+		Endpoint: "/users",
+	}
+
+	var result Response[User]
+	if err := client.Do(context.Background(), req, &result); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestWithToken_NilTokenFallsBack(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("Authorization"); got != "Bearer client-level-token" {
+			t.Errorf("expected client-level token, got %s", got)
+		}
+		_ = json.NewEncoder(w).Encode(Response[User]{Data: []User{}})
+	}))
+	defer server.Close()
+
+	authClient := NewAuthClient(AuthConfig{ClientID: "test"})
+	authClient.SetToken(&Token{AccessToken: "client-level-token"})
+	client := NewClient("test-client-id", authClient, WithBaseURL(server.URL))
+
+	// WithToken with nil should fall back to client token
+	ctx := WithToken(context.Background(), nil)
+
+	req := &Request{
+		Method:   "GET",
+		Endpoint: "/users",
+	}
+
+	var result Response[User]
+	if err := client.Do(ctx, req, &result); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestWithToken_ConcurrentDifferentTokens(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Echo the token back in a custom header so we can verify
+		w.Header().Set("X-Received-Token", r.Header.Get("Authorization"))
+		_ = json.NewEncoder(w).Encode(Response[User]{Data: []User{}})
+	}))
+	defer server.Close()
+
+	authClient := NewAuthClient(AuthConfig{ClientID: "test"})
+	authClient.SetToken(&Token{AccessToken: "client-level-token"})
+	client := NewClient("test-client-id", authClient, WithBaseURL(server.URL))
+
+	tokens := []string{"token-a", "token-b", "token-c"}
+	errs := make(chan error, len(tokens))
+
+	for _, tok := range tokens {
+		go func(token string) {
+			ctx := WithToken(context.Background(), &Token{AccessToken: token})
+			req := &Request{
+				Method:   "GET",
+				Endpoint: "/users",
+			}
+			var result Response[User]
+			errs <- client.Do(ctx, req, &result)
+		}(tok)
+	}
+
+	for range tokens {
+		if err := <-errs; err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+}
+
+func TestTokenFromContext_NoToken(t *testing.T) {
+	token := tokenFromContext(context.Background())
+	if token != nil {
+		t.Error("expected nil token from empty context")
+	}
+}
