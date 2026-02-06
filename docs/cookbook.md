@@ -45,6 +45,7 @@ description: Comprehensive code examples covering all kappopher features.
 | Feature | Example |
 |---------|---------|
 | OAuth Authentication | [Authentication](examples/authentication.md) |
+| Per-Request Token Override | [Authentication](examples/authentication.md), [Batch & Caching](examples/batch-caching.md) |
 | Get Users/Channels | [Basic](examples/basic.md), [API Usage](examples/api-usage.md) |
 | Send Chat Messages | [Chat Bot](examples/chatbot.md), [IRC Client](examples/irc-client.md) |
 | Handle Chat Events | [IRC Client](examples/irc-client.md), [EventSub WebSocket](examples/eventsub-websocket.md) |
@@ -72,6 +73,7 @@ description: Comprehensive code examples covering all kappopher features.
 
 | Use Case | Start Here |
 |----------|-----------|
+| Concurrent multi-user requests | [Authentication](examples/authentication.md), [Batch & Caching](examples/batch-caching.md) |
 | Build a chat bot | [Chat Bot](examples/chatbot.md) or [IRC Client](examples/irc-client.md) |
 | Monitor stream events | [EventSub WebSocket](examples/eventsub-websocket.md) |
 | Create a dashboard | [Batch & Caching](examples/batch-caching.md) |
