@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+## [1.1.1] - 2026-02-06
+
+### Added
 - `WithToken(ctx, token)` context override for per-request authentication, enabling concurrent requests with different user tokens through a single client instance
 
 ### Changed
