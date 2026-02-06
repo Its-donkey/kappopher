@@ -143,6 +143,10 @@ err := authClient.RevokeToken(ctx, token.AccessToken)
 // Auto-refresh (starts background goroutine)
 cancel := authClient.AutoRefresh(ctx)
 defer cancel()
+
+// Per-request token override (for concurrent multi-user requests)
+ctx := helix.WithToken(ctx, &helix.Token{AccessToken: "other-user-token"})
+followers, err := client.GetChannelFollowers(ctx, params)
 ```
 
 ## Creating the Helix Client

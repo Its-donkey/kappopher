@@ -453,6 +453,71 @@ func main() {
 }
 ```
 
+## Per-Request Token Override
+
+When making concurrent requests that each require a different user token, use `WithToken` to override the client-level token on a per-request basis. This avoids creating multiple client instances.
+
+**When to use**: Fetching scoped data for multiple channels concurrently (e.g., followers, subscriptions) where each channel requires its own user token.
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+    "sync"
+
+    "github.com/Its-donkey/kappopher/helix"
+)
+
+func main() {
+    ctx := context.Background()
+
+    // One client shared across all requests
+    authClient := helix.NewAuthClient(helix.AuthConfig{
+        ClientID:     "your-client-id",
+        ClientSecret: "your-client-secret",
+    })
+    client := helix.NewClient("your-client-id", authClient)
+
+    // Each channel has its own user token (obtained via Authorization Code flow)
+    type Channel struct {
+        BroadcasterID string
+        Token         *helix.Token
+    }
+
+    channels := []Channel{
+        {BroadcasterID: "111", Token: &helix.Token{AccessToken: "user-token-a"}},
+        {BroadcasterID: "222", Token: &helix.Token{AccessToken: "user-token-b"}},
+        {BroadcasterID: "333", Token: &helix.Token{AccessToken: "user-token-c"}},
+    }
+
+    // Fetch followers for all channels concurrently
+    var wg sync.WaitGroup
+    for _, ch := range channels {
+        wg.Add(1)
+        go func(ch Channel) {
+            defer wg.Done()
+
+            // Override the client token for this request
+            reqCtx := helix.WithToken(ctx, ch.Token)
+
+            followers, err := client.GetChannelFollowers(reqCtx, &helix.GetChannelFollowersParams{
+                BroadcasterID: ch.BroadcasterID,
+            })
+            if err != nil {
+                log.Printf("Error fetching followers for %s: %v", ch.BroadcasterID, err)
+                return
+            }
+
+            fmt.Printf("Channel %s has %d followers\n", ch.BroadcasterID, *followers.Total)
+        }(ch)
+    }
+    wg.Wait()
+}
+```
+
 ## Common Scope Combinations
 
 The library provides pre-defined scope combinations for common use cases. These help you request the right permissions without having to look up individual scope names.
