@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-## [1.2.0] - 2026-02-10
+## [1.2.0] - 2026-02-10 ([#59](https://github.com/Its-donkey/kappopher/pull/59))
 
 ### Added
 - `GetCharityCampaignParams` struct with pagination support for `GetCharityCampaign`
