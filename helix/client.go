@@ -176,8 +176,33 @@ type Response[T any] struct {
 }
 
 // Pagination contains pagination information.
+// Some Twitch endpoints (e.g. Get Extension Live Channels) return
+// pagination as an empty string instead of an object. UnmarshalJSON
+// handles both formats.
 type Pagination struct {
 	Cursor string `json:"cursor,omitempty"`
+}
+
+// UnmarshalJSON handles both object ({"cursor":"..."}) and string ("") pagination formats.
+func (p *Pagination) UnmarshalJSON(data []byte) error {
+	// Handle empty string or quoted string (e.g. "" or "cursor_value")
+	if len(data) > 0 && data[0] == '"' {
+		var s string
+		if err := json.Unmarshal(data, &s); err != nil {
+			return err
+		}
+		p.Cursor = s
+		return nil
+	}
+
+	// Handle normal object format: {"cursor": "..."}
+	type paginationAlias Pagination
+	var alias paginationAlias
+	if err := json.Unmarshal(data, &alias); err != nil {
+		return err
+	}
+	*p = Pagination(alias)
+	return nil
 }
 
 // ErrorResponse represents an API error response.

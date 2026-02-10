@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func TestClient_GetCustomRewards(t *testing.T) {
+func TestClient_GetCustomReward(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/channel_points/custom_rewards" {
 			t.Errorf("expected /channel_points/custom_rewards, got %s", r.URL.Path)
@@ -54,7 +54,7 @@ func TestClient_GetCustomRewards(t *testing.T) {
 	})
 	defer server.Close()
 
-	resp, err := client.GetCustomRewards(context.Background(), &GetCustomRewardsParams{
+	resp, err := client.GetCustomReward(context.Background(), &GetCustomRewardParams{
 		BroadcasterID: "12345",
 	})
 
@@ -72,7 +72,7 @@ func TestClient_GetCustomRewards(t *testing.T) {
 	}
 }
 
-func TestClient_GetCustomRewards_ByIDs(t *testing.T) {
+func TestClient_GetCustomReward_ByIDs(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		ids := r.URL.Query()["id"]
 		if len(ids) != 2 {
@@ -89,7 +89,7 @@ func TestClient_GetCustomRewards_ByIDs(t *testing.T) {
 	})
 	defer server.Close()
 
-	resp, err := client.GetCustomRewards(context.Background(), &GetCustomRewardsParams{
+	resp, err := client.GetCustomReward(context.Background(), &GetCustomRewardParams{
 		BroadcasterID: "12345",
 		IDs:           []string{"reward1", "reward2"},
 	})
@@ -102,7 +102,7 @@ func TestClient_GetCustomRewards_ByIDs(t *testing.T) {
 	}
 }
 
-func TestClient_GetCustomRewards_OnlyManageable(t *testing.T) {
+func TestClient_GetCustomReward_OnlyManageable(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		onlyManageable := r.URL.Query().Get("only_manageable_rewards")
 		if onlyManageable != "true" {
@@ -114,7 +114,7 @@ func TestClient_GetCustomRewards_OnlyManageable(t *testing.T) {
 	})
 	defer server.Close()
 
-	_, err := client.GetCustomRewards(context.Background(), &GetCustomRewardsParams{
+	_, err := client.GetCustomReward(context.Background(), &GetCustomRewardParams{
 		BroadcasterID:         "12345",
 		OnlyManageableRewards: true,
 	})
@@ -249,7 +249,7 @@ func TestClient_DeleteCustomReward(t *testing.T) {
 	}
 }
 
-func TestClient_GetCustomRewardRedemptions(t *testing.T) {
+func TestClient_GetCustomRewardRedemption(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/channel_points/custom_rewards/redemptions" {
 			t.Errorf("expected /channel_points/custom_rewards/redemptions, got %s", r.URL.Path)
@@ -300,7 +300,7 @@ func TestClient_GetCustomRewardRedemptions(t *testing.T) {
 	})
 	defer server.Close()
 
-	resp, err := client.GetCustomRewardRedemptions(context.Background(), &GetCustomRewardRedemptionsParams{
+	resp, err := client.GetCustomRewardRedemption(context.Background(), &GetCustomRewardRedemptionParams{
 		BroadcasterID: "12345",
 		RewardID:      "reward123",
 		Status:        "UNFULFILLED",
@@ -406,14 +406,14 @@ func TestClient_UpdateRedemptionStatus_Cancel(t *testing.T) {
 	}
 }
 
-func TestClient_GetCustomRewards_Error(t *testing.T) {
+func TestClient_GetCustomReward_Error(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(`{"error":"internal error"}`))
 	})
 	defer server.Close()
 
-	_, err := client.GetCustomRewards(context.Background(), &GetCustomRewardsParams{BroadcasterID: "12345"})
+	_, err := client.GetCustomReward(context.Background(), &GetCustomRewardParams{BroadcasterID: "12345"})
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -477,14 +477,14 @@ func TestClient_UpdateCustomReward_EmptyResponse(t *testing.T) {
 	}
 }
 
-func TestClient_GetCustomRewardRedemptions_Error(t *testing.T) {
+func TestClient_GetCustomRewardRedemption_Error(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 		_, _ = w.Write([]byte(`{"error":"forbidden"}`))
 	})
 	defer server.Close()
 
-	_, err := client.GetCustomRewardRedemptions(context.Background(), &GetCustomRewardRedemptionsParams{BroadcasterID: "12345", RewardID: "reward123"})
+	_, err := client.GetCustomRewardRedemption(context.Background(), &GetCustomRewardRedemptionParams{BroadcasterID: "12345", RewardID: "reward123"})
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -503,7 +503,7 @@ func TestClient_UpdateRedemptionStatus_Error(t *testing.T) {
 	}
 }
 
-func TestClient_GetCustomRewardRedemptions_WithIDsAndSort(t *testing.T) {
+func TestClient_GetCustomRewardRedemption_WithIDsAndSort(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		ids := r.URL.Query()["id"]
 		if len(ids) != 2 {
@@ -525,7 +525,7 @@ func TestClient_GetCustomRewardRedemptions_WithIDsAndSort(t *testing.T) {
 	})
 	defer server.Close()
 
-	resp, err := client.GetCustomRewardRedemptions(context.Background(), &GetCustomRewardRedemptionsParams{
+	resp, err := client.GetCustomRewardRedemption(context.Background(), &GetCustomRewardRedemptionParams{
 		BroadcasterID: "12345",
 		RewardID:      "reward123",
 		IDs:           []string{"redemption1", "redemption2"},

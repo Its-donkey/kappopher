@@ -785,7 +785,7 @@ for _, channel := range resp.Data {
 }
 ```
 
-## AddSuspiciousUserStatus
+## AddSuspiciousStatusToChatUser
 
 Add a suspicious status to a chat user. Suspicious users can be marked as "restricted" (cannot chat) or "monitored" (messages are flagged for review).
 
@@ -793,7 +793,7 @@ Add a suspicious status to a chat user. Suspicious users can be marked as "restr
 
 ```go
 // Mark a user as restricted (cannot send messages)
-err := client.AddSuspiciousUserStatus(ctx, &helix.AddSuspiciousUserStatusParams{
+err := client.AddSuspiciousStatusToChatUser(ctx, &helix.AddSuspiciousStatusToChatUserParams{
     BroadcasterID: "12345",
     ModeratorID:   "67890",
     UserID:        "11111",
@@ -801,7 +801,7 @@ err := client.AddSuspiciousUserStatus(ctx, &helix.AddSuspiciousUserStatusParams{
 })
 
 // Mark a user as monitored (messages flagged for review)
-err = client.AddSuspiciousUserStatus(ctx, &helix.AddSuspiciousUserStatusParams{
+err = client.AddSuspiciousStatusToChatUser(ctx, &helix.AddSuspiciousStatusToChatUserParams{
     BroadcasterID: "12345",
     ModeratorID:   "67890",
     UserID:        "22222",
@@ -819,14 +819,14 @@ if err != nil {
 
 **Response:** This endpoint returns 204 No Content on success.
 
-## RemoveSuspiciousUserStatus
+## RemoveSuspiciousStatusFromChatUser
 
 Remove a suspicious status from a chat user, allowing them to chat normally again.
 
 **Requires:** `moderator:manage:suspicious_users`
 
 ```go
-err := client.RemoveSuspiciousUserStatus(ctx, &helix.RemoveSuspiciousUserStatusParams{
+err := client.RemoveSuspiciousStatusFromChatUser(ctx, &helix.RemoveSuspiciousStatusFromChatUserParams{
     BroadcasterID: "12345",
     ModeratorID:   "67890",
     UserID:        "11111",

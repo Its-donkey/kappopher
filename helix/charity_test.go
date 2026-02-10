@@ -49,20 +49,49 @@ func TestClient_GetCharityCampaign(t *testing.T) {
 	})
 	defer server.Close()
 
-	resp, err := client.GetCharityCampaign(context.Background(), "12345")
+	resp, err := client.GetCharityCampaign(context.Background(), &GetCharityCampaignParams{
+		BroadcasterID: "12345",
+	})
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if resp == nil {
-		t.Fatal("expected campaign, got nil")
+	if len(resp.Data) != 1 {
+		t.Fatalf("expected 1 campaign, got %d", len(resp.Data))
 	}
-	if resp.CharityName != "Test Charity" {
-		t.Errorf("expected charity name 'Test Charity', got %s", resp.CharityName)
+	if resp.Data[0].CharityName != "Test Charity" {
+		t.Errorf("expected charity name 'Test Charity', got %s", resp.Data[0].CharityName)
 	}
 }
 
-func TestClient_GetCharityDonations(t *testing.T) {
+func TestClient_GetCharityCampaign_Pagination(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		first := r.URL.Query().Get("first")
+		if first != "1" {
+			t.Errorf("expected first=1, got %s", first)
+		}
+		after := r.URL.Query().Get("after")
+		if after != "abc123" {
+			t.Errorf("expected after=abc123, got %s", after)
+		}
+
+		resp := Response[CharityCampaign]{
+			Data: []CharityCampaign{},
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+	defer server.Close()
+
+	_, err := client.GetCharityCampaign(context.Background(), &GetCharityCampaignParams{
+		BroadcasterID:    "12345",
+		PaginationParams: &PaginationParams{First: 1, After: "abc123"},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestClient_GetCharityCampaignDonations(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -92,7 +121,7 @@ func TestClient_GetCharityDonations(t *testing.T) {
 	})
 	defer server.Close()
 
-	resp, err := client.GetCharityDonations(context.Background(), &GetCharityDonationsParams{
+	resp, err := client.GetCharityCampaignDonations(context.Background(), &GetCharityCampaignDonationsParams{
 		BroadcasterID: "12345",
 	})
 
@@ -114,7 +143,9 @@ func TestClient_GetCharityCampaign_Error(t *testing.T) {
 	})
 	defer server.Close()
 
-	_, err := client.GetCharityCampaign(context.Background(), "12345")
+	_, err := client.GetCharityCampaign(context.Background(), &GetCharityCampaignParams{
+		BroadcasterID: "12345",
+	})
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -129,23 +160,25 @@ func TestClient_GetCharityCampaign_EmptyResponse(t *testing.T) {
 	})
 	defer server.Close()
 
-	resp, err := client.GetCharityCampaign(context.Background(), "12345")
+	resp, err := client.GetCharityCampaign(context.Background(), &GetCharityCampaignParams{
+		BroadcasterID: "12345",
+	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if resp != nil {
-		t.Error("expected nil, got campaign")
+	if len(resp.Data) != 0 {
+		t.Errorf("expected 0 campaigns, got %d", len(resp.Data))
 	}
 }
 
-func TestClient_GetCharityDonations_Error(t *testing.T) {
+func TestClient_GetCharityCampaignDonations_Error(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		_, _ = w.Write([]byte(`{"error":"unauthorized"}`))
 	})
 	defer server.Close()
 
-	_, err := client.GetCharityDonations(context.Background(), &GetCharityDonationsParams{
+	_, err := client.GetCharityCampaignDonations(context.Background(), &GetCharityCampaignDonationsParams{
 		BroadcasterID: "12345",
 	})
 	if err == nil {

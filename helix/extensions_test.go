@@ -545,6 +545,36 @@ func TestClient_SendExtensionPubSubMessage_Error(t *testing.T) {
 	}
 }
 
+func TestClient_GetExtensionLiveChannels_StringPagination(t *testing.T) {
+	// Twitch returns "pagination": "" (a string) for this endpoint,
+	// not the usual "pagination": {"cursor": "..."} object format.
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{
+			"data": [
+				{
+					"broadcaster_id": "12345",
+					"broadcaster_name": "TestUser",
+					"game_name": "Test Game",
+					"game_id": "game123",
+					"title": "Live Stream"
+				}
+			],
+			"pagination": ""
+		}`))
+	})
+	defer server.Close()
+
+	resp, err := client.GetExtensionLiveChannels(context.Background(), &GetExtensionLiveChannelsParams{
+		ExtensionID: "ext123",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resp.Data) != 1 {
+		t.Fatalf("expected 1 channel, got %d", len(resp.Data))
+	}
+}
+
 func TestClient_GetExtensionLiveChannels_Error(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)

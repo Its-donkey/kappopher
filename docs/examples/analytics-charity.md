@@ -169,7 +169,9 @@ func main() {
     broadcasterID := "12345"
 
     // Get current charity campaign
-    campaign, err := client.GetCharityCampaign(ctx, broadcasterID)
+    campaign, err := client.GetCharityCampaign(ctx, &helix.GetCharityCampaignParams{
+        BroadcasterID: broadcasterID,
+    })
     if err != nil {
         log.Fatal(err)
     }
@@ -193,8 +195,8 @@ func main() {
 
     // Get charity donations
     donations, err := client.GetCharityCampaignDonations(ctx, &helix.GetCharityCampaignDonationsParams{
-        BroadcasterID: broadcasterID,
-        First:         20,
+        BroadcasterID:    broadcasterID,
+        PaginationParams: &helix.PaginationParams{First: 20},
     })
     if err != nil {
         log.Fatal(err)

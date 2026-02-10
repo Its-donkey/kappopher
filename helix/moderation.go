@@ -531,18 +531,18 @@ const (
 	SuspiciousUserStatusMonitored SuspiciousUserStatus = "monitored"
 )
 
-// AddSuspiciousUserStatusParams contains parameters for AddSuspiciousUserStatus.
-type AddSuspiciousUserStatusParams struct {
+// AddSuspiciousStatusToChatUserParams contains parameters for AddSuspiciousStatusToChatUser.
+type AddSuspiciousStatusToChatUserParams struct {
 	BroadcasterID string               `json:"-"`
 	ModeratorID   string               `json:"-"`
 	UserID        string               `json:"user_id"`
 	Status        SuspiciousUserStatus `json:"status"`
 }
 
-// AddSuspiciousUserStatus adds a suspicious status to a chat user.
+// AddSuspiciousStatusToChatUser adds a suspicious status to a chat user.
 // The status can be "restricted" or "monitored".
 // Requires: moderator:manage:suspicious_users scope.
-func (c *Client) AddSuspiciousUserStatus(ctx context.Context, params *AddSuspiciousUserStatusParams) error {
+func (c *Client) AddSuspiciousStatusToChatUser(ctx context.Context, params *AddSuspiciousStatusToChatUserParams) error {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
 	q.Set("moderator_id", params.ModeratorID)
@@ -550,16 +550,16 @@ func (c *Client) AddSuspiciousUserStatus(ctx context.Context, params *AddSuspici
 	return c.post(ctx, "/moderation/suspicious_users", q, params, nil)
 }
 
-// RemoveSuspiciousUserStatusParams contains parameters for RemoveSuspiciousUserStatus.
-type RemoveSuspiciousUserStatusParams struct {
+// RemoveSuspiciousStatusFromChatUserParams contains parameters for RemoveSuspiciousStatusFromChatUser.
+type RemoveSuspiciousStatusFromChatUserParams struct {
 	BroadcasterID string `json:"-"`
 	ModeratorID   string `json:"-"`
 	UserID        string `json:"-"`
 }
 
-// RemoveSuspiciousUserStatus removes a suspicious status from a chat user.
+// RemoveSuspiciousStatusFromChatUser removes a suspicious status from a chat user.
 // Requires: moderator:manage:suspicious_users scope.
-func (c *Client) RemoveSuspiciousUserStatus(ctx context.Context, params *RemoveSuspiciousUserStatusParams) error {
+func (c *Client) RemoveSuspiciousStatusFromChatUser(ctx context.Context, params *RemoveSuspiciousStatusFromChatUserParams) error {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
 	q.Set("moderator_id", params.ModeratorID)
