@@ -13,6 +13,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.2.0] - 2026-02-11
+
+### Added
+- `GetCharityCampaignParams` struct with pagination support for `GetCharityCampaign`
+- Custom `Pagination.UnmarshalJSON` to handle Twitch endpoints that return pagination as a string instead of an object (e.g. Get Extension Live Channels)
+
+### Changed
+- **BREAKING:** Renamed `GetCustomRewards` → `GetCustomReward` (aligns with Twitch API reference)
+- **BREAKING:** Renamed `GetCustomRewardRedemptions` → `GetCustomRewardRedemption` (aligns with Twitch API reference)
+- **BREAKING:** Renamed `GetCharityDonations` → `GetCharityCampaignDonations` (aligns with Twitch API reference)
+- **BREAKING:** Renamed `AddSuspiciousUserStatus` → `AddSuspiciousStatusToChatUser` (aligns with Twitch API reference)
+- **BREAKING:** Renamed `RemoveSuspiciousUserStatus` → `RemoveSuspiciousStatusFromChatUser` (aligns with Twitch API reference)
+- **BREAKING:** `GetCharityCampaign` now takes `*GetCharityCampaignParams` instead of a bare `string`, and returns `*Response[CharityCampaign]` instead of `*CharityCampaign`
+- All params types renamed to match their function names (`GetCustomRewardsParams` → `GetCustomRewardParams`, etc.)
+
+### Fixed
+- Pagination deserialization for endpoints where Twitch returns `"pagination": ""` instead of `{"cursor": "..."}`
+
 ## [1.1.1] - 2026-02-06 ([#56](https://github.com/Its-donkey/kappopher/pull/56))
 
 ### Added

@@ -130,6 +130,8 @@ for _, channel := range resp.Data {
 }
 ```
 
+**Note:** This endpoint returns `"pagination": ""` (a string) instead of the usual `{"cursor": "..."}` object. The library handles this automatically.
+
 **Sample Response:**
 ```json
 {
@@ -149,9 +151,7 @@ for _, channel := range resp.Data {
       "title": "Testing Extensions with Chat"
     }
   ],
-  "pagination": {
-    "cursor": "eyJiIjpudWxsLCJhIjp7Ik9mZnNldCI6MjB9fQ"
-  }
+  "pagination": ""
 }
 ```
 
