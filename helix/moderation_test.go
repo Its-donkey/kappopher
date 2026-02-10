@@ -1285,7 +1285,7 @@ func TestClient_GetUnbanRequests_WithUserID(t *testing.T) {
 
 // Suspicious user status tests
 
-func TestClient_AddSuspiciousUserStatus(t *testing.T) {
+func TestClient_AddSuspiciousStatusToChatUser(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -1304,7 +1304,7 @@ func TestClient_AddSuspiciousUserStatus(t *testing.T) {
 			t.Errorf("expected moderator_id=%s, got %s", twitchBanModeratorID, moderatorID)
 		}
 
-		var body AddSuspiciousUserStatusParams
+		var body AddSuspiciousStatusToChatUserParams
 		_ = json.NewDecoder(r.Body).Decode(&body)
 
 		if body.UserID != twitchBanUserID {
@@ -1318,7 +1318,7 @@ func TestClient_AddSuspiciousUserStatus(t *testing.T) {
 	})
 	defer server.Close()
 
-	err := client.AddSuspiciousUserStatus(context.Background(), &AddSuspiciousUserStatusParams{
+	err := client.AddSuspiciousStatusToChatUser(context.Background(), &AddSuspiciousStatusToChatUserParams{
 		BroadcasterID: twitchBanBroadcasterID,
 		ModeratorID:   twitchBanModeratorID,
 		UserID:        twitchBanUserID,
@@ -1330,9 +1330,9 @@ func TestClient_AddSuspiciousUserStatus(t *testing.T) {
 	}
 }
 
-func TestClient_AddSuspiciousUserStatus_Monitored(t *testing.T) {
+func TestClient_AddSuspiciousStatusToChatUser_Monitored(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
-		var body AddSuspiciousUserStatusParams
+		var body AddSuspiciousStatusToChatUserParams
 		_ = json.NewDecoder(r.Body).Decode(&body)
 
 		if body.Status != SuspiciousUserStatusMonitored {
@@ -1343,7 +1343,7 @@ func TestClient_AddSuspiciousUserStatus_Monitored(t *testing.T) {
 	})
 	defer server.Close()
 
-	err := client.AddSuspiciousUserStatus(context.Background(), &AddSuspiciousUserStatusParams{
+	err := client.AddSuspiciousStatusToChatUser(context.Background(), &AddSuspiciousStatusToChatUserParams{
 		BroadcasterID: twitchBanBroadcasterID,
 		ModeratorID:   twitchBanModeratorID,
 		UserID:        twitchBanUserID,
@@ -1355,14 +1355,14 @@ func TestClient_AddSuspiciousUserStatus_Monitored(t *testing.T) {
 	}
 }
 
-func TestClient_AddSuspiciousUserStatus_Error(t *testing.T) {
+func TestClient_AddSuspiciousStatusToChatUser_Error(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 		_, _ = w.Write([]byte(`{"error":"forbidden"}`))
 	})
 	defer server.Close()
 
-	err := client.AddSuspiciousUserStatus(context.Background(), &AddSuspiciousUserStatusParams{
+	err := client.AddSuspiciousStatusToChatUser(context.Background(), &AddSuspiciousStatusToChatUserParams{
 		BroadcasterID: twitchBanBroadcasterID,
 		ModeratorID:   twitchBanModeratorID,
 		UserID:        twitchBanUserID,
@@ -1374,7 +1374,7 @@ func TestClient_AddSuspiciousUserStatus_Error(t *testing.T) {
 	}
 }
 
-func TestClient_RemoveSuspiciousUserStatus(t *testing.T) {
+func TestClient_RemoveSuspiciousStatusFromChatUser(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			t.Errorf("expected DELETE, got %s", r.Method)
@@ -1401,7 +1401,7 @@ func TestClient_RemoveSuspiciousUserStatus(t *testing.T) {
 	})
 	defer server.Close()
 
-	err := client.RemoveSuspiciousUserStatus(context.Background(), &RemoveSuspiciousUserStatusParams{
+	err := client.RemoveSuspiciousStatusFromChatUser(context.Background(), &RemoveSuspiciousStatusFromChatUserParams{
 		BroadcasterID: twitchBanBroadcasterID,
 		ModeratorID:   twitchBanModeratorID,
 		UserID:        twitchBanUserID,
@@ -1412,14 +1412,14 @@ func TestClient_RemoveSuspiciousUserStatus(t *testing.T) {
 	}
 }
 
-func TestClient_RemoveSuspiciousUserStatus_Error(t *testing.T) {
+func TestClient_RemoveSuspiciousStatusFromChatUser_Error(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		_, _ = w.Write([]byte(`{"error":"not found"}`))
 	})
 	defer server.Close()
 
-	err := client.RemoveSuspiciousUserStatus(context.Background(), &RemoveSuspiciousUserStatusParams{
+	err := client.RemoveSuspiciousStatusFromChatUser(context.Background(), &RemoveSuspiciousStatusFromChatUserParams{
 		BroadcasterID: twitchBanBroadcasterID,
 		ModeratorID:   twitchBanModeratorID,
 		UserID:        twitchBanUserID,

@@ -26,6 +26,10 @@ for _, campaign := range resp.Data {
 }
 ```
 
+**Parameters:**
+- `BroadcasterID` (string, required): The ID of the broadcaster who is running the charity campaign
+- Pagination parameters (`First`, `After`)
+
 **Sample Response:**
 ```json
 {
@@ -54,31 +58,31 @@ for _, campaign := range resp.Data {
 }
 ```
 
-## GetCharityDonations
+## GetCharityCampaignDonations
 
 Get the list of donations that users have made to the broadcaster's charity campaign.
 
 **Requires:** channel:read:charity scope
 
 ```go
-resp, err := client.GetCharityDonations(ctx, &helix.GetCharityDonationsParams{
-    BroadcasterID: "12345",
-    First:         20,
+resp, err := client.GetCharityCampaignDonations(ctx, &helix.GetCharityCampaignDonationsParams{
+    BroadcasterID:    "12345",
+    PaginationParams: &helix.PaginationParams{First: 20},
 })
 if err != nil {
     log.Fatal(err)
 }
 for _, donation := range resp.Data {
-    fmt.Printf("%s donated %s %s (Campaign: %s)\n",
+    fmt.Printf("%s donated %d %s (Campaign: %s)\n",
         donation.UserName, donation.Amount.Value,
-        donation.Amount.DecimalPlaces, donation.CampaignID)
+        donation.Amount.Currency, donation.CampaignID)
 }
 
 // Paginate through more results
-if resp.Pagination.Cursor != "" {
-    resp, err = client.GetCharityDonations(ctx, &helix.GetCharityDonationsParams{
-        BroadcasterID: "12345",
-        After:         resp.Pagination.Cursor,
+if resp.Pagination != nil && resp.Pagination.Cursor != "" {
+    resp, err = client.GetCharityCampaignDonations(ctx, &helix.GetCharityCampaignDonationsParams{
+        BroadcasterID:    "12345",
+        PaginationParams: &helix.PaginationParams{After: resp.Pagination.Cursor},
     })
 }
 ```

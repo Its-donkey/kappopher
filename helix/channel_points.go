@@ -55,16 +55,16 @@ type GlobalCooldown struct {
 	GlobalCooldownSeconds int  `json:"global_cooldown_seconds"`
 }
 
-// GetCustomRewardsParams contains parameters for GetCustomRewards.
-type GetCustomRewardsParams struct {
+// GetCustomRewardParams contains parameters for GetCustomReward.
+type GetCustomRewardParams struct {
 	BroadcasterID         string
 	IDs                   []string // Reward IDs (max 50)
 	OnlyManageableRewards bool
 }
 
-// GetCustomRewards gets custom rewards for a channel.
+// GetCustomReward gets custom rewards for a channel.
 // Requires: channel:read:redemptions or channel:manage:redemptions scope.
-func (c *Client) GetCustomRewards(ctx context.Context, params *GetCustomRewardsParams) (*Response[CustomReward], error) {
+func (c *Client) GetCustomReward(ctx context.Context, params *GetCustomRewardParams) (*Response[CustomReward], error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
 	for _, id := range params.IDs {
@@ -182,8 +182,8 @@ type CustomRewardRedemption struct {
 	} `json:"reward"`
 }
 
-// GetCustomRewardRedemptionsParams contains parameters for GetCustomRewardRedemptions.
-type GetCustomRewardRedemptionsParams struct {
+// GetCustomRewardRedemptionParams contains parameters for GetCustomRewardRedemption.
+type GetCustomRewardRedemptionParams struct {
 	BroadcasterID string
 	RewardID      string
 	Status        string // CANCELED, FULFILLED, UNFULFILLED
@@ -192,9 +192,9 @@ type GetCustomRewardRedemptionsParams struct {
 	*PaginationParams
 }
 
-// GetCustomRewardRedemptions gets redemptions for a custom reward.
+// GetCustomRewardRedemption gets redemptions for a custom reward.
 // Requires: channel:read:redemptions or channel:manage:redemptions scope.
-func (c *Client) GetCustomRewardRedemptions(ctx context.Context, params *GetCustomRewardRedemptionsParams) (*Response[CustomRewardRedemption], error) {
+func (c *Client) GetCustomRewardRedemption(ctx context.Context, params *GetCustomRewardRedemptionParams) (*Response[CustomRewardRedemption], error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
 	q.Set("reward_id", params.RewardID)

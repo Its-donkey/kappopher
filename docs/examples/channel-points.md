@@ -93,7 +93,7 @@ func boolPtr(b bool) *bool { return &b }
 
 ```go
 // Get all custom rewards
-rewards, err := client.GetCustomRewards(ctx, &helix.GetCustomRewardsParams{
+rewards, err := client.GetCustomReward(ctx, &helix.GetCustomRewardParams{
     BroadcasterID: broadcasterID,
 })
 if err != nil {
@@ -110,13 +110,13 @@ for _, reward := range rewards.Data {
 }
 
 // Get specific rewards by ID
-specificRewards, err := client.GetCustomRewards(ctx, &helix.GetCustomRewardsParams{
+specificRewards, err := client.GetCustomReward(ctx, &helix.GetCustomRewardParams{
     BroadcasterID: broadcasterID,
     IDs:           []string{"reward-id-1", "reward-id-2"},
 })
 
 // Get only manageable rewards (created by your app)
-manageableRewards, err := client.GetCustomRewards(ctx, &helix.GetCustomRewardsParams{
+manageableRewards, err := client.GetCustomReward(ctx, &helix.GetCustomRewardParams{
     BroadcasterID:      broadcasterID,
     OnlyManageableRewards: true,
 })
@@ -162,7 +162,7 @@ if err != nil {
 
 ```go
 // Get unfulfilled redemptions
-redemptions, err := client.GetCustomRewardRedemptions(ctx, &helix.GetCustomRewardRedemptionsParams{
+redemptions, err := client.GetCustomRewardRedemption(ctx, &helix.GetCustomRewardRedemptionParams{
     BroadcasterID: broadcasterID,
     RewardID:      "reward-id",
     Status:        "UNFULFILLED",
@@ -180,7 +180,7 @@ for _, redemption := range redemptions.Data {
 }
 
 // Get redemptions with pagination
-allRedemptions, err := client.GetCustomRewardRedemptions(ctx, &helix.GetCustomRewardRedemptionsParams{
+allRedemptions, err := client.GetCustomRewardRedemption(ctx, &helix.GetCustomRewardRedemptionParams{
     BroadcasterID: broadcasterID,
     RewardID:      "reward-id",
     Status:        "UNFULFILLED",

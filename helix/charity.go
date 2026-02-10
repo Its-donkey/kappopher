@@ -26,20 +26,24 @@ type CharityAmount struct {
 	Currency      string `json:"currency"`
 }
 
+// GetCharityCampaignParams contains parameters for GetCharityCampaign.
+type GetCharityCampaignParams struct {
+	BroadcasterID string
+	*PaginationParams
+}
+
 // GetCharityCampaign gets the active charity campaign for a channel.
 // Requires: channel:read:charity scope.
-func (c *Client) GetCharityCampaign(ctx context.Context, broadcasterID string) (*CharityCampaign, error) {
+func (c *Client) GetCharityCampaign(ctx context.Context, params *GetCharityCampaignParams) (*Response[CharityCampaign], error) {
 	q := url.Values{}
-	q.Set("broadcaster_id", broadcasterID)
+	q.Set("broadcaster_id", params.BroadcasterID)
+	addPaginationParams(q, params.PaginationParams)
 
 	var resp Response[CharityCampaign]
 	if err := c.get(ctx, "/charity/campaigns", q, &resp); err != nil {
 		return nil, err
 	}
-	if len(resp.Data) == 0 {
-		return nil, nil
-	}
-	return &resp.Data[0], nil
+	return &resp, nil
 }
 
 // CharityDonation represents a donation to a charity campaign.
@@ -52,15 +56,15 @@ type CharityDonation struct {
 	Amount     CharityAmount `json:"amount"`
 }
 
-// GetCharityDonationsParams contains parameters for GetCharityDonations.
-type GetCharityDonationsParams struct {
+// GetCharityCampaignDonationsParams contains parameters for GetCharityCampaignDonations.
+type GetCharityCampaignDonationsParams struct {
 	BroadcasterID string
 	*PaginationParams
 }
 
-// GetCharityDonations gets the donations for a charity campaign.
+// GetCharityCampaignDonations gets the donations for a charity campaign.
 // Requires: channel:read:charity scope.
-func (c *Client) GetCharityDonations(ctx context.Context, params *GetCharityDonationsParams) (*Response[CharityDonation], error) {
+func (c *Client) GetCharityCampaignDonations(ctx context.Context, params *GetCharityCampaignDonationsParams) (*Response[CharityDonation], error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
 	addPaginationParams(q, params.PaginationParams)

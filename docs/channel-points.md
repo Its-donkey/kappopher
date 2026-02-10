@@ -4,7 +4,7 @@ title: Channel Points API
 description: Manage custom Channel Points rewards and redemptions.
 ---
 
-## GetCustomRewards
+## GetCustomReward
 
 Get custom Channel Points rewards for a broadcaster.
 
@@ -12,18 +12,18 @@ Get custom Channel Points rewards for a broadcaster.
 
 ```go
 // Get all rewards
-resp, err := client.GetCustomRewards(ctx, &helix.GetCustomRewardsParams{
+resp, err := client.GetCustomReward(ctx, &helix.GetCustomRewardParams{
     BroadcasterID: "12345",
 })
 
 // Get specific rewards by ID (max 50)
-resp, err = client.GetCustomRewards(ctx, &helix.GetCustomRewardsParams{
+resp, err = client.GetCustomReward(ctx, &helix.GetCustomRewardParams{
     BroadcasterID: "12345",
     IDs:           []string{"reward-id-1", "reward-id-2"},
 })
 
 // Get only manageable rewards
-resp, err = client.GetCustomRewards(ctx, &helix.GetCustomRewardsParams{
+resp, err = client.GetCustomReward(ctx, &helix.GetCustomRewardParams{
     BroadcasterID:         "12345",
     OnlyManageableRewards: true,
 })
@@ -225,7 +225,7 @@ err := client.DeleteCustomReward(ctx, &helix.DeleteCustomRewardParams{
 
 **Note:** This endpoint returns no data on success (HTTP 204 No Content).
 
-## GetCustomRewardRedemptions
+## GetCustomRewardRedemption
 
 Get redemptions for a custom Channel Points reward.
 
@@ -233,21 +233,21 @@ Get redemptions for a custom Channel Points reward.
 
 ```go
 // Get all unfulfilled redemptions for a reward
-resp, err := client.GetCustomRewardRedemptions(ctx, &helix.GetCustomRewardRedemptionsParams{
+resp, err := client.GetCustomRewardRedemption(ctx, &helix.GetCustomRewardRedemptionParams{
     BroadcasterID: "12345",
     RewardID:      "reward-id",
     Status:        "UNFULFILLED",
 })
 
 // Get specific redemptions by ID
-resp, err = client.GetCustomRewardRedemptions(ctx, &helix.GetCustomRewardRedemptionsParams{
+resp, err = client.GetCustomRewardRedemption(ctx, &helix.GetCustomRewardRedemptionParams{
     BroadcasterID: "12345",
     RewardID:      "reward-id",
     IDs:           []string{"redemption-id-1", "redemption-id-2"},
 })
 
 // Get fulfilled redemptions sorted by newest first
-resp, err = client.GetCustomRewardRedemptions(ctx, &helix.GetCustomRewardRedemptionsParams{
+resp, err = client.GetCustomRewardRedemption(ctx, &helix.GetCustomRewardRedemptionParams{
     BroadcasterID: "12345",
     RewardID:      "reward-id",
     Status:        "FULFILLED",
@@ -258,7 +258,7 @@ resp, err = client.GetCustomRewardRedemptions(ctx, &helix.GetCustomRewardRedempt
 })
 
 // Get canceled redemptions sorted by oldest first
-resp, err = client.GetCustomRewardRedemptions(ctx, &helix.GetCustomRewardRedemptionsParams{
+resp, err = client.GetCustomRewardRedemption(ctx, &helix.GetCustomRewardRedemptionParams{
     BroadcasterID: "12345",
     RewardID:      "reward-id",
     Status:        "CANCELED",
