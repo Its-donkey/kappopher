@@ -8,14 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-
-### Changed
-
-### Fixed
-
-## [1.2.0] - 2026-02-11
-
-### Added
 - `GetCharityCampaignParams` struct with pagination support for `GetCharityCampaign`
 - Custom `Pagination.UnmarshalJSON` to handle Twitch endpoints that return pagination as a string instead of an object (e.g. Get Extension Live Channels)
 
