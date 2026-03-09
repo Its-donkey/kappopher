@@ -536,7 +536,8 @@ for _, tx := range resp.Data {
           "type": "bits"
         },
         "display_name": "Super Power-Up",
-        "in_development": false
+        "inDevelopment": false,
+        "expiration": "",
       }
     },
     {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
+	"time"
 )
 
 func TestClient_GetExtensionConfigurationSegment(t *testing.T) {
@@ -425,11 +426,12 @@ func TestClient_GetExtensionTransactions(t *testing.T) {
 					UserLogin:        "buyer",
 					UserName:         "Buyer",
 					ProductType:      "BITS_IN_EXTENSION",
-					ProductData: ExtensionTransactionProduct{
+					ProductData: ExtensionTransactionProductFromTx{
 						SKU:           "product123",
 						Cost:          ExtensionBitsCost{Amount: 100, Type: "bits"},
 						InDevelopment: false,
 						DisplayName:   "Test Product",
+						Expiration:    time.Now().Add(time.Hour * 1),
 					},
 				},
 			},
