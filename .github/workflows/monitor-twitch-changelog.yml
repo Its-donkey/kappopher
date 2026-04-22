@@ -8,13 +8,14 @@ on:
 permissions:
   contents: write
   issues: write
+  pull-requests: write
 
 jobs:
   check-changelog:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check for changelog updates
         env:
@@ -91,9 +92,20 @@ jobs:
           # Update the stored hash
           echo "$NEW_HASH" > "$HASH_FILE"
 
-          # Commit the updated hash
+          # Commit the updated hash on a new branch and open an auto-merge PR
+          # (direct push to main is blocked by branch protection rules)
+          BRANCH="chore/twitch-changelog-hash-$(date -u +%Y%m%d-%H%M%S)"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
           git add "$HASH_FILE"
           git commit -m "Update Twitch changelog hash"
-          git push
+          git push -u origin "$BRANCH"
+
+          PR_URL=$(gh pr create \
+            --title "chore: update Twitch changelog hash" \
+            --body "Automated hash update after detecting a Twitch changelog change. See the linked changelog issue for review details." \
+            --base main \
+            --head "$BRANCH")
+
+          gh pr merge "$PR_URL" --auto --squash --delete-branch
