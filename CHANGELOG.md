@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- CI: moved Twitch changelog monitor state to a dedicated `state/twitch-changelog` orphan branch so the bot no longer fights `main` branch protection, and bumped `actions/checkout` and `actions/setup-go` to v6
 
 ### Fixed
 
