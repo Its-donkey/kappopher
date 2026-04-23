@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- CI: Twitch changelog monitor now lists the specific added entries inline in the issue body (and in comments when the issue is already open) rather than just pointing at the changelog URL. A full entries snapshot is kept on `state/twitch-changelog` alongside the hash so each run can diff against the previous one.
 
 ### Fixed
 
