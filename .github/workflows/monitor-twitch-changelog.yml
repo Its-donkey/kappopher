@@ -13,8 +13,10 @@ jobs:
   check-changelog:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout state branch
+        uses: actions/checkout@v6
+        with:
+          ref: state/twitch-changelog
 
       - name: Check for changelog updates
         env:
@@ -88,10 +90,9 @@ jobs:
               --body "$ISSUE_BODY"
           fi
 
-          # Update the stored hash
+          # Update the stored hash on the state branch (orphan, not subject to
+          # branch protection or promotion rules)
           echo "$NEW_HASH" > "$HASH_FILE"
-
-          # Commit the updated hash
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add "$HASH_FILE"
