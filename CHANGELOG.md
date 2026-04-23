@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.2.2] - 2026-04-23 ([#75](https://github.com/Its-donkey/kappopher/pull/75))
+
+### Added
+
+### Changed
+- CI: Twitch changelog monitor now lists the specific added entries inline in the issue body (and in comments when the issue is already open) rather than just pointing at the changelog URL. A full entries snapshot is kept on `state/twitch-changelog` alongside the hash so each run can diff against the previous one.
+
+### Fixed
+
 ## [1.2.1] - 2026-04-23 ([#67](https://github.com/Its-donkey/kappopher/pull/67))
 
 ### Added
