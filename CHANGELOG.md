@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.2.1] - 2026-04-23 ([#67](https://github.com/Its-donkey/kappopher/pull/67))
+
+### Added
+- CI: `Require CHANGELOG Update` workflow that fails PRs to `test` when `CHANGELOG.md` is not modified (override with a `skip-changelog` label for docs-only or internal changes)
+
+### Changed
+- CI: moved Twitch changelog monitor state to a dedicated `state/twitch-changelog` orphan branch so the bot no longer fights `main` branch protection, and bumped `actions/checkout` and `actions/setup-go` to v6
+
+### Fixed
+
 ## [1.2.0] - 2026-02-10 ([#59](https://github.com/Its-donkey/kappopher/pull/59))
 
 ### Added
