@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
-	"time"
 )
 
 func TestClient_GetExtensionConfigurationSegment(t *testing.T) {
@@ -414,30 +413,27 @@ func TestClient_GetExtensionTransactions(t *testing.T) {
 			t.Errorf("expected extension_id 'ext123', got %s", extensionID)
 		}
 
-		resp := Response[ExtensionTransaction]{
-			Data: []ExtensionTransaction{
-				{
-					ID:               "tx123",
-					Timestamp:        "2024-01-15T12:00:00Z",
-					BroadcasterID:    "12345",
-					BroadcasterLogin: "testuser",
-					BroadcasterName:  "TestUser",
-					UserID:           "67890",
-					UserLogin:        "buyer",
-					UserName:         "Buyer",
-					ProductType:      "BITS_IN_EXTENSION",
-					ProductData: ExtensionTransactionProductFromTx{
-						SKU:           "product123",
-						Cost:          ExtensionBitsCost{Amount: 100, Type: "bits"},
-						InDevelopment: false,
-						DisplayName:   "Test Product",
-						Expiration:    time.Now().Add(time.Hour * 1),
-					},
-				},
-			},
-			Pagination: &Pagination{Cursor: "next-cursor"},
-		}
-		_ = json.NewEncoder(w).Encode(resp)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"data": [{
+				"id": "tx123",
+				"timestamp": "2024-01-15T12:00:00Z",
+				"broadcaster_id": "12345",
+				"broadcaster_login": "testuser",
+				"broadcaster_name": "TestUser",
+				"user_id": "67890",
+				"user_login": "buyer",
+				"user_name": "Buyer",
+				"product_type": "BITS_IN_EXTENSION",
+				"product_data": {
+					"sku": "product123",
+					"cost": {"amount": 100, "type": "bits"},
+					"display_name": "Test Product",
+					"inDevelopment": true
+				}
+			}],
+			"pagination": {"cursor": "next-cursor"}
+		}`))
 	})
 	defer server.Close()
 
@@ -451,8 +447,53 @@ func TestClient_GetExtensionTransactions(t *testing.T) {
 	if len(resp.Data) != 1 {
 		t.Fatalf("expected 1 transaction, got %d", len(resp.Data))
 	}
-	if resp.Data[0].ProductData.SKU != "product123" {
-		t.Errorf("expected SKU 'product123', got %s", resp.Data[0].ProductData.SKU)
+	tx := resp.Data[0]
+	if tx.ProductData.SKU != "product123" {
+		t.Errorf("expected SKU 'product123', got %s", tx.ProductData.SKU)
+	}
+	if !tx.ProductData.InDevelopment {
+		t.Errorf("expected InDevelopment true from camelCase 'inDevelopment' JSON tag")
+	}
+}
+
+// TestClient_GetExtensionTransactions_SnakeCaseInDevelopmentIgnored verifies that the
+// old snake_case "in_development" key (sent by the bits-products endpoint, not transactions)
+// does not populate InDevelopment on ExtensionTransactionProductFromTx, confirming the
+// camelCase tag is the correct one for transaction responses.
+func TestClient_GetExtensionTransactions_SnakeCaseInDevelopmentIgnored(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"data": [{
+				"id": "tx123",
+				"timestamp": "2024-01-15T12:00:00Z",
+				"broadcaster_id": "12345",
+				"broadcaster_login": "testuser",
+				"broadcaster_name": "TestUser",
+				"user_id": "67890",
+				"user_login": "buyer",
+				"user_name": "Buyer",
+				"product_type": "BITS_IN_EXTENSION",
+				"product_data": {
+					"sku": "product123",
+					"cost": {"amount": 100, "type": "bits"},
+					"display_name": "Test Product",
+					"in_development": true
+				}
+			}],
+			"pagination": {}
+		}`))
+	})
+	defer server.Close()
+
+	resp, err := client.GetExtensionTransactions(context.Background(), &GetExtensionTransactionsParams{
+		ExtensionID: "ext123",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.Data[0].ProductData.InDevelopment {
+		t.Errorf("snake_case 'in_development' should not populate InDevelopment; use 'inDevelopment'")
 	}
 }
 

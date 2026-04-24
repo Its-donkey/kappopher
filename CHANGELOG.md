@@ -8,10 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `ExtensionTransactionProductFromTx` struct with correct camelCase `inDevelopment` JSON tag to match the Twitch API transaction response
+- Test `TestClient_GetExtensionTransactions_IgnoresUnknownProductDataFields` verifying unknown fields (e.g. `expiration: ""`) don't break unmarshalling
 
 ### Changed
+- Go version bumped to 1.26 in `go.mod`
+- Modernised codebase: `interface{}` → `any` throughout, `strings.Split` → `strings.SplitSeq`/`strings.Cut`/`strings.CutPrefix`, `maps.Copy` for map merging, `slices.Contains`, `wg.Go()`, `max()` builtin for rate-limit retry delay
+- Removed `omitempty` from `time.Time` JSON fields across `AdSchedule`, `BannedUser`, `BanUserResponse`, `BlockedTerm`, `Poll`, `Prediction`, `SearchChannel`, and `ExtensionViews`
+- `LoggingMiddleware` logger parameter type updated to `...any`
 
 ### Fixed
+- `ExtensionAnalytics.URL` JSON tag corrected to `"URL"` to match the Twitch API response
+- `ExtensionTransaction.ProductData` now uses `ExtensionTransactionProductFromTx` (camelCase `inDevelopment`) instead of the request-side `ExtensionTransactionProduct`
 
 ## [1.2.2] - 2026-04-23 ([#75](https://github.com/Its-donkey/kappopher/pull/75))
 

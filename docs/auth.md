@@ -384,7 +384,7 @@ authURL, err := auth.GetOIDCAuthorizationURL(
 **Parameters:**
 - `responseType` (OIDCResponseType): The response type (`ResponseTypeCode`, `ResponseTypeToken`, `ResponseTypeIDToken`, `ResponseTypeTokenIDToken`, `ResponseTypeCodeIDToken`)
 - `nonce` (string): A random string to prevent replay attacks
-- `claims` (map[string]interface{}): Optional claims to request
+- `claims` (map[string]any): Optional claims to request
 
 ### ExchangeCodeForOIDCToken
 
