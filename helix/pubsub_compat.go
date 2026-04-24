@@ -494,9 +494,7 @@ func (c *PubSubClient) handleRevocation(sub *EventSubSubscription) {
 
 // handleReconnect handles WebSocket reconnection requests.
 func (c *PubSubClient) handleReconnect(reconnectURL string) {
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
+	c.wg.Go(func() {
 
 		// Copy ws under lock to avoid race with Close/Connect
 		c.mu.RLock()
@@ -528,7 +526,7 @@ func (c *PubSubClient) handleReconnect(reconnectURL string) {
 		if c.onReconnect != nil {
 			c.onReconnect()
 		}
-	}()
+	})
 }
 
 // handleError routes errors to the error handler.
@@ -595,4 +593,3 @@ func BuildTopic(topicType string, ids ...string) string {
 	}
 	return ""
 }
-

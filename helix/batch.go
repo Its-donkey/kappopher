@@ -9,7 +9,7 @@ import (
 // BatchRequest represents a single request in a batch.
 type BatchRequest struct {
 	Request *Request
-	Result  interface{}
+	Result  any
 }
 
 // BatchResult contains the result of a batch request.
@@ -138,7 +138,7 @@ func (c *Client) BatchGet(ctx context.Context, requests []GetRequest, opts *Batc
 type GetRequest struct {
 	Endpoint string
 	Query    url.Values
-	Result   interface{}
+	Result   any
 }
 
 // BatchSequential executes requests sequentially, useful when order matters

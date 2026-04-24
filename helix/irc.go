@@ -406,8 +406,8 @@ func (c *IRCClient) waitForAuth(ctx context.Context) error {
 			return fmt.Errorf("reading auth response: %w", err)
 		}
 
-		lines := strings.Split(string(data), "\r\n")
-		for _, line := range lines {
+		lines := strings.SplitSeq(string(data), "\r\n")
+		for line := range lines {
 			if line == "" {
 				continue
 			}
@@ -487,8 +487,8 @@ func (c *IRCClient) readLoop() {
 			return
 		}
 
-		lines := strings.Split(string(data), "\r\n")
-		for _, line := range lines {
+		lines := strings.SplitSeq(string(data), "\r\n")
+		for line := range lines {
 			if line == "" {
 				continue
 			}

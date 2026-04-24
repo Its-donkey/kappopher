@@ -21,7 +21,7 @@ type Poll struct {
 	Status                     string       `json:"status"` // ACTIVE, COMPLETED, TERMINATED, ARCHIVED, MODERATED, INVALID
 	Duration                   int          `json:"duration"`
 	StartedAt                  time.Time    `json:"started_at"`
-	EndedAt                    time.Time    `json:"ended_at,omitempty"`
+	EndedAt                    time.Time    `json:"ended_at"`
 }
 
 // PollChoice represents a choice in a poll.

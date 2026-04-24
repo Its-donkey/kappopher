@@ -337,9 +337,9 @@ type ChannelPredictionEndEvent struct {
 type HypeTrainType string
 
 const (
-	HypeTrainTypeRegular    HypeTrainType = "regular"
+	HypeTrainTypeRegular     HypeTrainType = "regular"
 	HypeTrainTypeGoldenKappa HypeTrainType = "golden_kappa"
-	HypeTrainTypeShared     HypeTrainType = "shared"
+	HypeTrainTypeShared      HypeTrainType = "shared"
 )
 
 // HypeTrainParticipant represents a participant in a shared hype train (v2 only).

@@ -44,7 +44,7 @@ type SearchChannel struct {
 	Tags                []string  `json:"tags"`
 	ThumbnailURL        string    `json:"thumbnail_url"`
 	Title               string    `json:"title"`
-	StartedAt           time.Time `json:"started_at,omitempty"`
+	StartedAt           time.Time `json:"started_at"`
 }
 
 // SearchChannelsParams contains parameters for SearchChannels.

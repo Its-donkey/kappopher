@@ -76,7 +76,7 @@ func TestBatch_MultipleRequests(t *testing.T) {
 	defer server.Close()
 
 	requests := make([]BatchRequest, 5)
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		requests[i] = BatchRequest{
 			Request: &Request{
 				Method:   "GET",
@@ -128,7 +128,7 @@ func TestBatch_WithConcurrencyLimit(t *testing.T) {
 	defer server.Close()
 
 	requests := make([]BatchRequest, 10)
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		requests[i] = BatchRequest{
 			Request: &Request{Method: "GET", Endpoint: "/users"},
 			Result:  &Response[User]{},
@@ -162,7 +162,7 @@ func TestBatch_StopOnError(t *testing.T) {
 	defer server.Close()
 
 	requests := make([]BatchRequest, 5)
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		requests[i] = BatchRequest{
 			Request: &Request{Method: "GET", Endpoint: "/users"},
 			Result:  &Response[User]{},
@@ -241,7 +241,7 @@ func TestBatch_UnlimitedConcurrency(t *testing.T) {
 	defer server.Close()
 
 	requests := make([]BatchRequest, 5)
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		requests[i] = BatchRequest{
 			Request: &Request{Method: "GET", Endpoint: "/users"},
 			Result:  &Response[User]{},
@@ -314,7 +314,7 @@ func TestBatchSequential(t *testing.T) {
 	}
 
 	// Verify sequential order
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		if requestOrder[i] != i+1 {
 			t.Errorf("expected request order %d at position %d, got %d", i+1, i, requestOrder[i])
 		}
@@ -403,7 +403,7 @@ func TestBatchWithCallback_StopOnError(t *testing.T) {
 	defer server.Close()
 
 	requests := make([]BatchRequest, 5)
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		requests[i] = BatchRequest{
 			Request: &Request{Method: "GET", Endpoint: "/users"},
 			Result:  &Response[User]{},
@@ -461,7 +461,7 @@ func TestBatchWithCallback_UnlimitedConcurrency(t *testing.T) {
 	defer server.Close()
 
 	requests := make([]BatchRequest, 3)
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		requests[i] = BatchRequest{
 			Request: &Request{Method: "GET", Endpoint: "/users"},
 			Result:  &Response[User]{},
@@ -607,7 +607,7 @@ func TestBatch_SemaphoreContextCancel(t *testing.T) {
 	defer cancel()
 
 	requests := make([]BatchRequest, 10)
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		requests[i] = BatchRequest{
 			Request: &Request{Method: "GET", Endpoint: "/users"},
 			Result:  &Response[User]{},
@@ -642,7 +642,7 @@ func TestBatchWithCallback_SemaphoreContextCancel(t *testing.T) {
 	defer cancel()
 
 	requests := make([]BatchRequest, 10)
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		requests[i] = BatchRequest{
 			Request: &Request{Method: "GET", Endpoint: "/users"},
 			Result:  &Response[User]{},

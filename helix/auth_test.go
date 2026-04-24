@@ -700,7 +700,7 @@ func TestAuthClient_GetOIDCAuthorizationURL(t *testing.T) {
 		ForceVerify: true,
 	})
 
-	url, err := client.GetOIDCAuthorizationURL(ResponseTypeCodeIDToken, "test-nonce", map[string]interface{}{"userinfo": map[string]interface{}{"email": nil}})
+	url, err := client.GetOIDCAuthorizationURL(ResponseTypeCodeIDToken, "test-nonce", map[string]any{"userinfo": map[string]any{"email": nil}})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1995,7 +1995,7 @@ func TestParseIDTokenHeader_InvalidJSON(t *testing.T) {
 // ============================================================================
 
 // Helper function to create a test RSA key pair and signed JWT
-func createTestJWT(t *testing.T, claims map[string]interface{}, kid string) (string, *rsa.PrivateKey) {
+func createTestJWT(t *testing.T, claims map[string]any, kid string) (string, *rsa.PrivateKey) {
 	// Generate RSA key pair
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
@@ -2045,7 +2045,7 @@ func createTestJWKS(privateKey *rsa.PrivateKey, kid string) *JWKS {
 }
 
 func TestVerifyIDTokenSignature_Valid(t *testing.T) {
-	claims := map[string]interface{}{
+	claims := map[string]any{
 		"iss": "https://id.twitch.tv/oauth2",
 		"sub": "12345",
 		"aud": "client-id",
@@ -2096,7 +2096,7 @@ func TestVerifyIDTokenSignature_UnsupportedAlgorithm(t *testing.T) {
 }
 
 func TestVerifyIDTokenSignature_KeyNotFound(t *testing.T) {
-	claims := map[string]interface{}{"sub": "123"}
+	claims := map[string]any{"sub": "123"}
 	jwt, _ := createTestJWT(t, claims, "unknown-key")
 
 	// JWKS with different key ID
@@ -2121,7 +2121,7 @@ func TestVerifyIDTokenSignature_KeyNotFound(t *testing.T) {
 }
 
 func TestVerifyIDTokenSignature_InvalidSignature(t *testing.T) {
-	claims := map[string]interface{}{"sub": "123"}
+	claims := map[string]any{"sub": "123"}
 	jwt, privateKey := createTestJWT(t, claims, "key1")
 	jwks := createTestJWKS(privateKey, "key1")
 
@@ -2140,7 +2140,7 @@ func TestVerifyIDTokenSignature_InvalidSignature(t *testing.T) {
 }
 
 func TestVerifyIDTokenSignature_InvalidRSAKey(t *testing.T) {
-	claims := map[string]interface{}{"sub": "123"}
+	claims := map[string]any{"sub": "123"}
 	jwt, _ := createTestJWT(t, claims, "key1")
 
 	// JWKS with invalid RSA key (non-RSA type)
@@ -2165,7 +2165,7 @@ func TestVerifyIDTokenSignature_InvalidRSAKey(t *testing.T) {
 }
 
 func TestVerifyIDTokenSignature_InvalidSignatureBase64(t *testing.T) {
-	claims := map[string]interface{}{"sub": "123"}
+	claims := map[string]any{"sub": "123"}
 	jwt, privateKey := createTestJWT(t, claims, "key1")
 	jwks := createTestJWKS(privateKey, "key1")
 
@@ -2188,7 +2188,7 @@ func TestVerifyIDTokenSignature_InvalidSignatureBase64(t *testing.T) {
 // ============================================================================
 
 func TestVerifyAndParseIDToken_Success(t *testing.T) {
-	claims := map[string]interface{}{
+	claims := map[string]any{
 		"iss":                "https://id.twitch.tv/oauth2",
 		"sub":                "12345",
 		"aud":                "client-id",
@@ -2242,7 +2242,7 @@ func TestVerifyAndParseIDToken_JWKSFetchError(t *testing.T) {
 
 func TestVerifyAndParseIDToken_SignatureVerificationError(t *testing.T) {
 	// Create a valid-looking JWT but with wrong signature
-	claims := map[string]interface{}{"sub": "123"}
+	claims := map[string]any{"sub": "123"}
 	jwt, _ := createTestJWT(t, claims, "key1")
 
 	// JWKS with different key (signature won't match)
@@ -2302,7 +2302,7 @@ func TestVerifyAndParseIDToken_ParseError(t *testing.T) {
 // ============================================================================
 
 func TestValidateIDToken_Success(t *testing.T) {
-	claims := map[string]interface{}{
+	claims := map[string]any{
 		"iss":   "https://id.twitch.tv/oauth2",
 		"sub":   "12345",
 		"aud":   "client-id",
@@ -2350,7 +2350,7 @@ func TestValidateIDToken_VerificationError(t *testing.T) {
 
 func TestValidateIDToken_ClaimsValidationError(t *testing.T) {
 	// Create a valid signed JWT but with invalid claims (wrong issuer)
-	claims := map[string]interface{}{
+	claims := map[string]any{
 		"iss": "https://wrong.issuer.com",
 		"sub": "12345",
 		"aud": "client-id",
@@ -2380,7 +2380,7 @@ func TestValidateIDToken_ClaimsValidationError(t *testing.T) {
 }
 
 func TestValidateIDToken_WithNonceValidation(t *testing.T) {
-	claims := map[string]interface{}{
+	claims := map[string]any{
 		"iss":   "https://id.twitch.tv/oauth2",
 		"sub":   "12345",
 		"aud":   "client-id",
@@ -2578,7 +2578,7 @@ func TestAuthClient_AutoRefresh_ContextCancelDuringWait(t *testing.T) {
 
 func TestVerifyIDTokenSignature_WrongKeySignature(t *testing.T) {
 	// Create a JWT signed with one key
-	claims := map[string]interface{}{"sub": "123"}
+	claims := map[string]any{"sub": "123"}
 	jwt, _ := createTestJWT(t, claims, "key1")
 
 	// Create JWKS with a different key but same kid
@@ -2595,7 +2595,7 @@ func TestVerifyIDTokenSignature_WrongKeySignature(t *testing.T) {
 }
 
 func TestValidateIDToken_ExpiredToken(t *testing.T) {
-	claims := map[string]interface{}{
+	claims := map[string]any{
 		"iss": "https://id.twitch.tv/oauth2",
 		"sub": "12345",
 		"aud": "client-id",
@@ -2625,7 +2625,7 @@ func TestValidateIDToken_ExpiredToken(t *testing.T) {
 }
 
 func TestValidateIDToken_WrongAudience(t *testing.T) {
-	claims := map[string]interface{}{
+	claims := map[string]any{
 		"iss": "https://id.twitch.tv/oauth2",
 		"sub": "12345",
 		"aud": "wrong-client-id",
@@ -2655,7 +2655,7 @@ func TestValidateIDToken_WrongAudience(t *testing.T) {
 }
 
 func TestValidateIDToken_EmptyNonceNotChecked(t *testing.T) {
-	claims := map[string]interface{}{
+	claims := map[string]any{
 		"iss":   "https://id.twitch.tv/oauth2",
 		"sub":   "12345",
 		"aud":   "client-id",
@@ -3167,7 +3167,7 @@ func TestAuthClient_GetOIDCAuthorizationURL_ClaimsMarshalError(t *testing.T) {
 	})
 
 	// Create claims with a channel value which can't be marshaled to JSON
-	invalidClaims := map[string]interface{}{
+	invalidClaims := map[string]any{
 		"test": make(chan int),
 	}
 

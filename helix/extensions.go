@@ -200,10 +200,10 @@ type Extension struct {
 
 // ExtensionViews represents the views configuration for an extension.
 type ExtensionViews struct {
-	Mobile       ExtensionView `json:"mobile,omitempty"`
-	Panel        ExtensionView `json:"panel,omitempty"`
-	VideoOverlay ExtensionView `json:"video_overlay,omitempty"`
-	Component    ExtensionView `json:"component,omitempty"`
+	Mobile       ExtensionView `json:"mobile"`
+	Panel        ExtensionView `json:"panel"`
+	VideoOverlay ExtensionView `json:"video_overlay"`
+	Component    ExtensionView `json:"component"`
 }
 
 // ExtensionView represents a single view configuration.

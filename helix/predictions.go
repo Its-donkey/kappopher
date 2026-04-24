@@ -18,8 +18,8 @@ type Prediction struct {
 	PredictionWindow int                 `json:"prediction_window"`
 	Status           string              `json:"status"` // ACTIVE, CANCELED, LOCKED, RESOLVED
 	CreatedAt        time.Time           `json:"created_at"`
-	EndedAt          time.Time           `json:"ended_at,omitempty"`
-	LockedAt         time.Time           `json:"locked_at,omitempty"`
+	EndedAt          time.Time           `json:"ended_at"`
+	LockedAt         time.Time           `json:"locked_at"`
 }
 
 // PredictionOutcome represents an outcome of a prediction.
