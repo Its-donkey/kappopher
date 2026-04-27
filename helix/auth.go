@@ -13,6 +13,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -768,7 +769,7 @@ func (c *AuthClient) GetOpenIDConfiguration(ctx context.Context) (*OpenIDConfigu
 }
 
 // GetOIDCAuthorizationURL returns the authorization URL for OIDC flows.
-func (c *AuthClient) GetOIDCAuthorizationURL(responseType OIDCResponseType, nonce string, claims map[string]interface{}) (string, error) {
+func (c *AuthClient) GetOIDCAuthorizationURL(responseType OIDCResponseType, nonce string, claims map[string]any) (string, error) {
 	if c.config.ClientID == "" {
 		return "", ErrMissingClientID
 	}
@@ -777,13 +778,7 @@ func (c *AuthClient) GetOIDCAuthorizationURL(responseType OIDCResponseType, nonc
 	}
 
 	scopes := c.config.Scopes
-	hasOpenID := false
-	for _, s := range scopes {
-		if s == "openid" {
-			hasOpenID = true
-			break
-		}
-	}
+	hasOpenID := slices.Contains(scopes, "openid")
 	if !hasOpenID {
 		scopes = append([]string{"openid"}, scopes...)
 	}

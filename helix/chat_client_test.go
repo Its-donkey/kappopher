@@ -512,9 +512,9 @@ func TestChatBotClient_handleUserNotice_Raid(t *testing.T) {
 		DisplayName:   "TWW2",
 		SystemMessage: "15067 raiders from TWW2 have joined!",
 		MsgParams: map[string]string{
-			"msg-param-viewerCount":  "15067",
-			"msg-param-displayName":  "TWW2",
-			"msg-param-login":        "tww2",
+			"msg-param-viewerCount": "15067",
+			"msg-param-displayName": "TWW2",
+			"msg-param-login":       "tww2",
 		},
 		Timestamp: time.Unix(1507246572, 675000000),
 	}
@@ -789,14 +789,14 @@ func TestChatBotClient_ConcurrentHandlerAccess(t *testing.T) {
 	// Concurrent writes
 	go func() {
 		defer wg.Done()
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			client.OnMessage(func(msg *ChatMessage) {})
 		}
 	}()
 
 	go func() {
 		defer wg.Done()
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			client.OnJoin(func(channel, user string) {})
 		}
 	}()
@@ -804,7 +804,7 @@ func TestChatBotClient_ConcurrentHandlerAccess(t *testing.T) {
 	// Concurrent reads via handlers - use realistic Twitch data
 	go func() {
 		defer wg.Done()
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			client.handleMessage(&ChatMessage{
 				ID:          "b34ccfc7-4977-403a-8a94-33c6bac34fb8",
 				Channel:     "dallas",
@@ -818,7 +818,7 @@ func TestChatBotClient_ConcurrentHandlerAccess(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			client.handleJoin("dallas", "ronni")
 		}
 	}()

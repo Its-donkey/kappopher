@@ -132,13 +132,13 @@ func TestEventSubWebhookHandler_Notification(t *testing.T) {
 	// https://dev.twitch.tv/docs/eventsub/handling-webhook-events/
 	// Using channel.follow event structure from Twitch docs
 	followEvent := map[string]any{
-		"user_id":               twitchExampleUserID,
-		"user_login":            twitchExampleUserLogin,
-		"user_name":             twitchExampleUserName,
-		"broadcaster_user_id":   twitchExampleBroadcasterUserID,
+		"user_id":                twitchExampleUserID,
+		"user_login":             twitchExampleUserLogin,
+		"user_name":              twitchExampleUserName,
+		"broadcaster_user_id":    twitchExampleBroadcasterUserID,
 		"broadcaster_user_login": twitchExampleBroadcasterLogin,
-		"broadcaster_user_name": twitchExampleBroadcasterName,
-		"followed_at":           twitchExampleFollowedAt,
+		"broadcaster_user_name":  twitchExampleBroadcasterName,
+		"followed_at":            twitchExampleFollowedAt,
 	}
 	eventJSON, _ := json.Marshal(followEvent)
 

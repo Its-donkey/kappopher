@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/url"
 	"strconv"
+	"time"
 )
 
 // ExtensionConfigurationSegment represents a configuration segment.
@@ -199,10 +200,10 @@ type Extension struct {
 
 // ExtensionViews represents the views configuration for an extension.
 type ExtensionViews struct {
-	Mobile       ExtensionView `json:"mobile,omitempty"`
-	Panel        ExtensionView `json:"panel,omitempty"`
-	VideoOverlay ExtensionView `json:"video_overlay,omitempty"`
-	Component    ExtensionView `json:"component,omitempty"`
+	Mobile       ExtensionView `json:"mobile"`
+	Panel        ExtensionView `json:"panel"`
+	VideoOverlay ExtensionView `json:"video_overlay"`
+	Component    ExtensionView `json:"component"`
 }
 
 // ExtensionView represents a single view configuration.
@@ -301,16 +302,26 @@ func (c *Client) UpdateExtensionBitsProduct(ctx context.Context, params *UpdateE
 
 // ExtensionTransaction represents an extension transaction.
 type ExtensionTransaction struct {
-	ID               string                      `json:"id"`
-	Timestamp        string                      `json:"timestamp"`
-	BroadcasterID    string                      `json:"broadcaster_id"`
-	BroadcasterLogin string                      `json:"broadcaster_login"`
-	BroadcasterName  string                      `json:"broadcaster_name"`
-	UserID           string                      `json:"user_id"`
-	UserLogin        string                      `json:"user_login"`
-	UserName         string                      `json:"user_name"`
-	ProductType      string                      `json:"product_type"`
-	ProductData      ExtensionTransactionProduct `json:"product_data"`
+	ID               string                            `json:"id"`
+	Timestamp        string                            `json:"timestamp"`
+	BroadcasterID    string                            `json:"broadcaster_id"`
+	BroadcasterLogin string                            `json:"broadcaster_login"`
+	BroadcasterName  string                            `json:"broadcaster_name"`
+	UserID           string                            `json:"user_id"`
+	UserLogin        string                            `json:"user_login"`
+	UserName         string                            `json:"user_name"`
+	ProductType      string                            `json:"product_type"`
+	ProductData      ExtensionTransactionProductFromTx `json:"product_data"`
+}
+
+// ExtensionTransactionProductFromTx represents the product in a transaction from the transaction endpoint.
+// Note the "inDevelopment" json field is camelCase in this struct to match the API response, while in ExtensionTransactionProduct it's snake_case to match the API request/response for products.
+type ExtensionTransactionProductFromTx struct {
+	SKU           string            `json:"sku"`
+	Cost          ExtensionBitsCost `json:"cost"`
+	DisplayName   string            `json:"display_name"`
+	InDevelopment bool              `json:"inDevelopment"`
+	Expiration    time.Time         `json:"expiration,omitempty"`
 }
 
 // ExtensionTransactionProduct represents the product in a transaction.

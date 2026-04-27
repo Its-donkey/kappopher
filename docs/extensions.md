@@ -536,7 +536,8 @@ for _, tx := range resp.Data {
           "type": "bits"
         },
         "display_name": "Super Power-Up",
-        "in_development": false
+        "inDevelopment": false,
+        "expiration": "",
       }
     },
     {
@@ -556,7 +557,7 @@ for _, tx := range resp.Data {
           "type": "bits"
         },
         "display_name": "Exclusive Badge",
-        "in_development": false
+        "inDevelopment": false
       }
     }
   ],

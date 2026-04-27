@@ -410,7 +410,7 @@ type Request struct {
     Method   string      // HTTP method (GET, POST, PUT, PATCH, DELETE)
     Endpoint string      // API endpoint path (e.g., "/users")
     Query    url.Values  // Query parameters
-    Body     interface{} // Request body (will be JSON encoded)
+    Body     any // Request body (will be JSON encoded)
 }
 ```
 

@@ -11,7 +11,7 @@ type BannedUser struct {
 	UserID         string    `json:"user_id"`
 	UserLogin      string    `json:"user_login"`
 	UserName       string    `json:"user_name"`
-	ExpiresAt      time.Time `json:"expires_at,omitempty"`
+	ExpiresAt      time.Time `json:"expires_at"`
 	CreatedAt      time.Time `json:"created_at"`
 	Reason         string    `json:"reason"`
 	ModeratorID    string    `json:"moderator_id"`
@@ -63,7 +63,7 @@ type BanUserResponse struct {
 	ModeratorID   string    `json:"moderator_id"`
 	UserID        string    `json:"user_id"`
 	CreatedAt     time.Time `json:"created_at"`
-	EndTime       time.Time `json:"end_time,omitempty"`
+	EndTime       time.Time `json:"end_time"`
 }
 
 // BanUser bans a user from a channel.
@@ -173,7 +173,7 @@ type BlockedTerm struct {
 	Text          string    `json:"text"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
-	ExpiresAt     time.Time `json:"expires_at,omitempty"`
+	ExpiresAt     time.Time `json:"expires_at"`
 }
 
 // GetBlockedTermsParams contains parameters for GetBlockedTerms.

@@ -114,7 +114,7 @@ type EventSubWebSocketClient struct {
 	// State
 	mu           sync.RWMutex
 	connected    bool
-	connecting   bool           // prevents concurrent Connect() calls
+	connecting   bool // prevents concurrent Connect() calls
 	stopChan     chan struct{}
 	stopOnce     sync.Once      // ensures stopChan is closed only once
 	wg           sync.WaitGroup // tracks readLoop goroutine
