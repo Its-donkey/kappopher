@@ -1,5 +1,5 @@
 Changelog | Twitch Developers
-{"description":"Documentation Changelog","url":"https://dev.twitch.tv/change-log/","@type":"BlogPosting","headline":"Changelog","dateModified":"2026-04-17T12:38:06-07:00","datePublished":"2026-04-17T12:38:06-07:00","image":"https://dev.twitch.tv/marketing-assets/images/TwitchDev.png","mainEntityOfPage":{"@type":"WebPage","@id":"https://dev.twitch.tv/change-log/"},"@context":"http://schema.org"}
+{"description":"Documentation Changelog","url":"https://dev.twitch.tv/change-log/","@type":"BlogPosting","headline":"Changelog","dateModified":"2026-05-01T15:17:43-07:00","datePublished":"2026-05-01T15:17:43-07:00","image":"https://dev.twitch.tv/marketing-assets/images/TwitchDev.png","mainEntityOfPage":{"@type":"WebPage","@id":"https://dev.twitch.tv/change-log/"},"@context":"http://schema.org"}
 window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
@@ -33,6 +33,9 @@ Product Lifecycle
 Documentation Changelog
 Date
 Documentation Changes
+2026&#8209;05&#8209;01
+The Get Custom Power-Up API endpoint is now available in open beta to retrieve a full or partial list of a broadcaster’s custom Power-ups.
+The channel.custom_power_up_redemption.add EventSub subscription type is now available in open beta to receive a notification when a custom Power-up is redeemed.
 2026&#8209;04&#8209;17
 The Get EventSub Subscriptions API endpoint has been updated to accept a conduit_id as an additional filtering option.
 The Create EventSub Subscription API endpoint has been updated to provide the id of the existing EventSub subscription when a 409 Conflict is returned.
