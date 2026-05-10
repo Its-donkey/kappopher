@@ -1,5 +1,5 @@
 Changelog | Twitch Developers
-{"description":"Documentation Changelog","url":"https://dev.twitch.tv/change-log/","@type":"BlogPosting","headline":"Changelog","dateModified":"2026-05-01T15:17:43-07:00","datePublished":"2026-05-01T15:17:43-07:00","image":"https://dev.twitch.tv/marketing-assets/images/TwitchDev.png","mainEntityOfPage":{"@type":"WebPage","@id":"https://dev.twitch.tv/change-log/"},"@context":"http://schema.org"}
+{"description":"Documentation Changelog","url":"https://dev.twitch.tv/change-log/","@type":"BlogPosting","headline":"Changelog","dateModified":"2026-05-09T11:26:53-07:00","datePublished":"2026-05-09T11:26:53-07:00","image":"https://dev.twitch.tv/marketing-assets/images/TwitchDev.png","mainEntityOfPage":{"@type":"WebPage","@id":"https://dev.twitch.tv/change-log/"},"@context":"http://schema.org"}
 window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
