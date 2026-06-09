@@ -1,5 +1,5 @@
 Changelog | Twitch Developers
-{"description":"Documentation Changelog","url":"https://dev.twitch.tv/change-log/","@type":"BlogPosting","headline":"Changelog","dateModified":"2026-05-30T06:55:37-07:00","datePublished":"2026-05-30T06:55:37-07:00","image":"https://dev.twitch.tv/marketing-assets/images/TwitchDev.png","mainEntityOfPage":{"@type":"WebPage","@id":"https://dev.twitch.tv/change-log/"},"@context":"http://schema.org"}
+{"description":"Documentation Changelog","url":"https://dev.twitch.tv/change-log/","@type":"BlogPosting","headline":"Changelog","dateModified":"2026-06-08T17:05:24-07:00","datePublished":"2026-06-08T17:05:24-07:00","image":"https://dev.twitch.tv/marketing-assets/images/TwitchDev.png","mainEntityOfPage":{"@type":"WebPage","@id":"https://dev.twitch.tv/change-log/"},"@context":"http://schema.org"}
 window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
@@ -33,6 +33,15 @@ Product Lifecycle
 Documentation Changelog
 Date
 Documentation Changes
+2026&#8209;06&#8209;08
+Corrections were made to update the documentation to better clarify current behaviors. None of the below changes represent new or modified functionality, although these may be relevant to projects that did not take these into consideration previously.
+Extension SDK:
+Removed unused onPositionChanged from Extensions SDK referene.
+API Reference:
+Updated Get Channel Teams and Get Teams to match the existing behavior that response body fields background_image_url and banner may be null in some cases.
+Tags set using Modify Channel Information are no longer specified as being case-sensitive.
+EventSub Reference:
+Included the unknown type to the channel.chat.notification EventSub type
 2026&#8209;05&#8209;29
 The app access token support that was added for several endpoints is now considered generally available and is now reflected in the API reference.
 All Pinned Chat API endpoints are now considered generally available.
