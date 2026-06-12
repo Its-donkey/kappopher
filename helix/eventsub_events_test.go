@@ -878,3 +878,120 @@ func TestChannelPredictionBeginEvent(t *testing.T) {
 		t.Errorf("expected first outcome color=blue, got %s", event.Outcomes[0].Color)
 	}
 }
+
+// Tests for ChatNotificationResub sub_plan/sub_tier compatibility (twitchdev/issues#1039).
+
+func TestChatNotificationResub_SubTierField(t *testing.T) {
+	// Standard payload using documented "sub_tier" field name.
+	payload := `{
+		"cumulative_months": 15,
+		"duration_months": 6,
+		"streak_months": 10,
+		"sub_tier": "1000",
+		"is_prime": false,
+		"is_gift": false,
+		"gifter_is_anonymous": false
+	}`
+
+	var resub ChatNotificationResub
+	if err := json.Unmarshal([]byte(payload), &resub); err != nil {
+		t.Fatalf("failed to unmarshal: %v", err)
+	}
+	if resub.SubTier != "1000" {
+		t.Errorf("expected SubTier=1000, got %s", resub.SubTier)
+	}
+	if resub.CumulativeMonths != 15 {
+		t.Errorf("expected CumulativeMonths=15, got %d", resub.CumulativeMonths)
+	}
+	if resub.StreakMonths != 10 {
+		t.Errorf("expected StreakMonths=10, got %d", resub.StreakMonths)
+	}
+}
+
+func TestChatNotificationResub_SubPlanField(t *testing.T) {
+	// Twitch actually sends "sub_plan" for resub and shared_chat_resub
+	// notifications instead of "sub_tier" (twitchdev/issues#1039).
+	payload := `{
+		"cumulative_months": 24,
+		"duration_months": 1,
+		"streak_months": 24,
+		"sub_plan": "2000",
+		"is_prime": false,
+		"is_gift": true,
+		"gifter_is_anonymous": false,
+		"gifter_user_id": "12345",
+		"gifter_user_login": "generous_user",
+		"gifter_user_name": "Generous_User"
+	}`
+
+	var resub ChatNotificationResub
+	if err := json.Unmarshal([]byte(payload), &resub); err != nil {
+		t.Fatalf("failed to unmarshal: %v", err)
+	}
+	if resub.SubTier != "2000" {
+		t.Errorf("expected SubTier=2000 (from sub_plan), got %s", resub.SubTier)
+	}
+	if resub.CumulativeMonths != 24 {
+		t.Errorf("expected CumulativeMonths=24, got %d", resub.CumulativeMonths)
+	}
+	if !resub.IsGift {
+		t.Error("expected IsGift=true")
+	}
+	if resub.GifterUserID == nil || *resub.GifterUserID != "12345" {
+		t.Errorf("expected GifterUserID=12345, got %v", resub.GifterUserID)
+	}
+}
+
+func TestChatNotificationResub_SubTierTakesPrecedence(t *testing.T) {
+	// If both sub_tier and sub_plan are present, sub_tier takes precedence
+	// (sub_tier is the documented field name).
+	payload := `{
+		"cumulative_months": 1,
+		"duration_months": 1,
+		"streak_months": 1,
+		"sub_tier": "3000",
+		"sub_plan": "1000",
+		"is_prime": false,
+		"is_gift": false,
+		"gifter_is_anonymous": false
+	}`
+
+	var resub ChatNotificationResub
+	if err := json.Unmarshal([]byte(payload), &resub); err != nil {
+		t.Fatalf("failed to unmarshal: %v", err)
+	}
+	if resub.SubTier != "3000" {
+		t.Errorf("expected SubTier=3000 (sub_tier takes precedence), got %s", resub.SubTier)
+	}
+}
+
+func TestChatNotificationResub_PrimeSubPlan(t *testing.T) {
+	// Twitch may send sub_plan=Prime for Prime resubs.
+	payload := `{
+		"cumulative_months": 5,
+		"duration_months": 1,
+		"streak_months": 5,
+		"sub_plan": "Prime",
+		"is_prime": true,
+		"is_gift": false,
+		"gifter_is_anonymous": false
+	}`
+
+	var resub ChatNotificationResub
+	if err := json.Unmarshal([]byte(payload), &resub); err != nil {
+		t.Fatalf("failed to unmarshal: %v", err)
+	}
+	if resub.SubTier != "Prime" {
+		t.Errorf("expected SubTier=Prime (from sub_plan), got %s", resub.SubTier)
+	}
+	if !resub.IsPrime {
+		t.Error("expected IsPrime=true")
+	}
+}
+
+func TestChatNotificationResub_InvalidJSON(t *testing.T) {
+	var resub ChatNotificationResub
+	if err := json.Unmarshal([]byte(`{invalid`), &resub); err == nil {
+		t.Error("expected error for invalid JSON")
+	}
+}

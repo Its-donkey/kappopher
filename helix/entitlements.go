@@ -14,7 +14,7 @@ type DropsEntitlement struct {
 	UserID            string    `json:"user_id"`
 	GameID            string    `json:"game_id"`
 	FulfillmentStatus string    `json:"fulfillment_status"` // CLAIMED, FULFILLED
-	LastUpdated       time.Time `json:"last_updated"`
+	LastUpdated       time.Time `json:"updated_at"`
 }
 
 // GetDropsEntitlementsParams contains parameters for GetDropsEntitlements.

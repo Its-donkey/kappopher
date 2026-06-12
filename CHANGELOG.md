@@ -10,8 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `GetCharityCampaignParams` struct with pagination support for `GetCharityCampaign`
 - Custom `Pagination.UnmarshalJSON` to handle Twitch endpoints that return pagination as a string instead of an object (e.g. Get Extension Live Channels)
+- `NullableTime` type that decodes Twitch's empty-string/null optional timestamps without erroring and encodes an unset value back to `null`
 
 ### Changed
+- Bumped the Go version to 1.26 in `go.mod`
+- Modernized the codebase to Go 1.26 idioms: `interface{}` → `any`, `strings.SplitSeq`/`strings.Cut`/`strings.CutPrefix`, `maps.Copy`, `slices.Contains`, `sync.WaitGroup.Go`, and the `max` builtin. `LoggingMiddleware`'s logger parameter is now `func(format string, args ...any)` (identical to the previous `...interface{}`)
+- **BREAKING:** Optional timestamp fields that Twitch may return empty now use `NullableTime` instead of `time.Time`: `AdSchedule.{NextAdAt,LastAdAt,SnoozeRefreshAt}`, `SnoozeNextAdResponse.{SnoozeRefreshAt,NextAdAt}`, `BannedUser.ExpiresAt`, `BanUserResponse.EndTime`, `BlockedTerm.ExpiresAt`, `Poll.EndedAt`, `Prediction.{EndedAt,LockedAt}`, `SearchChannel.StartedAt`
+- Removed no-op `omitempty` from value-type `time.Time` JSON fields (a struct is never "empty" to the JSON encoder)
 - **BREAKING:** Renamed `GetCustomRewards` → `GetCustomReward` (aligns with Twitch API reference)
 - **BREAKING:** Renamed `GetCustomRewardRedemptions` → `GetCustomRewardRedemption` (aligns with Twitch API reference)
 - **BREAKING:** Renamed `GetCharityDonations` → `GetCharityCampaignDonations` (aligns with Twitch API reference)
@@ -22,6 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Pagination deserialization for endpoints where Twitch returns `"pagination": ""` instead of `{"cursor": "..."}`
+- **BREAKING:** Renamed `ExtensionTransactionProduct` → `ExtensionTransactionProductData`, corrected its `InDevelopment` JSON tag to camelCase `inDevelopment` (matches the transaction response), and added the `Expiration` field
+- JSON tags corrected to match the Twitch API exactly (fixes silent data loss on deserialization):
+  - `DropsEntitlement.LastUpdated`: `last_updated` → `updated_at`
+  - `ExtensionTransactionProductData.DisplayName`: `display_name` → `displayName` (transaction endpoint uses camelCase)
+  - `ChannelBitsUseEvent.BitsUsed`: `bits_used` → `bits` (channel.bits.use payload)
+  - `ExtensionAnalytics.URL` and `GameAnalytics.URL`: `url` → `URL` (matches documented field casing)
 
 ## [1.1.1] - 2026-02-06 ([#56](https://github.com/Its-donkey/kappopher/pull/56))
 
