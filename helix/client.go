@@ -163,7 +163,7 @@ type Request struct {
 	Method   string
 	Endpoint string
 	Query    url.Values
-	Body     interface{}
+	Body     any
 }
 
 // Response represents a generic API response.
@@ -258,7 +258,7 @@ func (c *Client) cacheKey(endpoint, query string) string {
 }
 
 // Do executes an API request with automatic retry on rate limit (429).
-func (c *Client) Do(ctx context.Context, req *Request, result interface{}) error {
+func (c *Client) Do(ctx context.Context, req *Request, result any) error {
 	// Check cache for GET requests
 	if c.cacheEnabled && c.cache != nil && req.Method == http.MethodGet && !shouldSkipCache(ctx) {
 		key := c.cacheKey(req.Endpoint, req.Query.Encode())
@@ -279,7 +279,7 @@ func (c *Client) Do(ctx context.Context, req *Request, result interface{}) error
 }
 
 // doWithMiddleware executes request through the middleware chain.
-func (c *Client) doWithMiddleware(ctx context.Context, req *Request, result interface{}) error {
+func (c *Client) doWithMiddleware(ctx context.Context, req *Request, result any) error {
 	// Build middleware chain
 	var chain MiddlewareNext
 	chain = func(ctx context.Context, req *Request) (*MiddlewareResponse, error) {
@@ -301,13 +301,13 @@ func (c *Client) doWithMiddleware(ctx context.Context, req *Request, result inte
 }
 
 // doWithRetry executes a request with retry logic.
-func (c *Client) doWithRetry(ctx context.Context, req *Request, result interface{}) error {
+func (c *Client) doWithRetry(ctx context.Context, req *Request, result any) error {
 	_, err := c.doWithRetryAndResponse(ctx, req, result)
 	return err
 }
 
 // doWithRetryAndResponse executes a request with retry logic and returns response info for middleware.
-func (c *Client) doWithRetryAndResponse(ctx context.Context, req *Request, result interface{}) (*MiddlewareResponse, error) {
+func (c *Client) doWithRetryAndResponse(ctx context.Context, req *Request, result any) (*MiddlewareResponse, error) {
 	var lastErr error
 	var lastResp *MiddlewareResponse
 
@@ -329,10 +329,7 @@ func (c *Client) doWithRetryAndResponse(ctx context.Context, req *Request, resul
 				limit := c.rateLimitLimit
 				c.rateMu.Unlock()
 
-				retryAfter := time.Until(resetAt)
-				if retryAfter < 0 {
-					retryAfter = 0
-				}
+				retryAfter := max(time.Until(resetAt), 0)
 
 				return lastResp, &RateLimitError{
 					ResetAt:    resetAt,
@@ -383,13 +380,13 @@ func (c *Client) doWithRetryAndResponse(ctx context.Context, req *Request, resul
 }
 
 // doOnce executes a single API request without retries.
-func (c *Client) doOnce(ctx context.Context, req *Request, result interface{}) error {
+func (c *Client) doOnce(ctx context.Context, req *Request, result any) error {
 	_, err := c.doOnceWithResponse(ctx, req, result)
 	return err
 }
 
 // doOnceWithResponse executes a single API request and returns response info for middleware.
-func (c *Client) doOnceWithResponse(ctx context.Context, req *Request, result interface{}) (*MiddlewareResponse, error) {
+func (c *Client) doOnceWithResponse(ctx context.Context, req *Request, result any) (*MiddlewareResponse, error) {
 	// Build URL
 	reqURL := c.baseURL + req.Endpoint
 	if len(req.Query) > 0 {
@@ -568,7 +565,7 @@ func (c *Client) WaitForRateLimit(ctx context.Context) error {
 // Helper functions for common request patterns
 
 // get performs a GET request.
-func (c *Client) get(ctx context.Context, endpoint string, query url.Values, result interface{}) error {
+func (c *Client) get(ctx context.Context, endpoint string, query url.Values, result any) error {
 	return c.Do(ctx, &Request{
 		Method:   http.MethodGet,
 		Endpoint: endpoint,
@@ -577,7 +574,7 @@ func (c *Client) get(ctx context.Context, endpoint string, query url.Values, res
 }
 
 // post performs a POST request.
-func (c *Client) post(ctx context.Context, endpoint string, query url.Values, body interface{}, result interface{}) error {
+func (c *Client) post(ctx context.Context, endpoint string, query url.Values, body any, result any) error {
 	return c.Do(ctx, &Request{
 		Method:   http.MethodPost,
 		Endpoint: endpoint,
@@ -587,7 +584,7 @@ func (c *Client) post(ctx context.Context, endpoint string, query url.Values, bo
 }
 
 // put performs a PUT request.
-func (c *Client) put(ctx context.Context, endpoint string, query url.Values, body interface{}, result interface{}) error {
+func (c *Client) put(ctx context.Context, endpoint string, query url.Values, body any, result any) error {
 	return c.Do(ctx, &Request{
 		Method:   http.MethodPut,
 		Endpoint: endpoint,
@@ -597,7 +594,7 @@ func (c *Client) put(ctx context.Context, endpoint string, query url.Values, bod
 }
 
 // patch performs a PATCH request.
-func (c *Client) patch(ctx context.Context, endpoint string, query url.Values, body interface{}, result interface{}) error {
+func (c *Client) patch(ctx context.Context, endpoint string, query url.Values, body any, result any) error {
 	return c.Do(ctx, &Request{
 		Method:   http.MethodPatch,
 		Endpoint: endpoint,
@@ -607,7 +604,7 @@ func (c *Client) patch(ctx context.Context, endpoint string, query url.Values, b
 }
 
 // delete performs a DELETE request.
-func (c *Client) delete(ctx context.Context, endpoint string, query url.Values, result interface{}) error {
+func (c *Client) delete(ctx context.Context, endpoint string, query url.Values, result any) error {
 	return c.Do(ctx, &Request{
 		Method:   http.MethodDelete,
 		Endpoint: endpoint,

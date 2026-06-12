@@ -417,27 +417,27 @@ func TestParseRoomState(t *testing.T) {
 
 func TestParseClearChat(t *testing.T) {
 	tests := []struct {
-		name          string
-		raw           string
-		expectedUser  string
+		name             string
+		raw              string
+		expectedUser     string
 		expectedDuration int
 	}{
 		{
-			name:          "timeout",
-			raw:           "@ban-duration=600;room-id=12345;target-user-id=67890;tmi-sent-ts=1234567890123 :tmi.twitch.tv CLEARCHAT #testchannel :baduser",
-			expectedUser:  "baduser",
+			name:             "timeout",
+			raw:              "@ban-duration=600;room-id=12345;target-user-id=67890;tmi-sent-ts=1234567890123 :tmi.twitch.tv CLEARCHAT #testchannel :baduser",
+			expectedUser:     "baduser",
 			expectedDuration: 600,
 		},
 		{
-			name:          "ban",
-			raw:           "@room-id=12345;target-user-id=67890;tmi-sent-ts=1234567890123 :tmi.twitch.tv CLEARCHAT #testchannel :baduser",
-			expectedUser:  "baduser",
+			name:             "ban",
+			raw:              "@room-id=12345;target-user-id=67890;tmi-sent-ts=1234567890123 :tmi.twitch.tv CLEARCHAT #testchannel :baduser",
+			expectedUser:     "baduser",
 			expectedDuration: 0,
 		},
 		{
-			name:          "clear chat",
-			raw:           "@room-id=12345;tmi-sent-ts=1234567890123 :tmi.twitch.tv CLEARCHAT #testchannel",
-			expectedUser:  "",
+			name:             "clear chat",
+			raw:              "@room-id=12345;tmi-sent-ts=1234567890123 :tmi.twitch.tv CLEARCHAT #testchannel",
+			expectedUser:     "",
 			expectedDuration: 0,
 		},
 	}
@@ -861,19 +861,19 @@ func TestIRCClient_Connect_DialError(t *testing.T) {
 
 func TestIRCClient_HandleMessage_AllTypes(t *testing.T) {
 	var (
-		privmsgReceived      bool
-		joinReceived         bool
-		partReceived         bool
-		noticeReceived       bool
-		userNoticeReceived   bool
-		roomStateReceived    bool
-		clearChatReceived    bool
-		clearMsgReceived     bool
-		whisperReceived      bool
-		globalUserReceived   bool
-		userStateReceived    bool
-		rawMessageReceived   bool
-		pongReceived         bool
+		privmsgReceived    bool
+		joinReceived       bool
+		partReceived       bool
+		noticeReceived     bool
+		userNoticeReceived bool
+		roomStateReceived  bool
+		clearChatReceived  bool
+		clearMsgReceived   bool
+		whisperReceived    bool
+		globalUserReceived bool
+		userStateReceived  bool
+		rawMessageReceived bool
+		pongReceived       bool
 	)
 
 	messagesDone := make(chan struct{})
@@ -1784,7 +1784,7 @@ func TestIRCClient_WaitForAuth_ReadError(t *testing.T) {
 	mock := newMockIRCServer(func(conn *websocket.Conn) {
 		// Read all auth commands to allow sends to complete
 		_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
-		for i := 0; i < 4; i++ { // PASS, CAP REQ, NICK, CAP END
+		for range 4 { // PASS, CAP REQ, NICK, CAP END
 			_, _, err := conn.ReadMessage()
 			if err != nil {
 				break
@@ -2653,7 +2653,7 @@ func TestIRCClient_Connect_NickSendError(t *testing.T) {
 	mock := newMockIRCServer(func(conn *websocket.Conn) {
 		// Read CAP REQ and PASS, then send close frame and close
 		_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
-		for i := 0; i < 2; i++ { // CAP REQ and PASS
+		for range 2 { // CAP REQ and PASS
 			_, _, err := conn.ReadMessage()
 			if err != nil {
 				return

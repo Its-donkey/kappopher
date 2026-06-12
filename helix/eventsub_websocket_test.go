@@ -17,23 +17,23 @@ import (
 // Official Twitch EventSub WebSocket example values from documentation
 // https://dev.twitch.tv/docs/eventsub/handling-websocket-events
 const (
-	twitchWSExampleWelcomeMessageID    = "96a3f3b5-5dec-4eed-908e-e11ee657416c"
-	twitchWSExampleSessionID           = "AQoQILE98gtqShGmLD7AM6yJThAB"
-	twitchWSExampleKeepaliveMessageID  = "84c1e79a-2a4b-4c13-ba0b-4312293e9308"
-	twitchWSExampleNotifMessageID      = "befa7b53-d79d-478f-86b9-120f112b044e"
-	twitchWSExampleSubscriptionID      = "f1c2a387-161a-49f9-a165-0f21d7a4e1c4"
-	twitchWSExampleBroadcasterUserID   = "12826"
-	twitchWSExampleUserID              = "1337"
-	twitchWSExampleUserLogin           = "awesome_user"
-	twitchWSExampleUserName            = "Awesome_User"
-	twitchWSExampleBroadcasterLogin    = "twitch"
-	twitchWSExampleBroadcasterName     = "Twitch"
-	twitchWSExampleTransportSessionID  = "AQoQexAWVYKSTIu4ec_2VAxyuhAB"
-	twitchWSExampleReconnectURL        = "wss://eventsub.wss.twitch.tv?..."
-	twitchWSExampleWelcomeTimestamp    = "2023-07-19T14:56:51.634234626Z"
-	twitchWSExampleConnectedAt         = "2023-07-19T14:56:51.616329898Z"
-	twitchWSExampleNotifTimestamp      = "2022-11-16T10:11:12.464757833Z"
-	twitchWSExampleFollowedAt          = "2023-07-15T18:16:11.17106713Z"
+	twitchWSExampleWelcomeMessageID   = "96a3f3b5-5dec-4eed-908e-e11ee657416c"
+	twitchWSExampleSessionID          = "AQoQILE98gtqShGmLD7AM6yJThAB"
+	twitchWSExampleKeepaliveMessageID = "84c1e79a-2a4b-4c13-ba0b-4312293e9308"
+	twitchWSExampleNotifMessageID     = "befa7b53-d79d-478f-86b9-120f112b044e"
+	twitchWSExampleSubscriptionID     = "f1c2a387-161a-49f9-a165-0f21d7a4e1c4"
+	twitchWSExampleBroadcasterUserID  = "12826"
+	twitchWSExampleUserID             = "1337"
+	twitchWSExampleUserLogin          = "awesome_user"
+	twitchWSExampleUserName           = "Awesome_User"
+	twitchWSExampleBroadcasterLogin   = "twitch"
+	twitchWSExampleBroadcasterName    = "Twitch"
+	twitchWSExampleTransportSessionID = "AQoQexAWVYKSTIu4ec_2VAxyuhAB"
+	twitchWSExampleReconnectURL       = "wss://eventsub.wss.twitch.tv?..."
+	twitchWSExampleWelcomeTimestamp   = "2023-07-19T14:56:51.634234626Z"
+	twitchWSExampleConnectedAt        = "2023-07-19T14:56:51.616329898Z"
+	twitchWSExampleNotifTimestamp     = "2022-11-16T10:11:12.464757833Z"
+	twitchWSExampleFollowedAt         = "2023-07-15T18:16:11.17106713Z"
 )
 
 // mockWSServer creates a test WebSocket server
@@ -235,7 +235,7 @@ func TestEventSubWebSocketClient_HandleNotification(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 
 		// Send notification
-		eventData := mustMarshal(map[string]interface{}{
+		eventData := mustMarshal(map[string]any{
 			"broadcaster_user_id":    "12345",
 			"broadcaster_user_login": "testuser",
 			"broadcaster_user_name":  "TestUser",
@@ -604,7 +604,7 @@ func TestEventSubWebSocketClient_ConnectAlreadyConnected(t *testing.T) {
 }
 
 // mustMarshal marshals v to JSON and panics on error.
-func mustMarshal(v interface{}) json.RawMessage {
+func mustMarshal(v any) json.RawMessage {
 	data, err := json.Marshal(v)
 	if err != nil {
 		panic(err)
@@ -759,11 +759,9 @@ func TestEventSubWebSocketClient_ConnectAlreadyConnecting(t *testing.T) {
 
 	// Start first connection in background
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		_, _ = client.Connect(ctx)
-	}()
+	})
 
 	// Wait for connection to start, then try second connect
 	<-connectStarted
@@ -2329,14 +2327,14 @@ func TestEventSubWebSocketClient_WithOfficialTwitchExamples(t *testing.T) {
 					},
 					CreatedAt: createdAt,
 				},
-				Event: mustMarshal(map[string]interface{}{
-					"user_id":               twitchWSExampleUserID,
-					"user_login":            twitchWSExampleUserLogin,
-					"user_name":             twitchWSExampleUserName,
-					"broadcaster_user_id":   twitchWSExampleBroadcasterUserID,
+				Event: mustMarshal(map[string]any{
+					"user_id":                twitchWSExampleUserID,
+					"user_login":             twitchWSExampleUserLogin,
+					"user_name":              twitchWSExampleUserName,
+					"broadcaster_user_id":    twitchWSExampleBroadcasterUserID,
 					"broadcaster_user_login": twitchWSExampleBroadcasterLogin,
-					"broadcaster_user_name": twitchWSExampleBroadcasterName,
-					"followed_at":           twitchWSExampleFollowedAt,
+					"broadcaster_user_name":  twitchWSExampleBroadcasterName,
+					"followed_at":            twitchWSExampleFollowedAt,
 				}),
 			}),
 		}

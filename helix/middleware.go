@@ -2,6 +2,7 @@ package helix
 
 import (
 	"context"
+	"maps"
 	"net/http"
 	"time"
 )
@@ -28,7 +29,7 @@ func (c *Client) Use(mw ...Middleware) {
 }
 
 // LoggingMiddleware creates middleware that logs requests and responses.
-func LoggingMiddleware(logger func(format string, args ...interface{})) Middleware {
+func LoggingMiddleware(logger func(format string, args ...any)) Middleware {
 	return func(ctx context.Context, req *Request, next MiddlewareNext) (*MiddlewareResponse, error) {
 		logger("-> %s %s", req.Method, req.Endpoint)
 
@@ -101,12 +102,8 @@ type headersContextKey struct{}
 func contextWithHeaders(ctx context.Context, headers map[string]string) context.Context {
 	existing := headersFromContext(ctx)
 	merged := make(map[string]string)
-	for k, v := range existing {
-		merged[k] = v
-	}
-	for k, v := range headers {
-		merged[k] = v
-	}
+	maps.Copy(merged, existing)
+	maps.Copy(merged, headers)
 	return context.WithValue(ctx, headersContextKey{}, merged)
 }
 

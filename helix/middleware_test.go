@@ -59,7 +59,7 @@ func TestClient_Use_Multiple(t *testing.T) {
 func TestLoggingMiddleware(t *testing.T) {
 	var logs []string
 	var mu sync.Mutex
-	logger := func(format string, args ...interface{}) {
+	logger := func(format string, args ...any) {
 		mu.Lock()
 		logs = append(logs, format)
 		mu.Unlock()
@@ -95,7 +95,7 @@ func TestLoggingMiddleware(t *testing.T) {
 func TestLoggingMiddleware_Error(t *testing.T) {
 	var logs []string
 	var mu sync.Mutex
-	logger := func(format string, args ...interface{}) {
+	logger := func(format string, args ...any) {
 		mu.Lock()
 		logs = append(logs, format)
 		mu.Unlock()
@@ -401,7 +401,7 @@ func TestMiddleware_Integration(t *testing.T) {
 	var mu sync.Mutex
 
 	client.Use(
-		LoggingMiddleware(func(format string, args ...interface{}) {
+		LoggingMiddleware(func(format string, args ...any) {
 			mu.Lock()
 			logCount++
 			mu.Unlock()
