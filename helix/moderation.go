@@ -8,15 +8,15 @@ import (
 
 // BannedUser represents a banned user.
 type BannedUser struct {
-	UserID         string    `json:"user_id"`
-	UserLogin      string    `json:"user_login"`
-	UserName       string    `json:"user_name"`
-	ExpiresAt      time.Time `json:"expires_at,omitempty"`
-	CreatedAt      time.Time `json:"created_at"`
-	Reason         string    `json:"reason"`
-	ModeratorID    string    `json:"moderator_id"`
-	ModeratorLogin string    `json:"moderator_login"`
-	ModeratorName  string    `json:"moderator_name"`
+	UserID         string       `json:"user_id"`
+	UserLogin      string       `json:"user_login"`
+	UserName       string       `json:"user_name"`
+	ExpiresAt      NullableTime `json:"expires_at"`
+	CreatedAt      time.Time    `json:"created_at"`
+	Reason         string       `json:"reason"`
+	ModeratorID    string       `json:"moderator_id"`
+	ModeratorLogin string       `json:"moderator_login"`
+	ModeratorName  string       `json:"moderator_name"`
 }
 
 // GetBannedUsersParams contains parameters for GetBannedUsers.
@@ -59,11 +59,11 @@ type BanUserData struct {
 
 // BanUserResponse represents the response from BanUser.
 type BanUserResponse struct {
-	BroadcasterID string    `json:"broadcaster_id"`
-	ModeratorID   string    `json:"moderator_id"`
-	UserID        string    `json:"user_id"`
-	CreatedAt     time.Time `json:"created_at"`
-	EndTime       time.Time `json:"end_time,omitempty"`
+	BroadcasterID string       `json:"broadcaster_id"`
+	ModeratorID   string       `json:"moderator_id"`
+	UserID        string       `json:"user_id"`
+	CreatedAt     time.Time    `json:"created_at"`
+	EndTime       NullableTime `json:"end_time"`
 }
 
 // BanUser bans a user from a channel.
@@ -167,13 +167,13 @@ func (c *Client) DeleteChatMessages(ctx context.Context, params *DeleteChatMessa
 
 // BlockedTerm represents a blocked term.
 type BlockedTerm struct {
-	BroadcasterID string    `json:"broadcaster_id"`
-	ModeratorID   string    `json:"moderator_id"`
-	ID            string    `json:"id"`
-	Text          string    `json:"text"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
-	ExpiresAt     time.Time `json:"expires_at,omitempty"`
+	BroadcasterID string       `json:"broadcaster_id"`
+	ModeratorID   string       `json:"moderator_id"`
+	ID            string       `json:"id"`
+	Text          string       `json:"text"`
+	CreatedAt     time.Time    `json:"created_at"`
+	UpdatedAt     time.Time    `json:"updated_at"`
+	ExpiresAt     NullableTime `json:"expires_at"`
 }
 
 // GetBlockedTermsParams contains parameters for GetBlockedTerms.

@@ -3,7 +3,6 @@ package helix
 import (
 	"context"
 	"net/url"
-	"time"
 )
 
 // SearchCategory represents a search result for categories.
@@ -34,17 +33,17 @@ func (c *Client) SearchCategories(ctx context.Context, params *SearchCategoriesP
 
 // SearchChannel represents a search result for channels.
 type SearchChannel struct {
-	BroadcasterLanguage string    `json:"broadcaster_language"`
-	BroadcasterLogin    string    `json:"broadcaster_login"`
-	DisplayName         string    `json:"display_name"`
-	GameID              string    `json:"game_id"`
-	GameName            string    `json:"game_name"`
-	ID                  string    `json:"id"`
-	IsLive              bool      `json:"is_live"`
-	Tags                []string  `json:"tags"`
-	ThumbnailURL        string    `json:"thumbnail_url"`
-	Title               string    `json:"title"`
-	StartedAt           time.Time `json:"started_at,omitempty"`
+	BroadcasterLanguage string       `json:"broadcaster_language"`
+	BroadcasterLogin    string       `json:"broadcaster_login"`
+	DisplayName         string       `json:"display_name"`
+	GameID              string       `json:"game_id"`
+	GameName            string       `json:"game_name"`
+	ID                  string       `json:"id"`
+	IsLive              bool         `json:"is_live"`
+	Tags                []string     `json:"tags"`
+	ThumbnailURL        string       `json:"thumbnail_url"`
+	Title               string       `json:"title"`
+	StartedAt           NullableTime `json:"started_at"`
 }
 
 // SearchChannelsParams contains parameters for SearchChannels.
