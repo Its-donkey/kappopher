@@ -26,3 +26,6 @@ gqlproxy
 gql_captures/
 twitch-gql-*.json
 twitch-gql-*.md
+
+# Local copy of the Twitch API reference (for verification; not part of the library)
+reference/

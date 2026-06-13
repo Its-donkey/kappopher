@@ -51,7 +51,7 @@ func TestClient_SendWhisper(t *testing.T) {
 
 func TestClient_SendWhisper_LongMessage(t *testing.T) {
 	longMessage := ""
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		longMessage += "This is a long message. "
 	}
 

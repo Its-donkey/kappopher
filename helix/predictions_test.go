@@ -199,7 +199,7 @@ func TestClient_EndPrediction_Resolve(t *testing.T) {
 					ID:               params.ID,
 					Status:           "RESOLVED",
 					WinningOutcomeID: params.WinningOutcomeID,
-					EndedAt:          time.Now(),
+					EndedAt:          NewNullableTime(time.Now()),
 				},
 			},
 		}
@@ -272,7 +272,7 @@ func TestClient_EndPrediction_Lock(t *testing.T) {
 				{
 					ID:       params.ID,
 					Status:   "LOCKED",
-					LockedAt: time.Now(),
+					LockedAt: NewNullableTime(time.Now()),
 				},
 			},
 		}

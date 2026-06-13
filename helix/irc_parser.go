@@ -98,18 +98,18 @@ func parseTags(tagStr string) map[string]string {
 		return tags
 	}
 
-	pairs := strings.Split(tagStr, ";")
-	for _, pair := range pairs {
+	pairs := strings.SplitSeq(tagStr, ";")
+	for pair := range pairs {
 		if pair == "" {
 			continue
 		}
-		eqIdx := strings.Index(pair, "=")
-		if eqIdx == -1 {
+		before, after, ok := strings.Cut(pair, "=")
+		if !ok {
 			tags[pair] = ""
 			continue
 		}
-		key := pair[:eqIdx]
-		value := unescapeTagValue(pair[eqIdx+1:])
+		key := before
+		value := unescapeTagValue(after)
 		tags[key] = value
 	}
 
@@ -156,30 +156,30 @@ func parseEmotes(emoteStr string) []IRCEmote {
 	}
 
 	var emotes []IRCEmote
-	emoteParts := strings.Split(emoteStr, "/")
+	emoteParts := strings.SplitSeq(emoteStr, "/")
 
-	for _, part := range emoteParts {
+	for part := range emoteParts {
 		if part == "" {
 			continue
 		}
 
-		colonIdx := strings.Index(part, ":")
-		if colonIdx == -1 {
+		before, after, ok := strings.Cut(part, ":")
+		if !ok {
 			continue
 		}
 
-		emoteID := part[:colonIdx]
-		positionsStr := part[colonIdx+1:]
-		positions := strings.Split(positionsStr, ",")
+		emoteID := before
+		positionsStr := after
+		positions := strings.SplitSeq(positionsStr, ",")
 
-		for _, posStr := range positions {
-			dashIdx := strings.Index(posStr, "-")
-			if dashIdx == -1 {
+		for posStr := range positions {
+			before, after, ok := strings.Cut(posStr, "-")
+			if !ok {
 				continue
 			}
 
-			start, err1 := strconv.Atoi(posStr[:dashIdx])
-			end, err2 := strconv.Atoi(posStr[dashIdx+1:])
+			start, err1 := strconv.Atoi(before)
+			end, err2 := strconv.Atoi(after)
 			if err1 != nil || err2 != nil {
 				continue
 			}
@@ -204,17 +204,17 @@ func parseBadges(badgeStr string) map[string]string {
 		return badges
 	}
 
-	parts := strings.Split(badgeStr, ",")
-	for _, part := range parts {
+	parts := strings.SplitSeq(badgeStr, ",")
+	for part := range parts {
 		if part == "" {
 			continue
 		}
-		slashIdx := strings.Index(part, "/")
-		if slashIdx == -1 {
+		before, after, ok := strings.Cut(part, "/")
+		if !ok {
 			badges[part] = ""
 			continue
 		}
-		badges[part[:slashIdx]] = part[slashIdx+1:]
+		badges[before] = after
 	}
 
 	return badges
@@ -257,11 +257,11 @@ func parseUserFromPrefix(prefix string) string {
 	if prefix == "" {
 		return ""
 	}
-	bangIdx := strings.Index(prefix, "!")
-	if bangIdx == -1 {
+	before, _, ok := strings.Cut(prefix, "!")
+	if !ok {
 		return prefix
 	}
-	return prefix[:bangIdx]
+	return before
 }
 
 // parseChatMessage converts an IRCMessage into a ChatMessage.
@@ -274,30 +274,30 @@ func parseChatMessage(msg *IRCMessage) *ChatMessage {
 	badges := parseBadges(msg.Tags["badges"])
 
 	return &ChatMessage{
-		ID:            msg.Tags["id"],
-		Channel:       channel,
-		User:          msg.Tags["login"],
-		UserID:        msg.Tags["user-id"],
-		Message:       msg.Trailing,
-		Emotes:        parseEmotes(msg.Tags["emotes"]),
-		Badges:        badges,
-		BadgeInfo:     parseBadges(msg.Tags["badge-info"]),
-		Color:         msg.Tags["color"],
-		DisplayName:   msg.Tags["display-name"],
-		IsMod:         parseBool(msg.Tags["mod"]),
-		IsVIP:         badges["vip"] != "",
-		IsSubscriber:  parseBool(msg.Tags["subscriber"]),
-		IsBroadcaster: badges["broadcaster"] != "",
-		Bits:          parseInt(msg.Tags["bits"]),
-		FirstMessage:  parseBool(msg.Tags["first-msg"]),
-		ReturningChatter: parseBool(msg.Tags["returning-chatter"]),
+		ID:                     msg.Tags["id"],
+		Channel:                channel,
+		User:                   msg.Tags["login"],
+		UserID:                 msg.Tags["user-id"],
+		Message:                msg.Trailing,
+		Emotes:                 parseEmotes(msg.Tags["emotes"]),
+		Badges:                 badges,
+		BadgeInfo:              parseBadges(msg.Tags["badge-info"]),
+		Color:                  msg.Tags["color"],
+		DisplayName:            msg.Tags["display-name"],
+		IsMod:                  parseBool(msg.Tags["mod"]),
+		IsVIP:                  badges["vip"] != "",
+		IsSubscriber:           parseBool(msg.Tags["subscriber"]),
+		IsBroadcaster:          badges["broadcaster"] != "",
+		Bits:                   parseInt(msg.Tags["bits"]),
+		FirstMessage:           parseBool(msg.Tags["first-msg"]),
+		ReturningChatter:       parseBool(msg.Tags["returning-chatter"]),
 		ReplyParentMsgID:       msg.Tags["reply-parent-msg-id"],
 		ReplyParentUserID:      msg.Tags["reply-parent-user-id"],
 		ReplyParentUserLogin:   msg.Tags["reply-parent-user-login"],
 		ReplyParentDisplayName: msg.Tags["reply-parent-display-name"],
 		ReplyParentMsgBody:     msg.Tags["reply-parent-msg-body"],
-		Timestamp:     parseTimestamp(msg.Tags["tmi-sent-ts"]),
-		Raw:           msg.Raw,
+		Timestamp:              parseTimestamp(msg.Tags["tmi-sent-ts"]),
+		Raw:                    msg.Raw,
 	}
 }
 
@@ -311,8 +311,8 @@ func parseUserNotice(msg *IRCMessage) *UserNotice {
 	// Extract msg-param-* tags
 	msgParams := make(map[string]string)
 	for key, value := range msg.Tags {
-		if strings.HasPrefix(key, "msg-param-") {
-			paramName := strings.TrimPrefix(key, "msg-param-")
+		if after, ok := strings.CutPrefix(key, "msg-param-"); ok {
+			paramName := after
 			msgParams[paramName] = value
 		}
 	}
