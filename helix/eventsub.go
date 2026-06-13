@@ -31,9 +31,11 @@ type EventSubTransport struct {
 
 // GetEventSubSubscriptionsParams contains parameters for GetEventSubSubscriptions.
 type GetEventSubSubscriptionsParams struct {
-	Status string // Filter by status
-	Type   string // Filter by subscription type
-	UserID string // Filter by user ID
+	Status         string // Filter by status
+	Type           string // Filter by subscription type
+	UserID         string // Filter by user ID
+	SubscriptionID string // Filter to a single subscription by ID (if owned by the caller)
+	ConduitID      string // Filter by conduit ID
 	*PaginationParams
 }
 
@@ -59,6 +61,12 @@ func (c *Client) GetEventSubSubscriptions(ctx context.Context, params *GetEventS
 		}
 		if params.UserID != "" {
 			q.Set("user_id", params.UserID)
+		}
+		if params.SubscriptionID != "" {
+			q.Set("subscription_id", params.SubscriptionID)
+		}
+		if params.ConduitID != "" {
+			q.Set("conduit_id", params.ConduitID)
 		}
 		addPaginationParams(q, params.PaginationParams)
 	}

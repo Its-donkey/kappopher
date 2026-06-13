@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `GetEventSubSubscriptionsParams.SubscriptionID` (`subscription_id`) and `GetEventSubSubscriptionsParams.ConduitID` (`conduit_id`) filters for `GetEventSubSubscriptions`
 
 ### Changed
 

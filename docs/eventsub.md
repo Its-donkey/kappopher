@@ -29,6 +29,16 @@ resp, err = client.GetEventSubSubscriptions(ctx, &helix.GetEventSubSubscriptions
     UserID: "12345",
 })
 
+// Filter to a single subscription by ID (if owned by the caller)
+resp, err = client.GetEventSubSubscriptions(ctx, &helix.GetEventSubSubscriptionsParams{
+    SubscriptionID: "f1c2a387-161a-49f9-a165-0f21d7a4e1c4",
+})
+
+// Filter by conduit ID
+resp, err = client.GetEventSubSubscriptions(ctx, &helix.GetEventSubSubscriptionsParams{
+    ConduitID: "bfcfc993-26b1-b876-44d9-afe75a379dac",
+})
+
 // With pagination
 resp, err = client.GetEventSubSubscriptions(ctx, &helix.GetEventSubSubscriptionsParams{
     PaginationParams: &helix.PaginationParams{
