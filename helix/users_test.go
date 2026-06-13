@@ -442,44 +442,35 @@ func TestClient_GetAuthorizationByUser(t *testing.T) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
 		}
-		if r.URL.Path != "/users/authorization" {
-			t.Errorf("expected /users/authorization, got %s", r.URL.Path)
+		if r.URL.Path != "/authorization/users" {
+			t.Errorf("expected /authorization/users, got %s", r.URL.Path)
 		}
 
-		userID := r.URL.Query().Get("user_id")
-		if userID != "12345" {
-			t.Errorf("expected user_id=12345, got %s", userID)
+		ids := r.URL.Query()["user_id"]
+		if len(ids) != 2 || ids[0] != "141981764" {
+			t.Errorf("expected two user_id params, got %v", ids)
 		}
 
-		resp := Response[UserAuthorization]{
-			Data: []UserAuthorization{
-				{
-					ClientID: "client123",
-					UserID:   "12345",
-					Login:    "testuser",
-					Scopes:   []string{"user:read:email", "bits:read", "channel:read:subscriptions"},
-				},
-			},
-		}
-		_ = json.NewEncoder(w).Encode(resp)
+		// Official Twitch example response.
+		_, _ = w.Write([]byte(`{"data":[
+			{"user_id":"141981764","user_name":"TwitchDev","user_login":"twitchdev","scopes":["bits:read","channel:bot","channel:manage:predictions"]},
+			{"user_id":"197886470","user_name":"TwitchRivals","user_login":"twitchrivals","scopes":["channel:manage:predictions"]}
+		]}`))
 	})
 	defer server.Close()
 
 	resp, err := client.GetAuthorizationByUser(context.Background(), &GetAuthorizationByUserParams{
-		UserID: "12345",
+		UserIDs: []string{"141981764", "197886470"},
 	})
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(resp.Data) != 1 {
-		t.Fatalf("expected 1 authorization, got %d", len(resp.Data))
+	if len(resp.Data) != 2 {
+		t.Fatalf("expected 2 authorizations, got %d", len(resp.Data))
 	}
-	if resp.Data[0].ClientID != "client123" {
-		t.Errorf("expected client_id=client123, got %s", resp.Data[0].ClientID)
-	}
-	if resp.Data[0].Login != "testuser" {
-		t.Errorf("expected login=testuser, got %s", resp.Data[0].Login)
+	if resp.Data[0].UserID != "141981764" || resp.Data[0].UserLogin != "twitchdev" || resp.Data[0].UserName != "TwitchDev" {
+		t.Errorf("user fields not decoded: %+v", resp.Data[0])
 	}
 	if len(resp.Data[0].Scopes) != 3 {
 		t.Errorf("expected 3 scopes, got %d", len(resp.Data[0].Scopes))
@@ -604,7 +595,7 @@ func TestClient_GetAuthorizationByUser_Error(t *testing.T) {
 	})
 	defer server.Close()
 
-	_, err := client.GetAuthorizationByUser(context.Background(), &GetAuthorizationByUserParams{UserID: "12345"})
+	_, err := client.GetAuthorizationByUser(context.Background(), &GetAuthorizationByUserParams{UserIDs: []string{"12345"}})
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}

@@ -211,31 +211,33 @@ func (c *Client) UpdateUserExtensions(ctx context.Context, params *UpdateUserExt
 	return &resp.Data, nil
 }
 
-// UserAuthorization represents the authorization scopes granted by a user.
+// UserAuthorization represents the scopes a user has granted the application.
 type UserAuthorization struct {
-	ClientID string   `json:"client_id"`
-	UserID   string   `json:"user_id"`
-	Login    string   `json:"login"`
-	Scopes   []string `json:"scopes"`
+	UserID    string   `json:"user_id"`
+	UserName  string   `json:"user_name"`
+	UserLogin string   `json:"user_login"`
+	Scopes    []string `json:"scopes"`
 }
 
 // GetAuthorizationByUserParams contains parameters for GetAuthorizationByUser.
 type GetAuthorizationByUserParams struct {
-	UserID string // Required: The ID of a user that granted the application OAuth permissions
+	UserIDs []string // Required: user IDs that granted the application OAuth permissions (max 10)
 }
 
-// GetAuthorizationByUser gets the authorization scopes that the specified user has granted the application.
+// GetAuthorizationByUser gets the authorization scopes that the specified users have granted the application.
 // Requires: App access token.
 func (c *Client) GetAuthorizationByUser(ctx context.Context, params *GetAuthorizationByUserParams) (*Response[UserAuthorization], error) {
-	if params == nil || params.UserID == "" {
-		return nil, fmt.Errorf("user_id is required")
+	if params == nil || len(params.UserIDs) == 0 {
+		return nil, fmt.Errorf("at least one user_id is required")
 	}
 
 	q := url.Values{}
-	q.Set("user_id", params.UserID)
+	for _, id := range params.UserIDs {
+		q.Add("user_id", id)
+	}
 
 	var resp Response[UserAuthorization]
-	if err := c.get(ctx, "/users/authorization", q, &resp); err != nil {
+	if err := c.get(ctx, "/authorization/users", q, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil

@@ -8,15 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `WithEventSubWSURL` option to point the high-level `EventSubWebSocket` at a custom WebSocket URL (useful for testing)
 - `channel.custom_power_up_redemption.add` EventSub subscription type (`EventSubTypeChannelCustomPowerUpRedemptionAdd`) and the `ChannelCustomPowerUpRedemptionAddEvent` / `EventSubCustomPowerUp` types
 - `GetCustomPowerUp` (`GET /bits/custom_power_ups`) and the `CustomPowerUp` type, returning a broadcaster's configured custom Bits Power-ups
 - `SuspiciousUserAction` and `SuspiciousUserType` types, and the `SuspiciousUserStatusActiveMonitoring`/`SuspiciousUserStatusNoTreatment` status constants
 
 ### Changed
+- Expanded test coverage (cache context invalidation, IRC timestamp fallback, WebSocket close-error classification, and the high-level `EventSubWebSocket.Connect` success/reconnect/error paths)
 
 ### Fixed
 - Corrected the suspicious-user endpoints to match the Twitch reference: `SuspiciousUserStatus` values are now `ACTIVE_MONITORING`/`RESTRICTED` (was `monitored`/`restricted`); renamed `SuspiciousUserStatusMonitored` → `SuspiciousUserStatusActiveMonitoring`. `AddSuspiciousStatusToChatUser` and `RemoveSuspiciousStatusFromChatUser` now return `(*SuspiciousUserAction, error)` (the documented response with `updated_at`, `status`, and `types`) instead of discarding the response body.
 - Corrected `ChannelBitsUseEvent` to match the `channel.bits.use` payload: `BitsUsed` JSON tag fixed (`bits_used` → `bits`), removed the non-existent `UsedAt` field, changed `Message` from `*string` to `*ChatEventMessage` (the documented `{text, fragments[]}` object), and added `CustomPowerUp`. `PowerUp`/`CustomPowerUp` are `*json.RawMessage` since Twitch does not document their object fields. Removed the unused `PowerUp` type.
+- **BREAKING:** Corrected `GetClipsDownload` to match the Twitch reference: endpoint path `/clips/download` → `/clips/downloads`; it now takes `*GetClipsDownloadParams` (`BroadcasterID`, `EditorID`, `ClipIDs`) and `ClipDownload` exposes `ClipID`/`LandscapeDownloadURL`/`PortraitDownloadURL` (was `ID`/`URL`/`ExpiresAt`)
+- **BREAKING:** `CreateClipFromVOD` now sends its parameters as query parameters (the Twitch endpoint reads them from the query string; they were incorrectly sent as a JSON body)
+- **BREAKING:** Corrected `GetAuthorizationByUser` to match the Twitch reference: endpoint path `/users/authorization` → `/authorization/users`; it now takes `UserIDs []string` (up to 10) and `UserAuthorization` exposes `UserID`/`UserName`/`UserLogin`/`Scopes` (removed the non-existent `ClientID`, renamed `Login` → `UserLogin`)
 
 ## [1.2.2] - 2026-04-23 ([#75](https://github.com/Its-donkey/kappopher/pull/75))
 
