@@ -87,6 +87,27 @@ func TestNewEventSubWebSocketClient(t *testing.T) {
 	}
 }
 
+func TestIsExpectedCloseError(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"nil", nil, false},
+		{"close sent", websocket.ErrCloseSent, true},
+		{"closed network connection", errors.New("write tcp: use of closed network connection"), true},
+		{"i/o timeout", errors.New("read tcp: i/o timeout"), true},
+		{"unrelated", errors.New("some other error"), false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isExpectedCloseError(tt.err); got != tt.want {
+				t.Errorf("isExpectedCloseError(%v) = %v, want %v", tt.err, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestEventSubWebSocketClient_WithOptions(t *testing.T) {
 	customURL := "wss://custom.example.com/ws"
 	welcomeCalled := false
@@ -1401,37 +1422,27 @@ func TestEventSubWebSocket_Connect(t *testing.T) {
 	})
 	helixClient := NewClient("test-client-id", authClient)
 
-	ws := NewEventSubWebSocket(helixClient)
-	// Inject the mock URL by accessing the internal ws after Connect creates it
-	// We need to set the URL before Connect, so we'll use a workaround
-
-	// Create the internal client manually to set the URL
-	ws.ws = NewEventSubWebSocketClient(
-		WithWSURL(mock.URL()),
-		WithWSNotificationHandler(func(sub *EventSubSubscription, event json.RawMessage) {
-			ws.mu.RLock()
-			handler, ok := ws.handlers[sub.Type]
-			ws.mu.RUnlock()
-			if ok {
-				handler(event)
-			}
-		}),
-	)
+	ws := NewEventSubWebSocket(helixClient, WithEventSubWSURL(mock.URL()))
 
 	ctx := context.Background()
-	sid, err := ws.ws.Connect(ctx)
-	if err != nil {
+	if err := ws.Connect(ctx); err != nil {
 		t.Fatalf("Connect failed: %v", err)
 	}
-	ws.sessionID = sid
 
 	if ws.sessionID != sessionID {
 		t.Errorf("expected session ID %s, got %s", sessionID, ws.sessionID)
 	}
 
+	// Connecting again closes the existing connection first and reconnects.
+	if err := ws.Connect(ctx); err != nil {
+		t.Fatalf("reconnect failed: %v", err)
+	}
+	if ws.sessionID != sessionID {
+		t.Errorf("expected session ID %s after reconnect, got %s", sessionID, ws.sessionID)
+	}
+
 	// Close
-	err = ws.Close()
-	if err != nil {
+	if err := ws.Close(); err != nil {
 		t.Errorf("Close failed: %v", err)
 	}
 }
@@ -1442,16 +1453,17 @@ func TestEventSubWebSocket_ConnectError(t *testing.T) {
 	})
 	helixClient := NewClient("test-client-id", authClient)
 
-	ws := NewEventSubWebSocket(helixClient)
-	// Set invalid URL to force connection error
-	ws.ws = NewEventSubWebSocketClient(WithWSURL("ws://invalid.invalid:9999"))
+	// Set invalid URL to force connection error via the high-level Connect.
+	ws := NewEventSubWebSocket(helixClient, WithEventSubWSURL("ws://invalid.invalid:9999"))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	_, err := ws.ws.Connect(ctx)
-	if err == nil {
+	if err := ws.Connect(ctx); err == nil {
 		t.Error("expected connect error")
+	}
+	if ws.ws != nil {
+		t.Error("expected ws to be nil after a failed Connect")
 	}
 }
 
@@ -1504,29 +1516,16 @@ func TestEventSubWebSocket_Subscribe(t *testing.T) {
 	})
 	helixClient := NewClient("test-client-id", authClient, WithBaseURL(apiServer.URL))
 
-	ws := NewEventSubWebSocket(helixClient)
-	ws.ws = NewEventSubWebSocketClient(
-		WithWSURL(wsMock.URL()),
-		WithWSNotificationHandler(func(sub *EventSubSubscription, event json.RawMessage) {
-			ws.mu.RLock()
-			handler, ok := ws.handlers[sub.Type]
-			ws.mu.RUnlock()
-			if ok {
-				handler(event)
-			}
-		}),
-	)
+	ws := NewEventSubWebSocket(helixClient, WithEventSubWSURL(wsMock.URL()))
 
 	ctx := context.Background()
-	sid, err := ws.ws.Connect(ctx)
-	if err != nil {
+	if err := ws.Connect(ctx); err != nil {
 		t.Fatalf("Connect failed: %v", err)
 	}
-	ws.sessionID = sid
 
 	// Subscribe
 	handlerCalled := false
-	err = ws.Subscribe(ctx, EventSubTypeChannelFollow, "2", map[string]string{
+	err := ws.Subscribe(ctx, EventSubTypeChannelFollow, "2", map[string]string{
 		"broadcaster_user_id": twitchWSExampleBroadcasterUserID,
 		"moderator_user_id":   twitchWSExampleUserID,
 	}, func(event json.RawMessage) {
