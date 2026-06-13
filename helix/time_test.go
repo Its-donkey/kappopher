@@ -36,10 +36,10 @@ func TestNullableTime_Unmarshal(t *testing.T) {
 			if nt.Valid != tt.wantValid {
 				t.Errorf("Valid = %v, want %v", nt.Valid, tt.wantValid)
 			}
-			if tt.wantValid && !nt.Time.Equal(tt.wantTime) {
+			if tt.wantValid && !nt.Equal(tt.wantTime) {
 				t.Errorf("Time = %v, want %v", nt.Time, tt.wantTime)
 			}
-			if !tt.wantValid && !nt.Time.IsZero() {
+			if !tt.wantValid && !nt.IsZero() {
 				t.Errorf("Time = %v, want zero", nt.Time)
 			}
 		})
