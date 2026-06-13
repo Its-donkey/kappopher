@@ -31,12 +31,13 @@ func TestClient_GetIngestServers(t *testing.T) {
 		resp := IngestServersResponse{
 			Ingests: []IngestServer{
 				{
-					ID:           1,
-					Availability: 1.0,
-					Default:      false,
-					Name:         "US East: Atlanta, GA",
-					URLTemplate:  "rtmp://atl.contribute.live-video.net/app/{stream_key}",
-					Priority:     13,
+					ID:                1,
+					Availability:      1.0,
+					Default:           false,
+					Name:              "US East: Atlanta, GA",
+					URLTemplate:       "rtmp://atl.contribute.live-video.net/app/{stream_key}",
+					URLTemplateSecure: "rtmps://atl.contribute.live-video.net/app/{stream_key}",
+					Priority:          13,
 				},
 				{
 					ID:           2,
@@ -72,6 +73,9 @@ func TestClient_GetIngestServers(t *testing.T) {
 	}
 	if resp.Ingests[0].Name != "US East: Atlanta, GA" {
 		t.Errorf("expected first server name 'US East: Atlanta, GA', got %s", resp.Ingests[0].Name)
+	}
+	if resp.Ingests[0].URLTemplateSecure != "rtmps://atl.contribute.live-video.net/app/{stream_key}" {
+		t.Errorf("expected secure URL template to decode, got %q", resp.Ingests[0].URLTemplateSecure)
 	}
 }
 

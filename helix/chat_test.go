@@ -942,3 +942,112 @@ func TestClient_GetUserEmotes_Error(t *testing.T) {
 		t.Fatal("expected error, got nil")
 	}
 }
+
+func TestClient_GetPinnedChatMessage(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/chat/pins" {
+			t.Errorf("expected /chat/pins, got %s", r.URL.Path)
+		}
+		if r.URL.Query().Get("broadcaster_id") != "197886470" || r.URL.Query().Get("moderator_id") != "141981764" {
+			t.Errorf("unexpected query: %s", r.URL.RawQuery)
+		}
+		// Official Twitch example response.
+		_, _ = w.Write([]byte(`{"data":[{
+			"message_id":"abc-def-123-456",
+			"broadcaster_id":"197886470",
+			"sender_user_id":"12826","sender_user_login":"twitch","sender_user_name":"Twitch",
+			"pinned_by_user_id":"141981764","pinned_by_user_login":"twitchdev","pinned_by_user_name":"TwitchDev",
+			"message":{"text":"Welcome!","fragments":[{"type":"text","text":"Welcome!","cheermote":null,"emote":null,"mention":null}]},
+			"starts_at":"2026-05-06T12:30:00Z","ends_at":null,"updated_at":"2026-05-06T12:30:00Z"
+		}]}`))
+	})
+	defer server.Close()
+
+	resp, err := client.GetPinnedChatMessage(context.Background(), "197886470", "141981764")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resp.Data) != 1 {
+		t.Fatalf("expected 1 pinned message, got %d", len(resp.Data))
+	}
+	pm := resp.Data[0]
+	if pm.MessageID != "abc-def-123-456" || pm.PinnedByUserName != "TwitchDev" {
+		t.Errorf("fields not decoded: %+v", pm)
+	}
+	if pm.Message.Text != "Welcome!" || len(pm.Message.Fragments) != 1 {
+		t.Errorf("message not decoded: %+v", pm.Message)
+	}
+	if pm.EndsAt != nil {
+		t.Errorf("EndsAt = %v, want nil", pm.EndsAt)
+	}
+	if pm.StartsAt.IsZero() {
+		t.Error("StartsAt should be parsed")
+	}
+}
+
+func TestClient_PinChatMessage(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Errorf("expected PUT, got %s", r.Method)
+		}
+		if r.URL.Path != "/chat/pins" {
+			t.Errorf("expected /chat/pins, got %s", r.URL.Path)
+		}
+		q := r.URL.Query()
+		if q.Get("message_id") != "msg1" || q.Get("duration_seconds") != "300" {
+			t.Errorf("unexpected query: %s", r.URL.RawQuery)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+	defer server.Close()
+
+	dur := 300
+	err := client.PinChatMessage(context.Background(), &PinChatMessageParams{
+		BroadcasterID: "1", ModeratorID: "2", MessageID: "msg1", DurationSeconds: &dur,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestClient_UpdateAndUnpinChatMessage(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/chat/pins" {
+			t.Errorf("expected /chat/pins, got %s", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+	defer server.Close()
+
+	dur := 600
+	if err := client.UpdatePinnedChatMessage(context.Background(), &UpdatePinnedChatMessageParams{
+		BroadcasterID: "1", ModeratorID: "2", MessageID: "msg1", DurationSeconds: &dur,
+	}); err != nil {
+		t.Fatalf("update error: %v", err)
+	}
+	if err := client.UnpinChatMessage(context.Background(), "1", "2", "msg1"); err != nil {
+		t.Fatalf("unpin error: %v", err)
+	}
+}
+
+func TestClient_SendChatMessage_Pin(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		var body SendChatMessageParams
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if body.Pin == nil || !*body.Pin {
+			t.Errorf("expected pin=true in body, got %+v", body.Pin)
+		}
+		_ = json.NewEncoder(w).Encode(Response[SendChatMessageResponse]{
+			Data: []SendChatMessageResponse{{MessageID: "m", IsSent: true}},
+		})
+	})
+	defer server.Close()
+
+	pin := true
+	_, err := client.SendChatMessage(context.Background(), &SendChatMessageParams{
+		BroadcasterID: "1", SenderID: "2", Message: "hi", Pin: &pin,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}

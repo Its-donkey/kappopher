@@ -15,12 +15,13 @@ const (
 
 // IngestServer represents a Twitch ingest server for live video streaming.
 type IngestServer struct {
-	ID           int     `json:"_id"`
-	Availability float64 `json:"availability"`
-	Default      bool    `json:"default"`
-	Name         string  `json:"name"`
-	URLTemplate  string  `json:"url_template"`
-	Priority     int     `json:"priority"`
+	ID                int     `json:"_id"`
+	Availability      float64 `json:"availability"`
+	Default           bool    `json:"default"`
+	Name              string  `json:"name"`
+	URLTemplate       string  `json:"url_template"`        // RTMP ingest URL template
+	URLTemplateSecure string  `json:"url_template_secure"` // RTMPS (TLS) ingest URL template
+	Priority          int     `json:"priority"`
 }
 
 // IngestServersResponse represents the response from the ingest servers endpoint.

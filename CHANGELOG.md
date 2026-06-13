@@ -13,6 +13,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.3.0] - 2026-06-13 ([#87](https://github.com/Its-donkey/kappopher/pull/87))
+
+### Added
+- `WithEventSubWSURL` option to point the high-level `EventSubWebSocket` at a custom WebSocket URL (useful for testing)
+- Pinned Chat Message endpoints: `GetPinnedChatMessage`, `PinChatMessage`, `UpdatePinnedChatMessage`, `UnpinChatMessage` (`/chat/pins`), and the `PinnedChatMessage` type
+- `SendChatMessageParams.ForSourceOnly` and `SendChatMessageParams.Pin`, and `SendChatAnnouncementParams.ForSourceOnly`, matching recent Twitch additions
+- `channel.custom_power_up_redemption.add` EventSub subscription type (`EventSubTypeChannelCustomPowerUpRedemptionAdd`) and the `ChannelCustomPowerUpRedemptionAddEvent` / `EventSubCustomPowerUp` types
+- `GetCustomPowerUp` (`GET /bits/custom_power_ups`) and the `CustomPowerUp` type, returning a broadcaster's configured custom Bits Power-ups
+- `SuspiciousUserAction` and `SuspiciousUserType` types, and the `SuspiciousUserStatusActiveMonitoring`/`SuspiciousUserStatusNoTreatment` status constants
+- EventSub event fields that were missing vs. the reference: `ChannelChatMessageEvent.IsSourceOnly`; `ChannelChatNotificationEvent.{IsSourceOnly,WatchStreak,Modiversary,SharedChatModiversary}` (+ `ChatNotificationWatchStreak`/`ChatNotificationModiversary` types); `ChannelModerateEvent.{SourceBroadcasterUserID,SourceBroadcasterUserLogin,SourceBroadcasterUserName,SharedChatUnban,SharedChatUntimeout}`; `ChannelGuestStarSessionEndEvent.{HostUserID,HostUserName,HostUserLogin}` and `ChannelGuestStarGuestUpdateEvent.{HostUserID,HostUserName,HostUserLogin}`
+- `IngestServer.URLTemplateSecure` (`url_template_secure`) — the RTMPS ingest URL template returned by the ingest endpoint
+- `AutomodSettingsUpdateEvent.Aggression` (`aggression`) — the documented AutoMod category level was missing from the `automod.settings.update` event
+
+### Changed
+- Expanded test coverage (cache context invalidation, IRC timestamp fallback, WebSocket close-error classification, and the high-level `EventSubWebSocket.Connect` success/reconnect/error paths)
+
+### Fixed
+- Corrected the suspicious-user endpoints to match the Twitch reference: `SuspiciousUserStatus` values are now `ACTIVE_MONITORING`/`RESTRICTED` (was `monitored`/`restricted`); renamed `SuspiciousUserStatusMonitored` → `SuspiciousUserStatusActiveMonitoring`. `AddSuspiciousStatusToChatUser` and `RemoveSuspiciousStatusFromChatUser` now return `(*SuspiciousUserAction, error)` (the documented response with `updated_at`, `status`, and `types`) instead of discarding the response body.
+- Corrected `ChannelBitsUseEvent` to match the `channel.bits.use` payload: `BitsUsed` JSON tag fixed (`bits_used` → `bits`), removed the non-existent `UsedAt` field, changed `Message` from `*string` to `*ChatEventMessage` (the documented `{text, fragments[]}` object), and added `CustomPowerUp`. `PowerUp`/`CustomPowerUp` are `*json.RawMessage` since Twitch does not document their object fields. Removed the unused `PowerUp` type.
+- Corrected `GetClipsDownload` to match the Twitch reference: endpoint path `/clips/download` → `/clips/downloads`; it now takes `*GetClipsDownloadParams` (`BroadcasterID`, `EditorID`, `ClipIDs`) and `ClipDownload` exposes `ClipID`/`LandscapeDownloadURL`/`PortraitDownloadURL` (was `ID`/`URL`/`ExpiresAt`)
+- `CreateClipFromVOD` now sends its parameters as query parameters (the Twitch endpoint reads them from the query string; they were incorrectly sent as a JSON body)
+- Corrected `GetAuthorizationByUser` to match the Twitch reference: endpoint path `/users/authorization` → `/authorization/users`; it now takes `UserIDs []string` (up to 10) and `UserAuthorization` exposes `UserID`/`UserName`/`UserLogin`/`Scopes` (removed the non-existent `ClientID`, renamed `Login` → `UserLogin`)
+- Corrected the Guest Star channel-settings endpoint path `/channels/guest_star_settings` → `/guest_star/channel_settings` (`GetChannelGuestStarSettings` and `UpdateChannelGuestStarSettings`)
+- `HypeTrainParticipant` JSON tags corrected to `broadcaster_user_id`/`broadcaster_user_login`/`broadcaster_user_name` (were `broadcaster_id`/`broadcaster_login`/`broadcaster_name`), matching the shared-train-participants payload
+- Fixed `GuestStarAudioSettings` and `GuestStarVideoSettings`: the second flag is `is_guest_enabled`, not `is_self_muted` (field renamed `IsSelfMuted` → `IsGuestEnabled`)
+
 ## [1.2.2] - 2026-04-23 ([#75](https://github.com/Its-donkey/kappopher/pull/75))
 
 ### Added
@@ -39,12 +65,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Custom `Pagination.UnmarshalJSON` to handle Twitch endpoints that return pagination as a string instead of an object (e.g. Get Extension Live Channels)
 
 ### Changed
-- **BREAKING:** Renamed `GetCustomRewards` → `GetCustomReward` (aligns with Twitch API reference)
-- **BREAKING:** Renamed `GetCustomRewardRedemptions` → `GetCustomRewardRedemption` (aligns with Twitch API reference)
-- **BREAKING:** Renamed `GetCharityDonations` → `GetCharityCampaignDonations` (aligns with Twitch API reference)
-- **BREAKING:** Renamed `AddSuspiciousUserStatus` → `AddSuspiciousStatusToChatUser` (aligns with Twitch API reference)
-- **BREAKING:** Renamed `RemoveSuspiciousUserStatus` → `RemoveSuspiciousStatusFromChatUser` (aligns with Twitch API reference)
-- **BREAKING:** `GetCharityCampaign` now takes `*GetCharityCampaignParams` instead of a bare `string`, and returns `*Response[CharityCampaign]` instead of `*CharityCampaign`
+- Renamed `GetCustomRewards` → `GetCustomReward` (aligns with Twitch API reference)
+- Renamed `GetCustomRewardRedemptions` → `GetCustomRewardRedemption` (aligns with Twitch API reference)
+- Renamed `GetCharityDonations` → `GetCharityCampaignDonations` (aligns with Twitch API reference)
+- Renamed `AddSuspiciousUserStatus` → `AddSuspiciousStatusToChatUser` (aligns with Twitch API reference)
+- Renamed `RemoveSuspiciousUserStatus` → `RemoveSuspiciousStatusFromChatUser` (aligns with Twitch API reference)
+- `GetCharityCampaign` now takes `*GetCharityCampaignParams` instead of a bare `string`, and returns `*Response[CharityCampaign]` instead of `*CharityCampaign`
 - All params types renamed to match their function names (`GetCustomRewardsParams` → `GetCustomRewardParams`, etc.)
 
 ### Fixed
