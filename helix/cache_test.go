@@ -309,6 +309,36 @@ func TestClient_InvalidateCache_NoCache(t *testing.T) {
 	client.InvalidateCache(context.Background(), "/users", "id=123")
 }
 
+func TestClient_InvalidateCacheWithContext(t *testing.T) {
+	cache := NewMemoryCache(100)
+	ctx := context.Background()
+
+	authClient := NewAuthClient(AuthConfig{
+		ClientID: "test-client-id",
+	})
+	client := NewClient("test-client-id", authClient, WithCache(cache, time.Minute))
+
+	tokenHash := TokenHash("user-token")
+	key := CacheKeyWithContext(client.baseURL, "/users", "id=123", tokenHash)
+	cache.Set(ctx, key, []byte("cached"), time.Minute)
+
+	client.InvalidateCacheWithContext(ctx, "/users", "id=123", tokenHash)
+
+	if cache.Get(ctx, key) != nil {
+		t.Error("expected context-aware cache entry to be invalidated")
+	}
+}
+
+func TestClient_InvalidateCacheWithContext_NoCache(t *testing.T) {
+	authClient := NewAuthClient(AuthConfig{
+		ClientID: "test-client-id",
+	})
+	client := NewClient("test-client-id", authClient)
+
+	// Should not panic when no cache is set
+	client.InvalidateCacheWithContext(context.Background(), "/users", "id=123", TokenHash("user-token"))
+}
+
 func TestNoCacheContext(t *testing.T) {
 	ctx := context.Background()
 	noCacheCtx := NoCacheContext(ctx)
