@@ -728,6 +728,27 @@ type ChannelBitsUseEvent struct {
 	CustomPowerUp *json.RawMessage `json:"custom_power_up,omitempty"`
 }
 
+// ChannelCustomPowerUpRedemptionAddEvent is sent when a viewer redeems a
+// custom Bits Power-up (channel.custom_power_up_redemption.add).
+type ChannelCustomPowerUpRedemptionAddEvent struct {
+	EventSubBroadcaster
+	EventSubUser
+	ID            string                `json:"id"`
+	UserInput     string                `json:"user_input"`
+	Status        string                `json:"status"` // unknown, unfulfilled, fulfilled, canceled
+	CustomPowerUp EventSubCustomPowerUp `json:"custom_power_up"`
+	RedeemedAt    time.Time             `json:"redeemed_at"`
+}
+
+// EventSubCustomPowerUp is basic information about a custom Bits Power-up at
+// the time it was redeemed.
+type EventSubCustomPowerUp struct {
+	ID     string `json:"id"`
+	Title  string `json:"title"`
+	Bits   int    `json:"bits"`
+	Prompt string `json:"prompt"`
+}
+
 // VIP Events
 
 // ChannelVIPAddEvent is sent when a user is added as a VIP.
