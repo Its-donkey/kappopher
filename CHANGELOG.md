@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+## [1.3.1] - 2026-06-13
+
+### Added
 - `GetEventSubSubscriptionsParams.SubscriptionID` (`subscription_id`) and `GetEventSubSubscriptionsParams.ConduitID` (`conduit_id`) filters for `GetEventSubSubscriptions`
 - `EventSubConflictError`, returned by `CreateEventSubSubscription` on a `409 Conflict`. Its `ExistingSubscriptionID` exposes the id of the already-existing subscription that Twitch reports in the 409 body; the underlying `*APIError` is wrapped (accessible via `errors.As`)
 - `APIError.Body` field exposing the raw error response body, so callers can read endpoint-specific fields the standard error envelope does not surface
