@@ -8,10 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `SuspiciousUserAction` and `SuspiciousUserType` types, and the `SuspiciousUserStatusActiveMonitoring`/`SuspiciousUserStatusNoTreatment` status constants
 
 ### Changed
 
 ### Fixed
+- **BREAKING:** Corrected the suspicious-user endpoints to match the Twitch reference: `SuspiciousUserStatus` values are now `ACTIVE_MONITORING`/`RESTRICTED` (was `monitored`/`restricted`); renamed `SuspiciousUserStatusMonitored` → `SuspiciousUserStatusActiveMonitoring`. `AddSuspiciousStatusToChatUser` and `RemoveSuspiciousStatusFromChatUser` now return `(*SuspiciousUserAction, error)` (the documented response with `updated_at`, `status`, and `types`) instead of discarding the response body.
 
 ## [1.2.2] - 2026-04-23 ([#75](https://github.com/Its-donkey/kappopher/pull/75))
 
