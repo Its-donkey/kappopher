@@ -878,3 +878,34 @@ func TestChannelPredictionBeginEvent(t *testing.T) {
 		t.Errorf("expected first outcome color=blue, got %s", event.Outcomes[0].Color)
 	}
 }
+
+// TestChannelCustomPowerUpRedemptionAddEvent verifies the
+// channel.custom_power_up_redemption.add event payload decodes.
+func TestChannelCustomPowerUpRedemptionAddEvent(t *testing.T) {
+	payload := []byte(`{
+		"id": "redemption-1",
+		"broadcaster_user_id": "1337", "broadcaster_user_login": "cool", "broadcaster_user_name": "Cool",
+		"user_id": "9001", "user_login": "viewer", "user_name": "Viewer",
+		"user_input": "go go go",
+		"status": "unfulfilled",
+		"custom_power_up": {"id": "pu-1", "title": "Hype", "bits": 100, "prompt": "Bring the hype"},
+		"redeemed_at": "2026-05-19T12:00:00Z"
+	}`)
+
+	var e ChannelCustomPowerUpRedemptionAddEvent
+	if err := json.Unmarshal(payload, &e); err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+	if e.ID != "redemption-1" || e.BroadcasterUserID != "1337" || e.UserID != "9001" {
+		t.Errorf("core fields not decoded: %+v", e)
+	}
+	if e.Status != "unfulfilled" || e.UserInput != "go go go" {
+		t.Errorf("status/input not decoded: %+v", e)
+	}
+	if e.CustomPowerUp.ID != "pu-1" || e.CustomPowerUp.Bits != 100 || e.CustomPowerUp.Title != "Hype" {
+		t.Errorf("custom_power_up not decoded: %+v", e.CustomPowerUp)
+	}
+	if e.RedeemedAt.IsZero() {
+		t.Error("redeemed_at should be parsed")
+	}
+}

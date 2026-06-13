@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `channel.custom_power_up_redemption.add` EventSub subscription type (`EventSubTypeChannelCustomPowerUpRedemptionAdd`) and the `ChannelCustomPowerUpRedemptionAddEvent` / `EventSubCustomPowerUp` types
 
 ### Changed
 
