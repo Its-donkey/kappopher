@@ -247,34 +247,32 @@ func TestClient_GetClips_DateRange(t *testing.T) {
 
 func TestClient_GetClipsDownload(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/clips/download" {
-			t.Errorf("expected /clips/download, got %s", r.URL.Path)
+		if r.URL.Path != "/clips/downloads" {
+			t.Errorf("expected /clips/downloads, got %s", r.URL.Path)
+		}
+		if got := r.URL.Query().Get("broadcaster_id"); got != "141981764" {
+			t.Errorf("expected broadcaster_id=141981764, got %s", got)
+		}
+		if got := r.URL.Query().Get("editor_id"); got != "141981764" {
+			t.Errorf("expected editor_id=141981764, got %s", got)
+		}
+		if ids := r.URL.Query()["clip_id"]; len(ids) != 2 {
+			t.Errorf("expected 2 clip_id params, got %d", len(ids))
 		}
 
-		ids := r.URL.Query()["id"]
-		if len(ids) != 2 {
-			t.Errorf("expected 2 ids, got %d", len(ids))
-		}
-
-		resp := Response[ClipDownload]{
-			Data: []ClipDownload{
-				{
-					ID:        "clip1",
-					URL:       "https://example.com/download/clip1.mp4",
-					ExpiresAt: "2024-01-15T12:00:00Z",
-				},
-				{
-					ID:        "clip2",
-					URL:       "https://example.com/download/clip2.mp4",
-					ExpiresAt: "2024-01-15T12:00:00Z",
-				},
-			},
-		}
-		_ = json.NewEncoder(w).Encode(resp)
+		// Official Twitch example response.
+		_, _ = w.Write([]byte(`{"data":[
+			{"clip_id":"InexpensiveDistinctFoxChefFrank","landscape_download_url":"https://production.assets.clips.twitchcdn.net/yFZG","portrait_download_url":null},
+			{"clip_id":"SpinelessCloudyLeopardMcaT","landscape_download_url":"https://production.assets.clips.twitchcdn.net/542j","portrait_download_url":null}
+		]}`))
 	})
 	defer server.Close()
 
-	resp, err := client.GetClipsDownload(context.Background(), []string{"clip1", "clip2"})
+	resp, err := client.GetClipsDownload(context.Background(), &GetClipsDownloadParams{
+		BroadcasterID: "141981764",
+		EditorID:      "141981764",
+		ClipIDs:       []string{"InexpensiveDistinctFoxChefFrank", "SpinelessCloudyLeopardMcaT"},
+	})
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -282,8 +280,14 @@ func TestClient_GetClipsDownload(t *testing.T) {
 	if len(resp.Data) != 2 {
 		t.Fatalf("expected 2 downloads, got %d", len(resp.Data))
 	}
-	if resp.Data[0].URL == "" {
-		t.Error("expected URL to be set")
+	if resp.Data[0].ClipID != "InexpensiveDistinctFoxChefFrank" {
+		t.Errorf("ClipID = %q", resp.Data[0].ClipID)
+	}
+	if resp.Data[0].LandscapeDownloadURL == "" {
+		t.Error("expected landscape download URL to be set")
+	}
+	if resp.Data[0].PortraitDownloadURL != "" {
+		t.Errorf("expected portrait URL empty for null, got %q", resp.Data[0].PortraitDownloadURL)
 	}
 }
 
@@ -344,7 +348,11 @@ func TestClient_GetClipsDownload_Error(t *testing.T) {
 	})
 	defer server.Close()
 
-	_, err := client.GetClipsDownload(context.Background(), []string{"clip1"})
+	_, err := client.GetClipsDownload(context.Background(), &GetClipsDownloadParams{
+		BroadcasterID: "141981764",
+		EditorID:      "141981764",
+		ClipIDs:       []string{"clip1"},
+	})
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -421,25 +429,22 @@ func TestClient_CreateClipFromVOD(t *testing.T) {
 			t.Errorf("expected /videos/clips, got %s", r.URL.Path)
 		}
 
-		var body CreateClipFromVODParams
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			t.Fatalf("failed to decode request body: %v", err)
+		// Parameters are sent as query parameters, not a JSON body.
+		q := r.URL.Query()
+		if q.Get("editor_id") != "11111" {
+			t.Errorf("expected editor_id=11111, got %s", q.Get("editor_id"))
 		}
-
-		if body.EditorID != "11111" {
-			t.Errorf("expected editor_id=11111, got %s", body.EditorID)
+		if q.Get("broadcaster_id") != "22222" {
+			t.Errorf("expected broadcaster_id=22222, got %s", q.Get("broadcaster_id"))
 		}
-		if body.BroadcasterID != "22222" {
-			t.Errorf("expected broadcaster_id=22222, got %s", body.BroadcasterID)
+		if q.Get("vod_id") != "33333" {
+			t.Errorf("expected vod_id=33333, got %s", q.Get("vod_id"))
 		}
-		if body.VODID != "33333" {
-			t.Errorf("expected vod_id=33333, got %s", body.VODID)
+		if q.Get("vod_offset") != "3600" {
+			t.Errorf("expected vod_offset=3600, got %s", q.Get("vod_offset"))
 		}
-		if body.VODOffset != 3600 {
-			t.Errorf("expected vod_offset=3600, got %d", body.VODOffset)
-		}
-		if body.Title != "Epic Moment" {
-			t.Errorf("expected title=Epic Moment, got %s", body.Title)
+		if q.Get("title") != "Epic Moment" {
+			t.Errorf("expected title=Epic Moment, got %s", q.Get("title"))
 		}
 
 		w.WriteHeader(http.StatusAccepted)
@@ -476,15 +481,8 @@ func TestClient_CreateClipFromVOD(t *testing.T) {
 
 func TestClient_CreateClipFromVOD_WithDuration(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
-		var body CreateClipFromVODParams
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			t.Fatalf("failed to decode request body: %v", err)
-		}
-
-		if body.Duration == nil {
-			t.Error("expected duration to be set")
-		} else if *body.Duration != 45.5 {
-			t.Errorf("expected duration=45.5, got %f", *body.Duration)
+		if got := r.URL.Query().Get("duration"); got != "45.5" {
+			t.Errorf("expected duration=45.5 query param, got %q", got)
 		}
 
 		w.WriteHeader(http.StatusAccepted)
