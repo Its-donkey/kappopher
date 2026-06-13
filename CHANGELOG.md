@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Pinned Chat Message endpoints: `GetPinnedChatMessage`, `PinChatMessage`, `UpdatePinnedChatMessage`, `UnpinChatMessage` (`/chat/pins`), and the `PinnedChatMessage` type
+- `SendChatMessageParams.ForSourceOnly` and `SendChatMessageParams.Pin`, and `SendChatAnnouncementParams.ForSourceOnly`, matching recent Twitch additions
 
 ### Changed
 
