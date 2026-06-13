@@ -7,6 +7,10 @@ import (
 )
 
 // HypeTrainEvent represents a hype train event.
+//
+// Deprecated: Twitch removed the "Get Hype Train Events" endpoint (changelog
+// 2026-02-05). Use [Client.GetHypeTrainStatus] and the [HypeTrainStatus] type
+// instead.
 type HypeTrainEvent struct {
 	ID             string             `json:"id"`
 	EventType      string             `json:"event_type"`
@@ -16,6 +20,10 @@ type HypeTrainEvent struct {
 }
 
 // HypeTrainEventData contains the hype train event data.
+//
+// Deprecated: Twitch removed the "Get Hype Train Events" endpoint (changelog
+// 2026-02-05). Use [Client.GetHypeTrainStatus] and the [HypeTrainStatus] type
+// instead.
 type HypeTrainEventData struct {
 	ID               string                  `json:"id"`
 	BroadcasterID    string                  `json:"broadcaster_id"`
@@ -37,6 +45,9 @@ type HypeTrainContribution struct {
 }
 
 // GetHypeTrainEventsParams contains parameters for GetHypeTrainEvents.
+//
+// Deprecated: Twitch removed the "Get Hype Train Events" endpoint (changelog
+// 2026-02-05). Use [Client.GetHypeTrainStatus] instead.
 type GetHypeTrainEventsParams struct {
 	BroadcasterID string
 	*PaginationParams
@@ -44,7 +55,11 @@ type GetHypeTrainEventsParams struct {
 
 // GetHypeTrainEvents gets hype train events for a channel.
 // Requires: channel:read:hype_train scope.
-// Note: This endpoint is deprecated; use EventSub instead.
+//
+// Deprecated: Twitch removed the "Get Hype Train Events" endpoint (changelog
+// 2026-02-05) in favor of Get Hype Train Status. Any live call now returns 404.
+// Use [Client.GetHypeTrainStatus] instead. This will be removed in the next
+// major release.
 func (c *Client) GetHypeTrainEvents(ctx context.Context, params *GetHypeTrainEventsParams) (*Response[HypeTrainEvent], error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)

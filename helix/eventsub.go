@@ -2,6 +2,10 @@ package helix
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
 	"net/url"
 	"time"
 )
@@ -31,9 +35,11 @@ type EventSubTransport struct {
 
 // GetEventSubSubscriptionsParams contains parameters for GetEventSubSubscriptions.
 type GetEventSubSubscriptionsParams struct {
-	Status string // Filter by status
-	Type   string // Filter by subscription type
-	UserID string // Filter by user ID
+	Status         string // Filter by status
+	Type           string // Filter by subscription type
+	UserID         string // Filter by user ID
+	SubscriptionID string // Filter to a single subscription by ID (if owned by the caller)
+	ConduitID      string // Filter by conduit ID
 	*PaginationParams
 }
 
@@ -59,6 +65,12 @@ func (c *Client) GetEventSubSubscriptions(ctx context.Context, params *GetEventS
 		}
 		if params.UserID != "" {
 			q.Set("user_id", params.UserID)
+		}
+		if params.SubscriptionID != "" {
+			q.Set("subscription_id", params.SubscriptionID)
+		}
+		if params.ConduitID != "" {
+			q.Set("conduit_id", params.ConduitID)
 		}
 		addPaginationParams(q, params.PaginationParams)
 	}
@@ -87,11 +99,44 @@ type CreateEventSubTransport struct {
 	ConduitID string `json:"conduit_id,omitempty"`
 }
 
+// EventSubConflictError is returned by CreateEventSubSubscription when a
+// subscription already exists for the requested type and condition combination
+// (HTTP 409). ExistingSubscriptionID is the id of the conflicting subscription,
+// which Twitch includes in the 409 response body. The underlying *APIError is
+// wrapped, so errors.As and the StatusCode/Body fields remain accessible.
+type EventSubConflictError struct {
+	ExistingSubscriptionID string
+	*APIError
+}
+
+func (e *EventSubConflictError) Error() string {
+	if e.ExistingSubscriptionID != "" {
+		return fmt.Sprintf("eventsub subscription already exists (existing id %s): %s", e.ExistingSubscriptionID, e.APIError.Error())
+	}
+	return fmt.Sprintf("eventsub subscription already exists: %s", e.APIError.Error())
+}
+
+// Unwrap returns the underlying *APIError.
+func (e *EventSubConflictError) Unwrap() error { return e.APIError }
+
 // CreateEventSubSubscription creates an EventSub subscription.
 // Requires: App access token.
+//
+// If a subscription already exists for the same type and condition, Twitch
+// returns 409 Conflict; this is surfaced as an [EventSubConflictError] whose
+// ExistingSubscriptionID holds the id of the conflicting subscription.
 func (c *Client) CreateEventSubSubscription(ctx context.Context, params *CreateEventSubSubscriptionParams) (*EventSubSubscription, error) {
 	var resp EventSubResponse
 	if err := c.post(ctx, "/eventsub/subscriptions", nil, params, &resp); err != nil {
+		var apiErr *APIError
+		if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusConflict {
+			conflict := &EventSubConflictError{APIError: apiErr}
+			var er ErrorResponse
+			if json.Unmarshal(apiErr.Body, &er) == nil {
+				conflict.ExistingSubscriptionID = er.ID
+			}
+			return nil, conflict
+		}
 		return nil, err
 	}
 	if len(resp.Data) == 0 {
@@ -119,27 +164,28 @@ const (
 
 // EventSub subscription types - Channel
 const (
-	EventSubTypeChannelUpdate              = "channel.update"
-	EventSubTypeChannelFollow              = "channel.follow"
-	EventSubTypeChannelAdBreakBegin        = "channel.ad_break.begin"
-	EventSubTypeChannelBitsUse             = "channel.bits.use"
-	EventSubTypeChannelSubscribe           = "channel.subscribe"
-	EventSubTypeChannelSubscriptionEnd     = "channel.subscription.end"
-	EventSubTypeChannelSubscriptionGift    = "channel.subscription.gift"
-	EventSubTypeChannelSubscriptionMessage = "channel.subscription.message"
-	EventSubTypeChannelCheer               = "channel.cheer"
-	EventSubTypeChannelRaid                = "channel.raid"
-	EventSubTypeChannelBan                 = "channel.ban"
-	EventSubTypeChannelUnban               = "channel.unban"
-	EventSubTypeChannelUnbanRequestCreate  = "channel.unban_request.create"
-	EventSubTypeChannelUnbanRequestResolve = "channel.unban_request.resolve"
-	EventSubTypeChannelModerate            = "channel.moderate"
-	EventSubTypeChannelModeratorAdd        = "channel.moderator.add"
-	EventSubTypeChannelModeratorRemove     = "channel.moderator.remove"
-	EventSubTypeChannelVIPAdd              = "channel.vip.add"
-	EventSubTypeChannelVIPRemove           = "channel.vip.remove"
-	EventSubTypeChannelWarningSend         = "channel.warning.send"
-	EventSubTypeChannelWarningAcknowledge  = "channel.warning.acknowledge"
+	EventSubTypeChannelUpdate                     = "channel.update"
+	EventSubTypeChannelFollow                     = "channel.follow"
+	EventSubTypeChannelAdBreakBegin               = "channel.ad_break.begin"
+	EventSubTypeChannelBitsUse                    = "channel.bits.use"
+	EventSubTypeChannelCustomPowerUpRedemptionAdd = "channel.custom_power_up_redemption.add"
+	EventSubTypeChannelSubscribe                  = "channel.subscribe"
+	EventSubTypeChannelSubscriptionEnd            = "channel.subscription.end"
+	EventSubTypeChannelSubscriptionGift           = "channel.subscription.gift"
+	EventSubTypeChannelSubscriptionMessage        = "channel.subscription.message"
+	EventSubTypeChannelCheer                      = "channel.cheer"
+	EventSubTypeChannelRaid                       = "channel.raid"
+	EventSubTypeChannelBan                        = "channel.ban"
+	EventSubTypeChannelUnban                      = "channel.unban"
+	EventSubTypeChannelUnbanRequestCreate         = "channel.unban_request.create"
+	EventSubTypeChannelUnbanRequestResolve        = "channel.unban_request.resolve"
+	EventSubTypeChannelModerate                   = "channel.moderate"
+	EventSubTypeChannelModeratorAdd               = "channel.moderator.add"
+	EventSubTypeChannelModeratorRemove            = "channel.moderator.remove"
+	EventSubTypeChannelVIPAdd                     = "channel.vip.add"
+	EventSubTypeChannelVIPRemove                  = "channel.vip.remove"
+	EventSubTypeChannelWarningSend                = "channel.warning.send"
+	EventSubTypeChannelWarningAcknowledge         = "channel.warning.acknowledge"
 )
 
 // EventSub subscription types - Channel Chat
@@ -302,27 +348,28 @@ var EventSubTypeVersion = map[string]string{
 	EventSubTypeAutomodSettingsUpdate: "1",
 	EventSubTypeAutomodTermsUpdate:    "1",
 	// Channel
-	EventSubTypeChannelUpdate:              "2",
-	EventSubTypeChannelFollow:              "2",
-	EventSubTypeChannelAdBreakBegin:        "1",
-	EventSubTypeChannelBitsUse:             "1",
-	EventSubTypeChannelSubscribe:           "1",
-	EventSubTypeChannelSubscriptionEnd:     "1",
-	EventSubTypeChannelSubscriptionGift:    "1",
-	EventSubTypeChannelSubscriptionMessage: "1",
-	EventSubTypeChannelCheer:               "1",
-	EventSubTypeChannelRaid:                "1",
-	EventSubTypeChannelBan:                 "1",
-	EventSubTypeChannelUnban:               "1",
-	EventSubTypeChannelUnbanRequestCreate:  "1",
-	EventSubTypeChannelUnbanRequestResolve: "1",
-	EventSubTypeChannelModerate:            "2",
-	EventSubTypeChannelModeratorAdd:        "1",
-	EventSubTypeChannelModeratorRemove:     "1",
-	EventSubTypeChannelVIPAdd:              "1",
-	EventSubTypeChannelVIPRemove:           "1",
-	EventSubTypeChannelWarningSend:         "1",
-	EventSubTypeChannelWarningAcknowledge:  "1",
+	EventSubTypeChannelUpdate:                     "2",
+	EventSubTypeChannelFollow:                     "2",
+	EventSubTypeChannelAdBreakBegin:               "1",
+	EventSubTypeChannelBitsUse:                    "1",
+	EventSubTypeChannelCustomPowerUpRedemptionAdd: "1",
+	EventSubTypeChannelSubscribe:                  "1",
+	EventSubTypeChannelSubscriptionEnd:            "1",
+	EventSubTypeChannelSubscriptionGift:           "1",
+	EventSubTypeChannelSubscriptionMessage:        "1",
+	EventSubTypeChannelCheer:                      "1",
+	EventSubTypeChannelRaid:                       "1",
+	EventSubTypeChannelBan:                        "1",
+	EventSubTypeChannelUnban:                      "1",
+	EventSubTypeChannelUnbanRequestCreate:         "1",
+	EventSubTypeChannelUnbanRequestResolve:        "1",
+	EventSubTypeChannelModerate:                   "2",
+	EventSubTypeChannelModeratorAdd:               "1",
+	EventSubTypeChannelModeratorRemove:            "1",
+	EventSubTypeChannelVIPAdd:                     "1",
+	EventSubTypeChannelVIPRemove:                  "1",
+	EventSubTypeChannelWarningSend:                "1",
+	EventSubTypeChannelWarningAcknowledge:         "1",
 	// Chat
 	EventSubTypeChannelChatClear:             "1",
 	EventSubTypeChannelChatClearUserMessages: "1",

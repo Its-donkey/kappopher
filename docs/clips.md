@@ -224,44 +224,47 @@ if resp.Pagination.Cursor != "" {
 
 ## GetClipsDownload
 
-Get download URLs for clips. The URLs are temporary and expire after a short time.
+Provides URLs to download the video file(s) for the specified clips (up to 10).
 
-**Requires:** `clips:edit` scope for clips the user created or for the broadcaster's clips
+**Requires:** `editor:manage:clips` or `channel:manage:clips` scope
 
 ```go
 resp, err := client.GetClipsDownload(ctx, &helix.GetClipsDownloadParams{
-    ClipIDs: []string{"clip1", "clip2", "clip3"},
+    BroadcasterID: "141981764",
+    EditorID:      "141981764", // same as BroadcasterID when using the broadcaster's token
+    ClipIDs:       []string{"InexpensiveDistinctFoxChefFrank", "SpinelessCloudyLeopardMcaT"},
 })
 if err != nil {
     log.Fatal(err)
 }
 for _, clip := range resp.Data {
-    fmt.Printf("Clip ID: %s, Download URL: %s (expires: %s)\n",
-        clip.ID, clip.URL, clip.ExpiresAt)
+    fmt.Printf("Clip %s: %s\n", clip.ClipID, clip.LandscapeDownloadURL)
 }
 ```
 
 **Parameters:**
-- `ClipIDs` ([]string): Array of clip IDs to get download URLs for
+- `BroadcasterID` (string, required): Broadcaster whose clips to download
+- `EditorID` (string, required): Editor user ID; must match the token's user ID (equals `BroadcasterID` when using the broadcaster's token)
+- `ClipIDs` ([]string, required): Clip IDs to download (max 10)
 
 **Returns:**
-- `ID` (string): The clip ID
-- `URL` (string): Temporary download URL for the clip
-- `ExpiresAt` (string): When the download URL expires
+- `ClipID` (string): The clip ID
+- `LandscapeDownloadURL` (string): Landscape download URL (empty if unavailable)
+- `PortraitDownloadURL` (string): Portrait download URL (empty if unavailable)
 
 **Sample Response:**
 ```json
 {
   "data": [
     {
-      "id": "AwkwardHelplessSalamanderSwiftRage",
-      "url": "https://production.assets.clips.twitchcdn.net/vod-123456789-offset-123.mp4",
-      "expires_at": "2023-12-15T10:30:00Z"
+      "clip_id": "InexpensiveDistinctFoxChefFrank",
+      "landscape_download_url": "https://production.assets.clips.twitchcdn.net/yFZG...",
+      "portrait_download_url": null
     },
     {
-      "id": "TameIntelligentCarabeefBudStar",
-      "url": "https://production.assets.clips.twitchcdn.net/vod-987654321-offset-456.mp4",
-      "expires_at": "2023-12-15T10:30:00Z"
+      "clip_id": "SpinelessCloudyLeopardMcaT",
+      "landscape_download_url": "https://production.assets.clips.twitchcdn.net/542j...",
+      "portrait_download_url": null
     }
   ]
 }

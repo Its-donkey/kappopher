@@ -433,36 +433,38 @@ if err != nil {
 
 ## GetAuthorizationByUser
 
-Get authorization information for a user who has authorized your app.
+Gets the authorization scopes that the specified users (up to 10) have granted your application.
 
 **Requires:** App access token
 
 ```go
 resp, err := client.GetAuthorizationByUser(ctx, &helix.GetAuthorizationByUserParams{
-    UserID: "12345",
+    UserIDs: []string{"141981764", "197886470"},
 })
 
-auth := resp.Data[0]
-fmt.Printf("Client ID: %s\n", auth.ClientID)
-fmt.Printf("User: %s (%s)\n", auth.Login, auth.UserID)
-fmt.Printf("Scopes: %v\n", auth.Scopes)
+for _, auth := range resp.Data {
+    fmt.Printf("%s (%s): %v\n", auth.UserName, auth.UserLogin, auth.Scopes)
+}
 ```
+
+**Parameters:**
+- `UserIDs` ([]string, required): User IDs to check (max 10)
 
 **Sample Response:**
 ```json
 {
   "data": [
     {
-      "client_id": "hof5gwx0su6owfnys0yan9c87zr6t",
       "user_id": "141981764",
-      "login": "twitchdev",
-      "scopes": [
-        "channel:read:subscriptions",
-        "user:read:email",
-        "user:edit",
-        "chat:read",
-        "chat:edit"
-      ]
+      "user_name": "TwitchDev",
+      "user_login": "twitchdev",
+      "scopes": ["bits:read", "channel:bot", "channel:manage:predictions"]
+    },
+    {
+      "user_id": "197886470",
+      "user_name": "TwitchRivals",
+      "user_login": "twitchrivals",
+      "scopes": ["channel:manage:predictions"]
     }
   ]
 }

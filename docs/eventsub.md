@@ -29,6 +29,16 @@ resp, err = client.GetEventSubSubscriptions(ctx, &helix.GetEventSubSubscriptions
     UserID: "12345",
 })
 
+// Filter to a single subscription by ID (if owned by the caller)
+resp, err = client.GetEventSubSubscriptions(ctx, &helix.GetEventSubSubscriptionsParams{
+    SubscriptionID: "f1c2a387-161a-49f9-a165-0f21d7a4e1c4",
+})
+
+// Filter by conduit ID
+resp, err = client.GetEventSubSubscriptions(ctx, &helix.GetEventSubSubscriptionsParams{
+    ConduitID: "bfcfc993-26b1-b876-44d9-afe75a379dac",
+})
+
 // With pagination
 resp, err = client.GetEventSubSubscriptions(ctx, &helix.GetEventSubSubscriptionsParams{
     PaginationParams: &helix.PaginationParams{
@@ -145,6 +155,25 @@ if len(resp.Data) > 0 {
         resp.Data[0].ID, resp.Data[0].Status)
 }
 ```
+
+**Handling duplicate subscriptions (409 Conflict):**
+
+If a subscription already exists for the same type and condition, Twitch returns
+`409 Conflict` and includes the existing subscription's id in the response body.
+This is surfaced as an `*EventSubConflictError`, whose `ExistingSubscriptionID`
+holds that id:
+
+```go
+_, err := client.CreateEventSubSubscription(ctx, params)
+var conflict *helix.EventSubConflictError
+if errors.As(err, &conflict) {
+    fmt.Printf("Already subscribed; existing subscription id: %s\n",
+        conflict.ExistingSubscriptionID)
+}
+```
+
+The underlying `*helix.APIError` remains accessible via `errors.As` (and through
+`conflict.APIError`), so the status code and raw error body are still available.
 
 **Sample Response:**
 ```json

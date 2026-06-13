@@ -3,6 +3,7 @@ package helix
 import (
 	"context"
 	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -103,43 +104,63 @@ func (c *Client) GetClips(ctx context.Context, params *GetClipsParams) (*Respons
 	return &resp, nil
 }
 
-// ClipDownload represents a clip download URL.
+// ClipDownload represents a clip's download URLs.
 type ClipDownload struct {
-	ID        string `json:"id"`
-	URL       string `json:"url"`
-	ExpiresAt string `json:"expires_at"`
+	ClipID               string `json:"clip_id"`
+	LandscapeDownloadURL string `json:"landscape_download_url"` // null if unavailable
+	PortraitDownloadURL  string `json:"portrait_download_url"`  // null if unavailable
 }
 
-// GetClipsDownload gets a download URL for clips.
-// Requires: clips:edit scope for clips the user created, or the broadcaster's clips.
-func (c *Client) GetClipsDownload(ctx context.Context, clipIDs []string) (*Response[ClipDownload], error) {
+// GetClipsDownloadParams contains parameters for GetClipsDownload.
+type GetClipsDownloadParams struct {
+	EditorID      string   // Required: editor user ID (same as BroadcasterID when using the broadcaster token); must match the token's user_id
+	BroadcasterID string   // Required: broadcaster whose clips to download
+	ClipIDs       []string // Required: clip IDs to download (max 10)
+}
+
+// GetClipsDownload provides URLs to download the video files for the specified clips.
+// Requires: editor:manage:clips or channel:manage:clips scope.
+func (c *Client) GetClipsDownload(ctx context.Context, params *GetClipsDownloadParams) (*Response[ClipDownload], error) {
 	q := url.Values{}
-	for _, id := range clipIDs {
-		q.Add("id", id)
+	q.Set("editor_id", params.EditorID)
+	q.Set("broadcaster_id", params.BroadcasterID)
+	for _, id := range params.ClipIDs {
+		q.Add("clip_id", id)
 	}
 
 	var resp Response[ClipDownload]
-	if err := c.get(ctx, "/clips/download", q, &resp); err != nil {
+	if err := c.get(ctx, "/clips/downloads", q, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
 }
 
 // CreateClipFromVODParams contains parameters for CreateClipFromVOD.
+// These are sent as query parameters.
 type CreateClipFromVODParams struct {
-	EditorID      string   `json:"editor_id"`          // Required: User ID of the editor
-	BroadcasterID string   `json:"broadcaster_id"`     // Required: User ID of the channel
-	VODID         string   `json:"vod_id"`             // Required: ID of the VOD to clip
-	VODOffset     int      `json:"vod_offset"`         // Required: Offset in seconds where clip ends
-	Title         string   `json:"title"`              // Required: Clip title
-	Duration      *float64 `json:"duration,omitempty"` // Optional: Clip length (5-60 seconds, default 30)
+	EditorID      string   // Required: editor user ID (same as BroadcasterID when using the broadcaster token); must match the token's user_id
+	BroadcasterID string   // Required: channel to clip
+	VODID         string   // Required: ID of the VOD to clip
+	VODOffset     int      // Required: offset (seconds) where the clip ends; must be >= Duration
+	Title         string   // Required: clip title
+	Duration      *float64 // Optional: clip length in seconds (5-60, precision 0.1); defaults to 30
 }
 
-// CreateClipFromVOD creates a clip from a VOD.
+// CreateClipFromVOD creates a clip from a broadcaster's VOD.
 // Requires: editor:manage:clips or channel:manage:clips scope.
 func (c *Client) CreateClipFromVOD(ctx context.Context, params *CreateClipFromVODParams) (*CreateClipResponse, error) {
+	q := url.Values{}
+	q.Set("editor_id", params.EditorID)
+	q.Set("broadcaster_id", params.BroadcasterID)
+	q.Set("vod_id", params.VODID)
+	q.Set("vod_offset", strconv.Itoa(params.VODOffset))
+	q.Set("title", params.Title)
+	if params.Duration != nil {
+		q.Set("duration", strconv.FormatFloat(*params.Duration, 'f', -1, 64))
+	}
+
 	var resp Response[CreateClipResponse]
-	if err := c.post(ctx, "/videos/clips", nil, params, &resp); err != nil {
+	if err := c.post(ctx, "/videos/clips", q, nil, &resp); err != nil {
 		return nil, err
 	}
 	if len(resp.Data) == 0 {

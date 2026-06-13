@@ -210,6 +210,10 @@ type ErrorResponse struct {
 	Error   string `json:"error"`
 	Status  int    `json:"status"`
 	Message string `json:"message"`
+	// ID is populated by endpoints that return an identifier in the error body,
+	// e.g. Create EventSub Subscription returns the existing subscription's id
+	// on a 409 Conflict.
+	ID string `json:"id"`
 }
 
 // APIError represents a Twitch API error.
@@ -217,6 +221,9 @@ type APIError struct {
 	StatusCode int
 	ErrorType  string
 	Message    string
+	// Body is the raw error response body, retained so callers can extract
+	// endpoint-specific fields the standard envelope does not surface.
+	Body []byte
 }
 
 func (e *APIError) Error() string {
@@ -466,12 +473,14 @@ func (c *Client) doOnceWithResponse(ctx context.Context, req *Request, result an
 				StatusCode: resp.StatusCode,
 				ErrorType:  "unknown",
 				Message:    string(body),
+				Body:       body,
 			}
 		}
 		return mwResp, &APIError{
 			StatusCode: resp.StatusCode,
 			ErrorType:  errResp.Error,
 			Message:    errResp.Message,
+			Body:       body,
 		}
 	}
 
