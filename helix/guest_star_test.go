@@ -9,8 +9,8 @@ import (
 
 func TestClient_GetChannelGuestStarSettings(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/channels/guest_star_settings" {
-			t.Errorf("expected /channels/guest_star_settings, got %s", r.URL.Path)
+		if r.URL.Path != "/guest_star/channel_settings" {
+			t.Errorf("expected /guest_star/channel_settings, got %s", r.URL.Path)
 		}
 
 		resp := Response[GuestStarSettings]{
@@ -88,6 +88,8 @@ func TestClient_GetGuestStarSession(t *testing.T) {
 							UserDisplayName: "Guest1",
 							Volume:          100,
 							AssignedAt:      "2024-01-15T12:00:00Z",
+							AudioSettings:   GuestStarAudioSettings{IsHostEnabled: true, IsGuestEnabled: true, IsAvailable: true},
+							VideoSettings:   GuestStarVideoSettings{IsHostEnabled: true, IsGuestEnabled: false, IsAvailable: true},
 						},
 					},
 				},
@@ -107,6 +109,9 @@ func TestClient_GetGuestStarSession(t *testing.T) {
 	}
 	if len(resp.Guests) != 1 {
 		t.Fatalf("expected 1 guest, got %d", len(resp.Guests))
+	}
+	if !resp.Guests[0].AudioSettings.IsGuestEnabled || !resp.Guests[0].AudioSettings.IsHostEnabled {
+		t.Errorf("audio settings not decoded: %+v", resp.Guests[0].AudioSettings)
 	}
 }
 

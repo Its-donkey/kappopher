@@ -344,9 +344,9 @@ const (
 
 // HypeTrainParticipant represents a participant in a shared hype train (v2 only).
 type HypeTrainParticipant struct {
-	BroadcasterID    string `json:"broadcaster_id"`
-	BroadcasterLogin string `json:"broadcaster_login"`
-	BroadcasterName  string `json:"broadcaster_name"`
+	BroadcasterID    string `json:"broadcaster_user_id"`
+	BroadcasterLogin string `json:"broadcaster_user_login"`
+	BroadcasterName  string `json:"broadcaster_user_name"`
 }
 
 // ChannelHypeTrainBeginEvent is sent when a Hype Train begins.
@@ -529,6 +529,7 @@ type ChannelChatMessageEvent struct {
 	SourceBroadcasterUserName  *string          `json:"source_broadcaster_user_name,omitempty"`
 	SourceMessageID            *string          `json:"source_message_id,omitempty"`
 	SourceBadges               []ChatEventBadge `json:"source_badges,omitempty"`
+	IsSourceOnly               *bool            `json:"is_source_only,omitempty"` // null if not in a shared chat session
 }
 
 // ChatEventMessage represents a chat message structure.
@@ -729,6 +730,27 @@ type ChannelBitsUseEvent struct {
 	CustomPowerUp *json.RawMessage `json:"custom_power_up,omitempty"`
 }
 
+// ChannelCustomPowerUpRedemptionAddEvent is sent when a viewer redeems a
+// custom Bits Power-up (channel.custom_power_up_redemption.add).
+type ChannelCustomPowerUpRedemptionAddEvent struct {
+	EventSubBroadcaster
+	EventSubUser
+	ID            string                `json:"id"`
+	UserInput     string                `json:"user_input"`
+	Status        string                `json:"status"` // unknown, unfulfilled, fulfilled, canceled
+	CustomPowerUp EventSubCustomPowerUp `json:"custom_power_up"`
+	RedeemedAt    time.Time             `json:"redeemed_at"`
+}
+
+// EventSubCustomPowerUp is basic information about a custom Bits Power-up at
+// the time it was redeemed.
+type EventSubCustomPowerUp struct {
+	ID     string `json:"id"`
+	Title  string `json:"title"`
+	Bits   int    `json:"bits"`
+	Prompt string `json:"prompt"`
+}
+
 // VIP Events
 
 // ChannelVIPAddEvent is sent when a user is added as a VIP.
@@ -787,26 +809,33 @@ type ChannelUnbanRequestResolveEvent struct {
 type ChannelModerateEvent struct {
 	EventSubBroadcaster
 	EventSubModerator
-	Action            string                     `json:"action"`
-	Followers         *ModerateFollowers         `json:"followers,omitempty"`
-	Slow              *ModerateSlow              `json:"slow,omitempty"`
-	Vip               *ModerateUser              `json:"vip,omitempty"`
-	Unvip             *ModerateUser              `json:"unvip,omitempty"`
-	Mod               *ModerateUser              `json:"mod,omitempty"`
-	Unmod             *ModerateUser              `json:"unmod,omitempty"`
-	Ban               *ModerateBan               `json:"ban,omitempty"`
-	Unban             *ModerateUser              `json:"unban,omitempty"`
-	Timeout           *ModerateTimeout           `json:"timeout,omitempty"`
-	Untimeout         *ModerateUser              `json:"untimeout,omitempty"`
-	Raid              *ModerateRaid              `json:"raid,omitempty"`
-	Unraid            *ModerateRaid              `json:"unraid,omitempty"`
-	Delete            *ModerateDelete            `json:"delete,omitempty"`
-	AutomodTerms      *ModerateAutomodTerms      `json:"automod_terms,omitempty"`
-	UnbanRequest      *ModerateUnbanRequest      `json:"unban_request,omitempty"`
-	Warn              *ModerateWarn              `json:"warn,omitempty"`
-	SharedChatBan     *ModerateSharedChatBan     `json:"shared_chat_ban,omitempty"`
-	SharedChatTimeout *ModerateSharedChatTimeout `json:"shared_chat_timeout,omitempty"`
-	SharedChatDelete  *ModerateSharedChatDelete  `json:"shared_chat_delete,omitempty"`
+	// Source* fields identify the originating channel in a shared chat session
+	// (null when the action happens in the broadcaster's own channel).
+	SourceBroadcasterUserID    *string                    `json:"source_broadcaster_user_id,omitempty"`
+	SourceBroadcasterUserLogin *string                    `json:"source_broadcaster_user_login,omitempty"`
+	SourceBroadcasterUserName  *string                    `json:"source_broadcaster_user_name,omitempty"`
+	Action                     string                     `json:"action"`
+	Followers                  *ModerateFollowers         `json:"followers,omitempty"`
+	Slow                       *ModerateSlow              `json:"slow,omitempty"`
+	Vip                        *ModerateUser              `json:"vip,omitempty"`
+	Unvip                      *ModerateUser              `json:"unvip,omitempty"`
+	Mod                        *ModerateUser              `json:"mod,omitempty"`
+	Unmod                      *ModerateUser              `json:"unmod,omitempty"`
+	Ban                        *ModerateBan               `json:"ban,omitempty"`
+	Unban                      *ModerateUser              `json:"unban,omitempty"`
+	Timeout                    *ModerateTimeout           `json:"timeout,omitempty"`
+	Untimeout                  *ModerateUser              `json:"untimeout,omitempty"`
+	Raid                       *ModerateRaid              `json:"raid,omitempty"`
+	Unraid                     *ModerateRaid              `json:"unraid,omitempty"`
+	Delete                     *ModerateDelete            `json:"delete,omitempty"`
+	AutomodTerms               *ModerateAutomodTerms      `json:"automod_terms,omitempty"`
+	UnbanRequest               *ModerateUnbanRequest      `json:"unban_request,omitempty"`
+	Warn                       *ModerateWarn              `json:"warn,omitempty"`
+	SharedChatBan              *ModerateSharedChatBan     `json:"shared_chat_ban,omitempty"`
+	SharedChatUnban            *ModerateUser              `json:"shared_chat_unban,omitempty"`
+	SharedChatTimeout          *ModerateSharedChatTimeout `json:"shared_chat_timeout,omitempty"`
+	SharedChatUntimeout        *ModerateUser              `json:"shared_chat_untimeout,omitempty"`
+	SharedChatDelete           *ModerateSharedChatDelete  `json:"shared_chat_delete,omitempty"`
 }
 
 // ModerateFollowers represents followers-only mode settings.
@@ -1209,6 +1238,8 @@ type ChannelChatNotificationEvent struct {
 	Announcement               *ChatNotificationAnnouncement     `json:"announcement,omitempty"`
 	BitsBadgeTier              *ChatNotificationBitsBadgeTier    `json:"bits_badge_tier,omitempty"`
 	CharityDonation            *ChatNotificationCharityDonation  `json:"charity_donation,omitempty"`
+	WatchStreak                *ChatNotificationWatchStreak      `json:"watch_streak,omitempty"`
+	Modiversary                *ChatNotificationModiversary      `json:"modiversary,omitempty"`
 	SharedChatSub              *ChatNotificationSub              `json:"shared_chat_sub,omitempty"`
 	SharedChatResub            *ChatNotificationResub            `json:"shared_chat_resub,omitempty"`
 	SharedChatSubGift          *ChatNotificationSubGift          `json:"shared_chat_sub_gift,omitempty"`
@@ -1218,11 +1249,24 @@ type ChannelChatNotificationEvent struct {
 	SharedChatRaid             *ChatNotificationRaid             `json:"shared_chat_raid,omitempty"`
 	SharedChatPayItForward     *ChatNotificationPayItForward     `json:"shared_chat_pay_it_forward,omitempty"`
 	SharedChatAnnouncement     *ChatNotificationAnnouncement     `json:"shared_chat_announcement,omitempty"`
+	SharedChatModiversary      *ChatNotificationModiversary      `json:"shared_chat_modiversary,omitempty"`
 	SourceBroadcasterUserID    *string                           `json:"source_broadcaster_user_id,omitempty"`
 	SourceBroadcasterUserLogin *string                           `json:"source_broadcaster_user_login,omitempty"`
 	SourceBroadcasterUserName  *string                           `json:"source_broadcaster_user_name,omitempty"`
 	SourceMessageID            *string                           `json:"source_message_id,omitempty"`
 	SourceBadges               []ChatEventBadge                  `json:"source_badges,omitempty"`
+	IsSourceOnly               *bool                             `json:"is_source_only,omitempty"` // null if not in a shared chat session
+}
+
+// ChatNotificationWatchStreak represents the watch_streak notice in a chat notification.
+type ChatNotificationWatchStreak struct {
+	StreakCount          int `json:"streak_count"`
+	ChannelPointsAwarded int `json:"channel_points_awarded"`
+}
+
+// ChatNotificationModiversary represents the modiversary notice in a chat notification.
+type ChatNotificationModiversary struct {
+	Months int `json:"months"`
 }
 
 // ChatNotificationSub represents a sub notification.
@@ -1452,9 +1496,12 @@ type ChannelGuestStarSessionBeginEvent struct {
 // ChannelGuestStarSessionEndEvent is sent when a guest star session ends.
 type ChannelGuestStarSessionEndEvent struct {
 	EventSubBroadcaster
-	SessionID string    `json:"session_id"`
-	StartedAt time.Time `json:"started_at"`
-	EndedAt   time.Time `json:"ended_at"`
+	SessionID     string    `json:"session_id"`
+	StartedAt     time.Time `json:"started_at"`
+	EndedAt       time.Time `json:"ended_at"`
+	HostUserID    string    `json:"host_user_id"`
+	HostUserName  string    `json:"host_user_name"`
+	HostUserLogin string    `json:"host_user_login"`
 }
 
 // ChannelGuestStarGuestUpdateEvent is sent when a guest star guest is updated.
@@ -1462,6 +1509,9 @@ type ChannelGuestStarGuestUpdateEvent struct {
 	EventSubBroadcaster
 	EventSubModerator
 	SessionID        string `json:"session_id"`
+	HostUserID       string `json:"host_user_id"`
+	HostUserName     string `json:"host_user_name"`
+	HostUserLogin    string `json:"host_user_login"`
 	GuestUserID      string `json:"guest_user_id"`
 	GuestUserLogin   string `json:"guest_user_login"`
 	GuestUserName    string `json:"guest_user_name"`

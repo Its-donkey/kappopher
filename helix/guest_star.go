@@ -23,7 +23,7 @@ func (c *Client) GetChannelGuestStarSettings(ctx context.Context, broadcasterID,
 	q.Set("moderator_id", moderatorID)
 
 	var resp Response[GuestStarSettings]
-	if err := c.get(ctx, "/channels/guest_star_settings", q, &resp); err != nil {
+	if err := c.get(ctx, "/guest_star/channel_settings", q, &resp); err != nil {
 		return nil, err
 	}
 	if len(resp.Data) == 0 {
@@ -49,7 +49,7 @@ func (c *Client) UpdateChannelGuestStarSettings(ctx context.Context, params *Upd
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
 
-	return c.put(ctx, "/channels/guest_star_settings", q, params, nil)
+	return c.put(ctx, "/guest_star/channel_settings", q, params, nil)
 }
 
 // GuestStarSession represents a Guest Star session.
@@ -73,16 +73,16 @@ type GuestStarGuest struct {
 
 // GuestStarAudioSettings represents audio settings for a guest.
 type GuestStarAudioSettings struct {
-	IsHostEnabled bool `json:"is_host_enabled"`
-	IsSelfMuted   bool `json:"is_self_muted"`
-	IsAvailable   bool `json:"is_available"`
+	IsHostEnabled  bool `json:"is_host_enabled"`
+	IsGuestEnabled bool `json:"is_guest_enabled"`
+	IsAvailable    bool `json:"is_available"`
 }
 
 // GuestStarVideoSettings represents video settings for a guest.
 type GuestStarVideoSettings struct {
-	IsHostEnabled bool `json:"is_host_enabled"`
-	IsSelfMuted   bool `json:"is_self_muted"`
-	IsAvailable   bool `json:"is_available"`
+	IsHostEnabled  bool `json:"is_host_enabled"`
+	IsGuestEnabled bool `json:"is_guest_enabled"`
+	IsAvailable    bool `json:"is_available"`
 }
 
 // GetGuestStarSession gets the active Guest Star session for a channel.

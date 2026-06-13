@@ -3,6 +3,8 @@ package helix
 import (
 	"context"
 	"net/url"
+	"strconv"
+	"time"
 )
 
 // Chatter represents a user in a channel's chat.
@@ -192,6 +194,9 @@ type SendChatAnnouncementParams struct {
 	ModeratorID   string `json:"-"`
 	Message       string `json:"message"`
 	Color         string `json:"color,omitempty"` // blue, green, orange, purple, primary
+	// ForSourceOnly applies only to app access tokens in a shared chat session.
+	// Set to false to send to all channels. Cannot be set with a user access token.
+	ForSourceOnly *bool `json:"for_source_only,omitempty"`
 }
 
 // SendChatAnnouncement sends an announcement to a channel's chat.
@@ -260,6 +265,13 @@ type SendChatMessageParams struct {
 	SenderID             string `json:"sender_id"`
 	Message              string `json:"message"`
 	ReplyParentMessageID string `json:"reply_parent_message_id,omitempty"`
+	// ForSourceOnly applies only to app access tokens in a shared chat session.
+	// Set to false to send to all channels.
+	ForSourceOnly *bool `json:"for_source_only,omitempty"`
+	// Pin sends and immediately pins the message (for 20 minutes). Requires the
+	// moderator:manage:chat_messages scope and cannot be combined with
+	// ReplyParentMessageID or ForSourceOnly.
+	Pin *bool `json:"pin,omitempty"`
 }
 
 // SendChatMessageResponse represents the response from SendChatMessage.
@@ -283,6 +295,93 @@ func (c *Client) SendChatMessage(ctx context.Context, params *SendChatMessagePar
 		return nil, nil
 	}
 	return &resp.Data[0], nil
+}
+
+// PinnedChatMessage represents a moderator-pinned chat message.
+type PinnedChatMessage struct {
+	MessageID         string           `json:"message_id"`
+	BroadcasterID     string           `json:"broadcaster_id"`
+	SenderUserID      string           `json:"sender_user_id"`
+	SenderUserLogin   string           `json:"sender_user_login"`
+	SenderUserName    string           `json:"sender_user_name"`
+	PinnedByUserID    string           `json:"pinned_by_user_id"`
+	PinnedByUserLogin string           `json:"pinned_by_user_login"`
+	PinnedByUserName  string           `json:"pinned_by_user_name"`
+	Message           ChatEventMessage `json:"message"`
+	StartsAt          time.Time        `json:"starts_at"`
+	EndsAt            *time.Time       `json:"ends_at"` // null if pinned until the stream ends
+	UpdatedAt         time.Time        `json:"updated_at"`
+}
+
+// GetPinnedChatMessage gets the currently pinned message for a channel's chat room.
+// Requires: moderator:read:chat_messages or moderator:manage:chat_messages scope.
+func (c *Client) GetPinnedChatMessage(ctx context.Context, broadcasterID, moderatorID string) (*Response[PinnedChatMessage], error) {
+	q := url.Values{}
+	q.Set("broadcaster_id", broadcasterID)
+	q.Set("moderator_id", moderatorID)
+
+	var resp Response[PinnedChatMessage]
+	if err := c.get(ctx, "/chat/pins", q, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// PinChatMessageParams contains parameters for PinChatMessage.
+type PinChatMessageParams struct {
+	BroadcasterID   string
+	ModeratorID     string
+	MessageID       string
+	DurationSeconds *int // optional; 30-1800. Pinned until the stream ends if nil.
+}
+
+// PinChatMessage pins a chat message to the top of a channel's chat room. Only
+// one moderator-pinned message can be active per channel; an existing one is
+// replaced.
+// Requires: moderator:manage:chat_messages scope.
+func (c *Client) PinChatMessage(ctx context.Context, params *PinChatMessageParams) error {
+	q := url.Values{}
+	q.Set("broadcaster_id", params.BroadcasterID)
+	q.Set("moderator_id", params.ModeratorID)
+	q.Set("message_id", params.MessageID)
+	if params.DurationSeconds != nil {
+		q.Set("duration_seconds", strconv.Itoa(*params.DurationSeconds))
+	}
+
+	return c.put(ctx, "/chat/pins", q, nil, nil)
+}
+
+// UpdatePinnedChatMessageParams contains parameters for UpdatePinnedChatMessage.
+type UpdatePinnedChatMessageParams struct {
+	BroadcasterID   string
+	ModeratorID     string
+	MessageID       string
+	DurationSeconds *int // optional; 30-1800. Pinned until the stream ends if nil.
+}
+
+// UpdatePinnedChatMessage updates the duration of an existing pinned chat message.
+// Requires: moderator:manage:chat_messages scope.
+func (c *Client) UpdatePinnedChatMessage(ctx context.Context, params *UpdatePinnedChatMessageParams) error {
+	q := url.Values{}
+	q.Set("broadcaster_id", params.BroadcasterID)
+	q.Set("moderator_id", params.ModeratorID)
+	q.Set("message_id", params.MessageID)
+	if params.DurationSeconds != nil {
+		q.Set("duration_seconds", strconv.Itoa(*params.DurationSeconds))
+	}
+
+	return c.patch(ctx, "/chat/pins", q, nil, nil)
+}
+
+// UnpinChatMessage unpins a pinned chat message from a channel's chat room.
+// Requires: moderator:manage:chat_messages scope.
+func (c *Client) UnpinChatMessage(ctx context.Context, broadcasterID, moderatorID, messageID string) error {
+	q := url.Values{}
+	q.Set("broadcaster_id", broadcasterID)
+	q.Set("moderator_id", moderatorID)
+	q.Set("message_id", messageID)
+
+	return c.delete(ctx, "/chat/pins", q, nil)
 }
 
 // SharedChatSession represents a shared chat session.
