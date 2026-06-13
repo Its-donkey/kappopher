@@ -156,6 +156,25 @@ if len(resp.Data) > 0 {
 }
 ```
 
+**Handling duplicate subscriptions (409 Conflict):**
+
+If a subscription already exists for the same type and condition, Twitch returns
+`409 Conflict` and includes the existing subscription's id in the response body.
+This is surfaced as an `*EventSubConflictError`, whose `ExistingSubscriptionID`
+holds that id:
+
+```go
+_, err := client.CreateEventSubSubscription(ctx, params)
+var conflict *helix.EventSubConflictError
+if errors.As(err, &conflict) {
+    fmt.Printf("Already subscribed; existing subscription id: %s\n",
+        conflict.ExistingSubscriptionID)
+}
+```
+
+The underlying `*helix.APIError` remains accessible via `errors.As` (and through
+`conflict.APIError`), so the status code and raw error body are still available.
+
 **Sample Response:**
 ```json
 {
