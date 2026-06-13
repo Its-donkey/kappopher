@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **BREAKING:** Corrected `ChannelBitsUseEvent` to match the `channel.bits.use` payload: `BitsUsed` JSON tag fixed (`bits_used` → `bits`), removed the non-existent `UsedAt` field, changed `Message` from `*string` to `*ChatEventMessage` (the documented `{text, fragments[]}` object), and added `CustomPowerUp`. `PowerUp`/`CustomPowerUp` are `*json.RawMessage` since Twitch does not document their object fields. Removed the unused `PowerUp` type.
 
 ## [1.2.2] - 2026-04-23 ([#75](https://github.com/Its-donkey/kappopher/pull/75))
 
