@@ -549,6 +549,7 @@ type EventSubWebSocket struct {
 	client    *Client
 	ws        *EventSubWebSocketClient
 	sessionID string
+	wsURL     string // overrides the default Twitch URL (useful for testing)
 
 	mu       sync.RWMutex
 	handlers map[string]func(json.RawMessage)
@@ -584,6 +585,13 @@ func WithEventSubErrorHandler(fn func(error)) EventSubWebSocketOption {
 	}
 }
 
+// WithEventSubWSURL sets a custom WebSocket URL (useful for testing).
+func WithEventSubWSURL(url string) EventSubWebSocketOption {
+	return func(e *EventSubWebSocket) {
+		e.wsURL = url
+	}
+}
+
 // NewEventSubWebSocket creates a new high-level EventSub WebSocket manager.
 // Returns nil if helixClient is nil.
 func NewEventSubWebSocket(helixClient *Client, opts ...EventSubWebSocketOption) *EventSubWebSocket {
@@ -611,7 +619,7 @@ func (e *EventSubWebSocket) Connect(ctx context.Context) error {
 		e.sessionID = ""
 	}
 
-	e.ws = NewEventSubWebSocketClient(
+	wsOpts := []EventSubWSOption{
 		WithWSNotificationHandler(func(sub *EventSubSubscription, event json.RawMessage) {
 			e.mu.RLock()
 			handler, ok := e.handlers[sub.Type]
@@ -640,7 +648,11 @@ func (e *EventSubWebSocket) Connect(ctx context.Context) error {
 				e.onError(err)
 			}
 		}),
-	)
+	}
+	if e.wsURL != "" {
+		wsOpts = append(wsOpts, WithWSURL(e.wsURL))
+	}
+	e.ws = NewEventSubWebSocketClient(wsOpts...)
 
 	sessionID, err := e.ws.Connect(ctx)
 	if err != nil {
