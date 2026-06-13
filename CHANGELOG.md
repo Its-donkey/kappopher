@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `CreateClipFromVOD` now sends its parameters as query parameters (the Twitch endpoint reads them from the query string; they were incorrectly sent as a JSON body)
 - Corrected `GetAuthorizationByUser` to match the Twitch reference: endpoint path `/users/authorization` → `/authorization/users`; it now takes `UserIDs []string` (up to 10) and `UserAuthorization` exposes `UserID`/`UserName`/`UserLogin`/`Scopes` (removed the non-existent `ClientID`, renamed `Login` → `UserLogin`)
 - Corrected the Guest Star channel-settings endpoint path `/channels/guest_star_settings` → `/guest_star/channel_settings` (`GetChannelGuestStarSettings` and `UpdateChannelGuestStarSettings`)
+- `HypeTrainParticipant` JSON tags corrected to `broadcaster_user_id`/`broadcaster_user_login`/`broadcaster_user_name` (were `broadcaster_id`/`broadcaster_login`/`broadcaster_name`), matching the shared-train-participants payload
 - Fixed `GuestStarAudioSettings` and `GuestStarVideoSettings`: the second flag is `is_guest_enabled`, not `is_self_muted` (field renamed `IsSelfMuted` → `IsGuestEnabled`)
 
 ## [1.2.2] - 2026-04-23 ([#75](https://github.com/Its-donkey/kappopher/pull/75))
