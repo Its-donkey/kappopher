@@ -90,12 +90,12 @@ if err != nil {
           "assigned_at": "2024-01-15T10:30:00Z",
           "audio_settings": {
             "is_host_enabled": true,
-            "is_self_muted": false,
+            "is_guest_enabled": false,
             "is_available": true
           },
           "video_settings": {
             "is_host_enabled": true,
-            "is_self_muted": false,
+            "is_guest_enabled": false,
             "is_available": true
           }
         },
@@ -109,12 +109,12 @@ if err != nil {
           "assigned_at": "2024-01-15T10:35:00Z",
           "audio_settings": {
             "is_host_enabled": true,
-            "is_self_muted": true,
+            "is_guest_enabled": true,
             "is_available": true
           },
           "video_settings": {
             "is_host_enabled": false,
-            "is_self_muted": false,
+            "is_guest_enabled": false,
             "is_available": true
           }
         }
