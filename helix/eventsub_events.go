@@ -680,6 +680,7 @@ type AutomodMessageUpdateEvent struct {
 type AutomodSettingsUpdateEvent struct {
 	EventSubBroadcaster
 	EventSubModerator
+	Aggression            int  `json:"aggression"`
 	BulliedUsers          int  `json:"bullying"`
 	Disability            int  `json:"disability"`
 	Misogyny              int  `json:"misogyny"`

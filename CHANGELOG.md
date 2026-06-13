@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `IngestServer.URLTemplateSecure` (`url_template_secure`) — the RTMPS ingest URL template returned by the ingest endpoint
+- `AutomodSettingsUpdateEvent.Aggression` (`aggression`) — the documented AutoMod category level was missing from the `automod.settings.update` event
 
 ### Changed
 

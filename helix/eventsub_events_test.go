@@ -8,6 +8,45 @@ import (
 // Tests for eventsub_events.go event types using official Twitch API documentation payloads.
 // Reference: https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/
 
+// TestAutomodSettingsUpdateEvent_Aggression verifies the automod.settings.update
+// payload decodes all category levels, including the "aggression" field.
+func TestAutomodSettingsUpdateEvent_Aggression(t *testing.T) {
+	payload := []byte(`{
+		"broadcaster_user_id": "1337",
+		"broadcaster_user_login": "cool_user",
+		"broadcaster_user_name": "Cool_User",
+		"moderator_user_id": "9001",
+		"moderator_user_login": "the_mod",
+		"moderator_user_name": "The_Mod",
+		"overall_level": null,
+		"disability": 1,
+		"aggression": 2,
+		"sexuality_sex_or_gender": 3,
+		"misogyny": 0,
+		"bullying": 1,
+		"swearing": 0,
+		"race_ethnicity_or_religion": 4,
+		"sex_based_terms": 2
+	}`)
+
+	var event AutomodSettingsUpdateEvent
+	if err := json.Unmarshal(payload, &event); err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+	if event.BroadcasterUserID != "1337" || event.ModeratorUserID != "9001" {
+		t.Errorf("embedded broadcaster/moderator not decoded: %+v", event)
+	}
+	if event.Aggression != 2 {
+		t.Errorf("Aggression = %d, want 2", event.Aggression)
+	}
+	if event.OverallLevel != nil {
+		t.Errorf("OverallLevel = %v, want nil", event.OverallLevel)
+	}
+	if event.RaceEthnicityReligion != 4 || event.SexBasedTerms != 2 {
+		t.Errorf("category levels not decoded: %+v", event)
+	}
+}
+
 func TestHypeTrainBeginEvent_V1ToV2Conversion(t *testing.T) {
 	// Official Twitch v1 example from https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/#channelhype_trainbegin
 	// Modified is_golden_kappa_train to true for golden kappa test
