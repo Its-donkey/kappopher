@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-## [1.4.0] - 2026-06-13
+## [1.4.0] - 2026-06-13 ([#94](https://github.com/Its-donkey/kappopher/pull/94))
 
 ### Added
 - `NullableTime` type that decodes Twitch's empty-string/null optional timestamps without erroring and encodes an unset value back to `null`
