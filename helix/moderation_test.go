@@ -1311,14 +1311,22 @@ func TestClient_AddSuspiciousStatusToChatUser(t *testing.T) {
 			t.Errorf("expected user_id=%s, got %s", twitchBanUserID, body.UserID)
 		}
 		if body.Status != SuspiciousUserStatusRestricted {
-			t.Errorf("expected status=restricted, got %s", body.Status)
+			t.Errorf("expected status=RESTRICTED, got %s", body.Status)
 		}
 
-		w.WriteHeader(http.StatusNoContent)
+		// Official Twitch example response.
+		_, _ = w.Write([]byte(`{"data":[{
+			"user_id": "9876",
+			"broadcaster_id": "141981764",
+			"moderator_id": "12826",
+			"updated_at": "2025-12-01T23:08:18+00:00",
+			"status": "RESTRICTED",
+			"types": ["MANUALLY_ADDED"]
+		}]}`))
 	})
 	defer server.Close()
 
-	err := client.AddSuspiciousStatusToChatUser(context.Background(), &AddSuspiciousStatusToChatUserParams{
+	action, err := client.AddSuspiciousStatusToChatUser(context.Background(), &AddSuspiciousStatusToChatUserParams{
 		BroadcasterID: twitchBanBroadcasterID,
 		ModeratorID:   twitchBanModeratorID,
 		UserID:        twitchBanUserID,
@@ -1328,30 +1336,45 @@ func TestClient_AddSuspiciousStatusToChatUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	if action == nil {
+		t.Fatal("expected action, got nil")
+	}
+	if action.Status != SuspiciousUserStatusRestricted {
+		t.Errorf("expected status RESTRICTED, got %s", action.Status)
+	}
+	if len(action.Types) != 1 || action.Types[0] != SuspiciousUserTypeManuallyAdded {
+		t.Errorf("expected types [MANUALLY_ADDED], got %v", action.Types)
+	}
+	if action.UpdatedAt.IsZero() {
+		t.Error("expected UpdatedAt to be parsed")
+	}
 }
 
-func TestClient_AddSuspiciousStatusToChatUser_Monitored(t *testing.T) {
+func TestClient_AddSuspiciousStatusToChatUser_ActiveMonitoring(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		var body AddSuspiciousStatusToChatUserParams
 		_ = json.NewDecoder(r.Body).Decode(&body)
 
-		if body.Status != SuspiciousUserStatusMonitored {
-			t.Errorf("expected status=monitored, got %s", body.Status)
+		if body.Status != SuspiciousUserStatusActiveMonitoring {
+			t.Errorf("expected status=ACTIVE_MONITORING, got %s", body.Status)
 		}
 
-		w.WriteHeader(http.StatusNoContent)
+		_, _ = w.Write([]byte(`{"data":[{"user_id":"9876","status":"ACTIVE_MONITORING","types":["MANUALLY_ADDED"]}]}`))
 	})
 	defer server.Close()
 
-	err := client.AddSuspiciousStatusToChatUser(context.Background(), &AddSuspiciousStatusToChatUserParams{
+	action, err := client.AddSuspiciousStatusToChatUser(context.Background(), &AddSuspiciousStatusToChatUserParams{
 		BroadcasterID: twitchBanBroadcasterID,
 		ModeratorID:   twitchBanModeratorID,
 		UserID:        twitchBanUserID,
-		Status:        SuspiciousUserStatusMonitored,
+		Status:        SuspiciousUserStatusActiveMonitoring,
 	})
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	if action == nil || action.Status != SuspiciousUserStatusActiveMonitoring {
+		t.Errorf("expected status ACTIVE_MONITORING, got %+v", action)
 	}
 }
 
@@ -1362,7 +1385,7 @@ func TestClient_AddSuspiciousStatusToChatUser_Error(t *testing.T) {
 	})
 	defer server.Close()
 
-	err := client.AddSuspiciousStatusToChatUser(context.Background(), &AddSuspiciousStatusToChatUserParams{
+	_, err := client.AddSuspiciousStatusToChatUser(context.Background(), &AddSuspiciousStatusToChatUserParams{
 		BroadcasterID: twitchBanBroadcasterID,
 		ModeratorID:   twitchBanModeratorID,
 		UserID:        twitchBanUserID,
@@ -1397,11 +1420,19 @@ func TestClient_RemoveSuspiciousStatusFromChatUser(t *testing.T) {
 			t.Errorf("expected user_id=%s, got %s", twitchBanUserID, userID)
 		}
 
-		w.WriteHeader(http.StatusNoContent)
+		// Official Twitch example response (status NO_TREATMENT after removal).
+		_, _ = w.Write([]byte(`{"data":[{
+			"user_id": "9876",
+			"broadcaster_id": "141981764",
+			"moderator_id": "12826",
+			"updated_at": "2025-12-01T23:08:18+00:00",
+			"status": "NO_TREATMENT",
+			"types": ["MANUALLY_ADDED"]
+		}]}`))
 	})
 	defer server.Close()
 
-	err := client.RemoveSuspiciousStatusFromChatUser(context.Background(), &RemoveSuspiciousStatusFromChatUserParams{
+	action, err := client.RemoveSuspiciousStatusFromChatUser(context.Background(), &RemoveSuspiciousStatusFromChatUserParams{
 		BroadcasterID: twitchBanBroadcasterID,
 		ModeratorID:   twitchBanModeratorID,
 		UserID:        twitchBanUserID,
@@ -1409,6 +1440,9 @@ func TestClient_RemoveSuspiciousStatusFromChatUser(t *testing.T) {
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	if action == nil || action.Status != SuspiciousUserStatusNoTreatment {
+		t.Errorf("expected status NO_TREATMENT, got %+v", action)
 	}
 }
 
@@ -1419,7 +1453,7 @@ func TestClient_RemoveSuspiciousStatusFromChatUser_Error(t *testing.T) {
 	})
 	defer server.Close()
 
-	err := client.RemoveSuspiciousStatusFromChatUser(context.Background(), &RemoveSuspiciousStatusFromChatUserParams{
+	_, err := client.RemoveSuspiciousStatusFromChatUser(context.Background(), &RemoveSuspiciousStatusFromChatUserParams{
 		BroadcasterID: twitchBanBroadcasterID,
 		ModeratorID:   twitchBanModeratorID,
 		UserID:        twitchBanUserID,

@@ -521,33 +521,64 @@ func (c *Client) GetModeratedChannels(ctx context.Context, params *GetModeratedC
 	return &resp, nil
 }
 
-// SuspiciousUserStatus represents the status of a suspicious user.
+// SuspiciousUserStatus represents the suspicious status applied to a user.
 type SuspiciousUserStatus string
 
 const (
+	// SuspiciousUserStatusActiveMonitoring indicates the user's activity is monitored.
+	SuspiciousUserStatusActiveMonitoring SuspiciousUserStatus = "ACTIVE_MONITORING"
 	// SuspiciousUserStatusRestricted indicates the user is restricted from chatting.
-	SuspiciousUserStatusRestricted SuspiciousUserStatus = "restricted"
-	// SuspiciousUserStatusMonitored indicates the user is being monitored.
-	SuspiciousUserStatusMonitored SuspiciousUserStatus = "monitored"
+	SuspiciousUserStatusRestricted SuspiciousUserStatus = "RESTRICTED"
+	// SuspiciousUserStatusNoTreatment is returned after a suspicious status is removed.
+	SuspiciousUserStatusNoTreatment SuspiciousUserStatus = "NO_TREATMENT"
 )
+
+// SuspiciousUserType represents how a user came to be flagged as suspicious.
+type SuspiciousUserType string
+
+const (
+	SuspiciousUserTypeManuallyAdded         SuspiciousUserType = "MANUALLY_ADDED"
+	SuspiciousUserTypeDetectedBanEvader     SuspiciousUserType = "DETECTED_BAN_EVADER"
+	SuspiciousUserTypeDetectedSusChatter    SuspiciousUserType = "DETECTED_SUS_CHATTER"
+	SuspiciousUserTypeBannedInSharedChannel SuspiciousUserType = "BANNED_IN_SHARED_CHANNEL"
+)
+
+// SuspiciousUserAction describes a user's suspicious status after it is applied
+// or removed.
+type SuspiciousUserAction struct {
+	UserID        string               `json:"user_id"`
+	BroadcasterID string               `json:"broadcaster_id"`
+	ModeratorID   string               `json:"moderator_id"`
+	UpdatedAt     time.Time            `json:"updated_at"`
+	Status        SuspiciousUserStatus `json:"status"`
+	Types         []SuspiciousUserType `json:"types"`
+}
 
 // AddSuspiciousStatusToChatUserParams contains parameters for AddSuspiciousStatusToChatUser.
 type AddSuspiciousStatusToChatUserParams struct {
 	BroadcasterID string               `json:"-"`
 	ModeratorID   string               `json:"-"`
 	UserID        string               `json:"user_id"`
-	Status        SuspiciousUserStatus `json:"status"`
+	Status        SuspiciousUserStatus `json:"status"` // ACTIVE_MONITORING or RESTRICTED
 }
 
-// AddSuspiciousStatusToChatUser adds a suspicious status to a chat user.
-// The status can be "restricted" or "monitored".
+// AddSuspiciousStatusToChatUser adds a suspicious status to a chat user. The
+// status must be SuspiciousUserStatusActiveMonitoring or
+// SuspiciousUserStatusRestricted, and the applied status is returned.
 // Requires: moderator:manage:suspicious_users scope.
-func (c *Client) AddSuspiciousStatusToChatUser(ctx context.Context, params *AddSuspiciousStatusToChatUserParams) error {
+func (c *Client) AddSuspiciousStatusToChatUser(ctx context.Context, params *AddSuspiciousStatusToChatUserParams) (*SuspiciousUserAction, error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
 	q.Set("moderator_id", params.ModeratorID)
 
-	return c.post(ctx, "/moderation/suspicious_users", q, params, nil)
+	var resp Response[SuspiciousUserAction]
+	if err := c.post(ctx, "/moderation/suspicious_users", q, params, &resp); err != nil {
+		return nil, err
+	}
+	if len(resp.Data) == 0 {
+		return nil, nil
+	}
+	return &resp.Data[0], nil
 }
 
 // RemoveSuspiciousStatusFromChatUserParams contains parameters for RemoveSuspiciousStatusFromChatUser.
@@ -557,13 +588,21 @@ type RemoveSuspiciousStatusFromChatUserParams struct {
 	UserID        string `json:"-"`
 }
 
-// RemoveSuspiciousStatusFromChatUser removes a suspicious status from a chat user.
+// RemoveSuspiciousStatusFromChatUser removes a suspicious status from a chat
+// user. The resulting status (NO_TREATMENT) is returned.
 // Requires: moderator:manage:suspicious_users scope.
-func (c *Client) RemoveSuspiciousStatusFromChatUser(ctx context.Context, params *RemoveSuspiciousStatusFromChatUserParams) error {
+func (c *Client) RemoveSuspiciousStatusFromChatUser(ctx context.Context, params *RemoveSuspiciousStatusFromChatUserParams) (*SuspiciousUserAction, error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
 	q.Set("moderator_id", params.ModeratorID)
 	q.Set("user_id", params.UserID)
 
-	return c.delete(ctx, "/moderation/suspicious_users", q, nil)
+	var resp Response[SuspiciousUserAction]
+	if err := c.delete(ctx, "/moderation/suspicious_users", q, &resp); err != nil {
+		return nil, err
+	}
+	if len(resp.Data) == 0 {
+		return nil, nil
+	}
+	return &resp.Data[0], nil
 }

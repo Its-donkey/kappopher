@@ -8,6 +8,70 @@ import (
 // Tests for eventsub_events.go event types using official Twitch API documentation payloads.
 // Reference: https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/
 
+// TestChannelBitsUseEvent_OfficialPayload unmarshals the official channel.bits.use
+// event payload and verifies the message object, fragments, and null power-ups.
+func TestChannelBitsUseEvent_OfficialPayload(t *testing.T) {
+	// Official Twitch example event object for channel.bits.use.
+	payload := []byte(`{
+		"user_id": "1234",
+		"user_login": "cool_user",
+		"user_name": "Cool_User",
+		"broadcaster_user_id": "1337",
+		"broadcaster_user_login": "cooler_user",
+		"broadcaster_user_name": "Cooler_User",
+		"bits": 2,
+		"type": "cheer",
+		"power_up": null,
+		"custom_power_up": null,
+		"message": {
+			"text": "cheer1 hi cheer1",
+			"fragments": [
+				{"type": "cheermote", "text": "cheer1", "cheermote": {"prefix": "cheer", "bits": 1, "tier": 1}, "emote": null},
+				{"type": "text", "text": " hi ", "cheermote": null, "emote": null},
+				{"type": "cheermote", "text": "cheer1", "cheermote": {"prefix": "cheer", "bits": 1, "tier": 1}, "emote": null}
+			]
+		}
+	}`)
+
+	var event ChannelBitsUseEvent
+	if err := json.Unmarshal(payload, &event); err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+
+	if event.UserID != "1234" || event.BroadcasterUserID != "1337" {
+		t.Errorf("embedded user/broadcaster not decoded: %+v", event)
+	}
+	if event.BitsUsed != 2 {
+		t.Errorf("BitsUsed = %d, want 2", event.BitsUsed)
+	}
+	if event.Type != "cheer" {
+		t.Errorf("Type = %q, want cheer", event.Type)
+	}
+	// power_up and custom_power_up are null -> nil.
+	if event.PowerUp != nil {
+		t.Errorf("PowerUp = %s, want nil", *event.PowerUp)
+	}
+	if event.CustomPowerUp != nil {
+		t.Errorf("CustomPowerUp = %s, want nil", *event.CustomPowerUp)
+	}
+	if event.Message == nil {
+		t.Fatal("Message is nil, want decoded object")
+	}
+	if event.Message.Text != "cheer1 hi cheer1" {
+		t.Errorf("Message.Text = %q", event.Message.Text)
+	}
+	if len(event.Message.Fragments) != 3 {
+		t.Fatalf("Fragments len = %d, want 3", len(event.Message.Fragments))
+	}
+	frag := event.Message.Fragments[0]
+	if frag.Type != "cheermote" || frag.Cheermote == nil {
+		t.Fatalf("fragment[0] = %+v, want cheermote", frag)
+	}
+	if frag.Cheermote.Prefix != "cheer" || frag.Cheermote.Bits != 1 || frag.Cheermote.Tier != 1 {
+		t.Errorf("fragment[0].Cheermote = %+v", frag.Cheermote)
+	}
+}
+
 func TestHypeTrainBeginEvent_V1ToV2Conversion(t *testing.T) {
 	// Official Twitch v1 example from https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/#channelhype_trainbegin
 	// Modified is_golden_kappa_train to true for golden kappa test

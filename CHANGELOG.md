@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `GetCharityCampaignParams` struct with pagination support for `GetCharityCampaign`
 - Custom `Pagination.UnmarshalJSON` to handle Twitch endpoints that return pagination as a string instead of an object (e.g. Get Extension Live Channels)
 - `NullableTime` type that decodes Twitch's empty-string/null optional timestamps without erroring and encodes an unset value back to `null`
+- `WithEventSubWSURL` option to point the high-level `EventSubWebSocket` at a custom WebSocket URL (useful for testing)
+- `GetCustomPowerUp` (`GET /bits/custom_power_ups`) and the `CustomPowerUp` type, returning a broadcaster's configured custom Bits Power-ups
 
 ### Changed
 - Bumped the Go version to 1.26 in `go.mod`
@@ -33,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ExtensionTransactionProductData.DisplayName`: `display_name` → `displayName` (transaction endpoint uses camelCase)
   - `ChannelBitsUseEvent.BitsUsed`: `bits_used` → `bits` (channel.bits.use payload)
   - `ExtensionAnalytics.URL` and `GameAnalytics.URL`: `url` → `URL` (matches documented field casing)
+- **BREAKING:** Corrected `ChannelBitsUseEvent` to match the `channel.bits.use` payload: removed the non-existent `UsedAt` field, changed `Message` from `*string` to `*ChatEventMessage` (the documented `{text, fragments[]}` object), and added `CustomPowerUp`. `PowerUp`/`CustomPowerUp` are `*json.RawMessage` since Twitch does not document their object fields. Removed the unused `PowerUp` type.
+- **BREAKING:** Corrected the suspicious-user endpoints to match the Twitch reference: `SuspiciousUserStatus` values are now `ACTIVE_MONITORING`/`RESTRICTED` (was `monitored`/`restricted`); renamed `SuspiciousUserStatusMonitored` → `SuspiciousUserStatusActiveMonitoring` and added `SuspiciousUserStatusNoTreatment`. `AddSuspiciousStatusToChatUser` and `RemoveSuspiciousStatusFromChatUser` now return `(*SuspiciousUserAction, error)` (the documented response with `updated_at`, `status`, and `types`) instead of discarding the response body. Added the `SuspiciousUserAction` and `SuspiciousUserType` types.
 
 ## [1.1.1] - 2026-02-06 ([#56](https://github.com/Its-donkey/kappopher/pull/56))
 
