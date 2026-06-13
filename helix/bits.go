@@ -107,3 +107,50 @@ func (c *Client) GetCheermotes(ctx context.Context, broadcasterID string) (*Resp
 	}
 	return &resp, nil
 }
+
+// CustomPowerUp represents a broadcaster's custom Bits Power-up.
+// The nested settings reuse the channel points reward types, which share the
+// same JSON shape.
+type CustomPowerUp struct {
+	BroadcasterID                    string              `json:"broadcaster_id"`
+	BroadcasterLogin                 string              `json:"broadcaster_login"`
+	BroadcasterName                  string              `json:"broadcaster_name"`
+	ID                               string              `json:"id"`
+	Title                            string              `json:"title"`
+	Prompt                           string              `json:"prompt"`
+	Bits                             int                 `json:"bits"`
+	Image                            *RewardImage        `json:"image,omitempty"` // null if the broadcaster didn't upload images
+	DefaultImage                     RewardImage         `json:"default_image"`
+	BackgroundColor                  string              `json:"background_color"`
+	IsEnabled                        bool                `json:"is_enabled"`
+	IsUserInputRequired              bool                `json:"is_user_input_required"`
+	MaxPerStreamSetting              MaxPerStream        `json:"max_per_stream_setting"`
+	MaxPerUserPerStreamSetting       MaxPerUserPerStream `json:"max_per_user_per_stream_setting"`
+	GlobalCooldownSetting            GlobalCooldown      `json:"global_cooldown_setting"`
+	IsPaused                         bool                `json:"is_paused"`
+	IsInStock                        bool                `json:"is_in_stock"`
+	RedemptionsRedeemedCurrentStream int                 `json:"redemptions_redeemed_current_stream,omitempty"` // null if not live or no per-stream limit
+	CooldownExpiresAt                *time.Time          `json:"cooldown_expires_at,omitempty"`                 // null when not in cooldown
+}
+
+// GetCustomPowerUpParams contains parameters for GetCustomPowerUp.
+type GetCustomPowerUpParams struct {
+	BroadcasterID string   // Must match the user ID in the OAuth token
+	IDs           []string // Filter by Power-up IDs (max 50)
+}
+
+// GetCustomPowerUp gets the broadcaster's custom Bits Power-ups.
+// Requires: user access token with the bits:read scope.
+func (c *Client) GetCustomPowerUp(ctx context.Context, params *GetCustomPowerUpParams) (*Response[CustomPowerUp], error) {
+	q := url.Values{}
+	q.Set("broadcaster_id", params.BroadcasterID)
+	for _, id := range params.IDs {
+		q.Add("id", id)
+	}
+
+	var resp Response[CustomPowerUp]
+	if err := c.get(ctx, "/bits/custom_power_ups", q, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
