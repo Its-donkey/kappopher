@@ -3,6 +3,7 @@ package helix
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"testing"
 	"time"
@@ -78,6 +79,8 @@ func TestClient_GetEventSubSubscriptions_WithFilters(t *testing.T) {
 		status := r.URL.Query().Get("status")
 		subType := r.URL.Query().Get("type")
 		userID := r.URL.Query().Get("user_id")
+		subscriptionID := r.URL.Query().Get("subscription_id")
+		conduitID := r.URL.Query().Get("conduit_id")
 
 		if status != "enabled" {
 			t.Errorf("expected status=enabled, got %s", status)
@@ -87,6 +90,12 @@ func TestClient_GetEventSubSubscriptions_WithFilters(t *testing.T) {
 		}
 		if userID != "12345" {
 			t.Errorf("expected user_id=12345, got %s", userID)
+		}
+		if subscriptionID != "sub-789" {
+			t.Errorf("expected subscription_id=sub-789, got %s", subscriptionID)
+		}
+		if conduitID != "conduit-abc" {
+			t.Errorf("expected conduit_id=conduit-abc, got %s", conduitID)
 		}
 
 		resp := EventSubResponse{
@@ -100,9 +109,11 @@ func TestClient_GetEventSubSubscriptions_WithFilters(t *testing.T) {
 	defer server.Close()
 
 	_, err := client.GetEventSubSubscriptions(context.Background(), &GetEventSubSubscriptionsParams{
-		Status: "enabled",
-		Type:   "channel.follow",
-		UserID: "12345",
+		Status:         "enabled",
+		Type:           "channel.follow",
+		UserID:         "12345",
+		SubscriptionID: "sub-789",
+		ConduitID:      "conduit-abc",
 	})
 
 	if err != nil {
@@ -748,5 +759,52 @@ func TestClient_DeleteEventSubSubscription_Error(t *testing.T) {
 	err := client.DeleteEventSubSubscription(context.Background(), "nonexistent")
 	if err == nil {
 		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestClient_CreateEventSubSubscription_Conflict(t *testing.T) {
+	const existingID = "26b1c993-bfcf-44d9-b876-379dacafe75a"
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte(`{
+			"error": "Conflict",
+			"status": 409,
+			"message": "subscription already exists",
+			"id": "` + existingID + `"
+		}`))
+	})
+	defer server.Close()
+
+	_, err := client.CreateEventSubSubscription(context.Background(), &CreateEventSubSubscriptionParams{
+		Type:    "channel.follow",
+		Version: "2",
+		Condition: map[string]string{
+			"broadcaster_user_id": "12345",
+			"moderator_user_id":   "12345",
+		},
+		Transport: CreateEventSubTransport{
+			Method:    "websocket",
+			SessionID: "session123",
+		},
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var conflict *EventSubConflictError
+	if !errors.As(err, &conflict) {
+		t.Fatalf("expected *EventSubConflictError, got %T: %v", err, err)
+	}
+	if conflict.ExistingSubscriptionID != existingID {
+		t.Errorf("ExistingSubscriptionID = %q, want %q", conflict.ExistingSubscriptionID, existingID)
+	}
+
+	// The underlying *APIError must remain accessible via errors.As.
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		t.Fatal("expected wrapped *APIError to be accessible via errors.As")
+	}
+	if apiErr.StatusCode != http.StatusConflict {
+		t.Errorf("StatusCode = %d, want %d", apiErr.StatusCode, http.StatusConflict)
 	}
 }
