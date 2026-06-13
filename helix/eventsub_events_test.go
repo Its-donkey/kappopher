@@ -8,6 +8,68 @@ import (
 // Tests for eventsub_events.go event types using official Twitch API documentation payloads.
 // Reference: https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/
 
+// TestEventSubEvents_NewlyAddedFields verifies fields added to match the
+// official EventSub reference (shared-chat source fields, host_user_*,
+// is_source_only, watch_streak, modiversary).
+func TestEventSubEvents_NewlyAddedFields(t *testing.T) {
+	t.Run("moderate", func(t *testing.T) {
+		var e ChannelModerateEvent
+		if err := json.Unmarshal([]byte(`{
+			"broadcaster_user_id":"1","moderator_user_id":"2","action":"shared_chat_unban",
+			"source_broadcaster_user_id":"9","source_broadcaster_user_login":"src","source_broadcaster_user_name":"Src",
+			"shared_chat_unban":{"user_id":"5","user_login":"u","user_name":"U"}
+		}`), &e); err != nil {
+			t.Fatal(err)
+		}
+		if e.SourceBroadcasterUserID == nil || *e.SourceBroadcasterUserID != "9" {
+			t.Errorf("source_broadcaster_user_id not decoded: %v", e.SourceBroadcasterUserID)
+		}
+		if e.SharedChatUnban == nil || e.SharedChatUnban.UserID != "5" {
+			t.Errorf("shared_chat_unban not decoded: %+v", e.SharedChatUnban)
+		}
+	})
+
+	t.Run("notification", func(t *testing.T) {
+		var e ChannelChatNotificationEvent
+		if err := json.Unmarshal([]byte(`{
+			"notice_type":"watch_streak","is_source_only":true,
+			"watch_streak":{"streak_count":3,"channel_points_awarded":350},
+			"modiversary":{"months":12}
+		}`), &e); err != nil {
+			t.Fatal(err)
+		}
+		if e.WatchStreak == nil || e.WatchStreak.StreakCount != 3 || e.WatchStreak.ChannelPointsAwarded != 350 {
+			t.Errorf("watch_streak not decoded: %+v", e.WatchStreak)
+		}
+		if e.Modiversary == nil || e.Modiversary.Months != 12 {
+			t.Errorf("modiversary not decoded: %+v", e.Modiversary)
+		}
+		if e.IsSourceOnly == nil || !*e.IsSourceOnly {
+			t.Errorf("is_source_only not decoded: %v", e.IsSourceOnly)
+		}
+	})
+
+	t.Run("gueststar_host", func(t *testing.T) {
+		var e ChannelGuestStarSessionEndEvent
+		if err := json.Unmarshal([]byte(`{"session_id":"s","host_user_id":"7","host_user_name":"Host","host_user_login":"host"}`), &e); err != nil {
+			t.Fatal(err)
+		}
+		if e.HostUserID != "7" || e.HostUserLogin != "host" || e.HostUserName != "Host" {
+			t.Errorf("host_user_* not decoded: %+v", e)
+		}
+	})
+
+	t.Run("chatmessage_source_only", func(t *testing.T) {
+		var e ChannelChatMessageEvent
+		if err := json.Unmarshal([]byte(`{"chatter_user_id":"1","message_id":"m","is_source_only":false}`), &e); err != nil {
+			t.Fatal(err)
+		}
+		if e.IsSourceOnly == nil || *e.IsSourceOnly {
+			t.Errorf("is_source_only not decoded: %v", e.IsSourceOnly)
+		}
+	})
+}
+
 // TestChannelBitsUseEvent_OfficialPayload unmarshals the official channel.bits.use
 // event payload and verifies the message object, fragments, and null power-ups.
 func TestChannelBitsUseEvent_OfficialPayload(t *testing.T) {
@@ -255,8 +317,8 @@ func TestHypeTrainBeginEvent_V2ToV1Conversion(t *testing.T) {
 			}
 		],
 		"shared_train_participants": [
-			{"broadcaster_id": "111", "broadcaster_login": "user1", "broadcaster_name": "User1"},
-			{"broadcaster_id": "222", "broadcaster_login": "user2", "broadcaster_name": "User2"}
+			{"broadcaster_user_id": "111", "broadcaster_user_login": "user1", "broadcaster_user_name": "User1"},
+			{"broadcaster_user_id": "222", "broadcaster_user_login": "user2", "broadcaster_user_name": "User2"}
 		],
 		"level": 1,
 		"started_at": "2020-07-15T17:16:03.17106713Z",
@@ -280,6 +342,9 @@ func TestHypeTrainBeginEvent_V2ToV1Conversion(t *testing.T) {
 	}
 	if len(event3.SharedTrainParticipants) != 2 {
 		t.Errorf("expected 2 participants, got %d", len(event3.SharedTrainParticipants))
+	}
+	if event3.SharedTrainParticipants[0].BroadcasterID != "111" || event3.SharedTrainParticipants[0].BroadcasterLogin != "user1" {
+		t.Errorf("participant broadcaster_user_* not decoded: %+v", event3.SharedTrainParticipants[0])
 	}
 	if event3.IsGoldenKappaTrain {
 		t.Error("expected IsGoldenKappaTrain=false for shared train")
@@ -940,5 +1005,36 @@ func TestChannelPredictionBeginEvent(t *testing.T) {
 	}
 	if event.Outcomes[0].Color != "blue" {
 		t.Errorf("expected first outcome color=blue, got %s", event.Outcomes[0].Color)
+	}
+}
+
+// TestChannelCustomPowerUpRedemptionAddEvent verifies the
+// channel.custom_power_up_redemption.add event payload decodes.
+func TestChannelCustomPowerUpRedemptionAddEvent(t *testing.T) {
+	payload := []byte(`{
+		"id": "redemption-1",
+		"broadcaster_user_id": "1337", "broadcaster_user_login": "cool", "broadcaster_user_name": "Cool",
+		"user_id": "9001", "user_login": "viewer", "user_name": "Viewer",
+		"user_input": "go go go",
+		"status": "unfulfilled",
+		"custom_power_up": {"id": "pu-1", "title": "Hype", "bits": 100, "prompt": "Bring the hype"},
+		"redeemed_at": "2026-05-19T12:00:00Z"
+	}`)
+
+	var e ChannelCustomPowerUpRedemptionAddEvent
+	if err := json.Unmarshal(payload, &e); err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+	if e.ID != "redemption-1" || e.BroadcasterUserID != "1337" || e.UserID != "9001" {
+		t.Errorf("core fields not decoded: %+v", e)
+	}
+	if e.Status != "unfulfilled" || e.UserInput != "go go go" {
+		t.Errorf("status/input not decoded: %+v", e)
+	}
+	if e.CustomPowerUp.ID != "pu-1" || e.CustomPowerUp.Bits != 100 || e.CustomPowerUp.Title != "Hype" {
+		t.Errorf("custom_power_up not decoded: %+v", e.CustomPowerUp)
+	}
+	if e.RedeemedAt.IsZero() {
+		t.Error("redeemed_at should be parsed")
 	}
 }

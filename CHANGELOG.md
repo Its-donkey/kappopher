@@ -9,8 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `WithEventSubWSURL` option to point the high-level `EventSubWebSocket` at a custom WebSocket URL (useful for testing)
+- Pinned Chat Message endpoints: `GetPinnedChatMessage`, `PinChatMessage`, `UpdatePinnedChatMessage`, `UnpinChatMessage` (`/chat/pins`), and the `PinnedChatMessage` type
+- `SendChatMessageParams.ForSourceOnly` and `SendChatMessageParams.Pin`, and `SendChatAnnouncementParams.ForSourceOnly`, matching recent Twitch additions
+- `channel.custom_power_up_redemption.add` EventSub subscription type (`EventSubTypeChannelCustomPowerUpRedemptionAdd`) and the `ChannelCustomPowerUpRedemptionAddEvent` / `EventSubCustomPowerUp` types
 - `GetCustomPowerUp` (`GET /bits/custom_power_ups`) and the `CustomPowerUp` type, returning a broadcaster's configured custom Bits Power-ups
 - `SuspiciousUserAction` and `SuspiciousUserType` types, and the `SuspiciousUserStatusActiveMonitoring`/`SuspiciousUserStatusNoTreatment` status constants
+- EventSub event fields that were missing vs. the reference: `ChannelChatMessageEvent.IsSourceOnly`; `ChannelChatNotificationEvent.{IsSourceOnly,WatchStreak,Modiversary,SharedChatModiversary}` (+ `ChatNotificationWatchStreak`/`ChatNotificationModiversary` types); `ChannelModerateEvent.{SourceBroadcasterUserID,SourceBroadcasterUserLogin,SourceBroadcasterUserName,SharedChatUnban,SharedChatUntimeout}`; `ChannelGuestStarSessionEndEvent.{HostUserID,HostUserName,HostUserLogin}` and `ChannelGuestStarGuestUpdateEvent.{HostUserID,HostUserName,HostUserLogin}`
 
 ### Changed
 - Expanded test coverage (cache context invalidation, IRC timestamp fallback, WebSocket close-error classification, and the high-level `EventSubWebSocket.Connect` success/reconnect/error paths)

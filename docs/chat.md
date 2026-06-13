@@ -747,3 +747,37 @@ for _, emote := range resp.Data {
 }
 ```
 
+
+## Pinned Chat Messages
+
+Moderators can pin a single chat message to the top of a channel's chat room. **(BETA)**
+
+```go
+// Pin a message for 5 minutes (omit DurationSeconds to pin until the stream ends)
+dur := 300
+err := client.PinChatMessage(ctx, &helix.PinChatMessageParams{
+    BroadcasterID:   "197886470",
+    ModeratorID:     "141981764",
+    MessageID:       "abc-def-123",
+    DurationSeconds: &dur,
+})
+
+// Get the currently pinned message
+resp, err := client.GetPinnedChatMessage(ctx, "197886470", "141981764")
+for _, pm := range resp.Data {
+    fmt.Printf("%s pinned by %s\n", pm.Message.Text, pm.PinnedByUserName)
+}
+
+// Extend the pin duration
+newDur := 600
+err = client.UpdatePinnedChatMessage(ctx, &helix.UpdatePinnedChatMessageParams{
+    BroadcasterID: "197886470", ModeratorID: "141981764", MessageID: "abc-def-123", DurationSeconds: &newDur,
+})
+
+// Unpin
+err = client.UnpinChatMessage(ctx, "197886470", "141981764", "abc-def-123")
+```
+
+**Requires:** `moderator:manage:chat_messages` (`GetPinnedChatMessage` also accepts `moderator:read:chat_messages`).
+
+You can also send and immediately pin a message in one call via `SendChatMessageParams.Pin` (pins for 20 minutes; cannot be combined with `ReplyParentMessageID` or `ForSourceOnly`).
