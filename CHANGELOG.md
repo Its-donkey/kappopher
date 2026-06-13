@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Bumped the Go version to 1.26 in `go.mod`, and updated the CI workflows (test matrix, lint, build, coverage, and release) to run on Go 1.26
+- CI: upgraded the lint job to golangci-lint v2 (`golangci-lint-action@v8`); the previous v1 line was built with Go 1.24 and refused to run against a `go 1.26` module. Cleared the findings it then surfaced (unchecked `w.Write` results in the mock integration test, redundant embedded-field selectors in the `NullableTime` test)
 - Modernized the codebase to Go 1.26 idioms: `interface{}` → `any`, `strings.SplitSeq`/`strings.Cut`/`strings.CutPrefix`, `maps.Copy`, `slices.Contains`, `sync.WaitGroup.Go`, and the `max` builtin. `LoggingMiddleware`'s logger parameter is now `func(format string, args ...any)` (identical to the previous `...interface{}`)
 - **BREAKING:** Optional timestamp fields that Twitch may return empty now use `NullableTime` instead of `time.Time`: `AdSchedule.{NextAdAt,LastAdAt,SnoozeRefreshAt}`, `SnoozeNextAdResponse.{SnoozeRefreshAt,NextAdAt}`, `BannedUser.ExpiresAt`, `BanUserResponse.EndTime`, `BlockedTerm.ExpiresAt`, `Poll.EndedAt`, `Prediction.{EndedAt,LockedAt}`, `SearchChannel.StartedAt`
 - Removed no-op `omitempty` from value-type `time.Time` JSON fields (a struct is never "empty" to the JSON encoder)

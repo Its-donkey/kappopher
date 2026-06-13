@@ -247,12 +247,12 @@ func TestMockAPI_ClientAgainstMockServer(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/users":
-			w.Write([]byte(`{"data":[{"id":"11138301","login":"testuser","display_name":"TestUser","type":"","broadcaster_type":"partner","description":"","created_at":"2026-02-18T07:00:03Z","profile_image_url":"","offline_image_url":"","view_count":0}]}`))
+			_, _ = w.Write([]byte(`{"data":[{"id":"11138301","login":"testuser","display_name":"TestUser","type":"","broadcaster_type":"partner","description":"","created_at":"2026-02-18T07:00:03Z","profile_image_url":"","offline_image_url":"","view_count":0}]}`))
 		case "/streams":
-			w.Write([]byte(`{"data":[{"id":"123456","user_id":"11138301","user_login":"testuser","user_name":"TestUser","game_id":"12345","game_name":"TestGame","type":"live","title":"Test Stream","viewer_count":100,"started_at":"2026-02-18T07:00:03Z","language":"en","thumbnail_url":"","is_mature":false}],"pagination":{}}`))
+			_, _ = w.Write([]byte(`{"data":[{"id":"123456","user_id":"11138301","user_login":"testuser","user_name":"TestUser","game_id":"12345","game_name":"TestGame","type":"live","title":"Test Stream","viewer_count":100,"started_at":"2026-02-18T07:00:03Z","language":"en","thumbnail_url":"","is_mature":false}],"pagination":{}}`))
 		default:
 			w.WriteHeader(404)
-			w.Write([]byte(`{"error":"Not Found","status":404,"message":"endpoint not found"}`))
+			_, _ = w.Write([]byte(`{"error":"Not Found","status":404,"message":"endpoint not found"}`))
 		}
 	}))
 	defer mockServer.Close()
