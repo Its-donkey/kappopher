@@ -1,5 +1,5 @@
 Changelog | Twitch Developers
-{"description":"Documentation Changelog","url":"https://dev.twitch.tv/change-log/","@type":"BlogPosting","headline":"Changelog","dateModified":"2026-06-11T10:35:39-07:00","datePublished":"2026-06-11T10:35:39-07:00","image":"https://dev.twitch.tv/marketing-assets/images/TwitchDev.png","mainEntityOfPage":{"@type":"WebPage","@id":"https://dev.twitch.tv/change-log/"},"@context":"http://schema.org"}
+{"description":"Documentation Changelog","url":"https://dev.twitch.tv/change-log/","@type":"BlogPosting","headline":"Changelog","dateModified":"2026-06-12T13:34:43-07:00","datePublished":"2026-06-12T13:34:43-07:00","image":"https://dev.twitch.tv/marketing-assets/images/TwitchDev.png","mainEntityOfPage":{"@type":"WebPage","@id":"https://dev.twitch.tv/change-log/"},"@context":"http://schema.org"}
 window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
@@ -25,7 +25,6 @@ Embedding Twitch
 Extensions
 Insights & Analytics
 Mobile Deep Links
-PubSub
 Video Broadcast
 Twitch CLI
 Changelog
@@ -33,6 +32,9 @@ Product Lifecycle
 Documentation Changelog
 Date
 Documentation Changes
+2026&#8209;06&#8209;12
+V1 of the channel.chat.notification EventSub subscription type has been updated to include modiversary and shared_chat_modiversary.
+The legacy PubSub migration guide has been removed.
 2026&#8209;06&#8209;08
 Corrections were made to update the documentation to better clarify current behaviors. None of the below changes represent new or modified functionality, although these may be relevant to projects that did not take these into consideration previously.
 Extension SDK:
