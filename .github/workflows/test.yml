@@ -33,6 +33,24 @@ jobs:
       - name: Run tests
         run: go test -v -race ./...
 
+  # Stable aggregate gate for branch protection. Its name ("Test Pass") does not
+  # change when the Go version matrix changes, so the required status check never
+  # goes stale on a Go bump (unlike the per-version "Test (1.xx)" job names).
+  # Require this context in branch protection instead of the matrix jobs.
+  test-pass:
+    name: Test Pass
+    needs: [test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify the test matrix succeeded
+        run: |
+          if [ "${{ needs.test.result }}" != "success" ]; then
+            echo "::error::Test matrix result was '${{ needs.test.result }}'"
+            exit 1
+          fi
+          echo "All Test matrix jobs passed."
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
