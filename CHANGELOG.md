@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **BREAKING:** Corrected the Guest Star channel-settings endpoint path `/channels/guest_star_settings` → `/guest_star/channel_settings` (`GetChannelGuestStarSettings` and `UpdateChannelGuestStarSettings`)
+- **BREAKING:** Fixed `GuestStarAudioSettings` and `GuestStarVideoSettings`: the second flag is `is_guest_enabled`, not `is_self_muted` (field renamed `IsSelfMuted` → `IsGuestEnabled`)
 
 ## [1.2.2] - 2026-04-23 ([#75](https://github.com/Its-donkey/kappopher/pull/75))
 
