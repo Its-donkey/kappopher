@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `channel.custom_power_up_redemption.add` EventSub subscription type (`EventSubTypeChannelCustomPowerUpRedemptionAdd`) and the `ChannelCustomPowerUpRedemptionAddEvent` / `EventSubCustomPowerUp` types
 - `GetCustomPowerUp` (`GET /bits/custom_power_ups`) and the `CustomPowerUp` type, returning a broadcaster's configured custom Bits Power-ups
 - `SuspiciousUserAction` and `SuspiciousUserType` types, and the `SuspiciousUserStatusActiveMonitoring`/`SuspiciousUserStatusNoTreatment` status constants
+- EventSub event fields that were missing vs. the reference: `ChannelChatMessageEvent.IsSourceOnly`; `ChannelChatNotificationEvent.{IsSourceOnly,WatchStreak,Modiversary,SharedChatModiversary}` (+ `ChatNotificationWatchStreak`/`ChatNotificationModiversary` types); `ChannelModerateEvent.{SourceBroadcasterUserID,SourceBroadcasterUserLogin,SourceBroadcasterUserName,SharedChatUnban,SharedChatUntimeout}`; `ChannelGuestStarSessionEndEvent.{HostUserID,HostUserName,HostUserLogin}` and `ChannelGuestStarGuestUpdateEvent.{HostUserID,HostUserName,HostUserLogin}`
 
 ### Changed
 - Expanded test coverage (cache context invalidation, IRC timestamp fallback, WebSocket close-error classification, and the high-level `EventSubWebSocket.Connect` success/reconnect/error paths)
@@ -24,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING:** Corrected `GetClipsDownload` to match the Twitch reference: endpoint path `/clips/download` → `/clips/downloads`; it now takes `*GetClipsDownloadParams` (`BroadcasterID`, `EditorID`, `ClipIDs`) and `ClipDownload` exposes `ClipID`/`LandscapeDownloadURL`/`PortraitDownloadURL` (was `ID`/`URL`/`ExpiresAt`)
 - **BREAKING:** `CreateClipFromVOD` now sends its parameters as query parameters (the Twitch endpoint reads them from the query string; they were incorrectly sent as a JSON body)
 - **BREAKING:** Corrected `GetAuthorizationByUser` to match the Twitch reference: endpoint path `/users/authorization` → `/authorization/users`; it now takes `UserIDs []string` (up to 10) and `UserAuthorization` exposes `UserID`/`UserName`/`UserLogin`/`Scopes` (removed the non-existent `ClientID`, renamed `Login` → `UserLogin`)
+- **BREAKING:** `HypeTrainParticipant` JSON tags corrected to `broadcaster_user_id`/`broadcaster_user_login`/`broadcaster_user_name` (were `broadcaster_id`/`broadcaster_login`/`broadcaster_name`), matching the shared-train-participants payload
 
 ## [1.2.2] - 2026-04-23 ([#75](https://github.com/Its-donkey/kappopher/pull/75))
 
