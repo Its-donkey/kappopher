@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- CI: added a stable `Test Pass` aggregate job (gates on the `Test` matrix) so branch protection can require a version-independent status check. This prevents the required check from going stale whenever the Go version matrix changes (as happened when `Test (1.24)` was retired for `Test (1.26)`).
 
 ### Fixed
 
