@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+## [1.3.0] - 2026-06-13
+
+### Added
 - `WithEventSubWSURL` option to point the high-level `EventSubWebSocket` at a custom WebSocket URL (useful for testing)
 - Pinned Chat Message endpoints: `GetPinnedChatMessage`, `PinChatMessage`, `UpdatePinnedChatMessage`, `UnpinChatMessage` (`/chat/pins`), and the `PinnedChatMessage` type
 - `SendChatMessageParams.ForSourceOnly` and `SendChatMessageParams.Pin`, and `SendChatAnnouncementParams.ForSourceOnly`, matching recent Twitch additions
