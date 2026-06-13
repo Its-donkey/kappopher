@@ -7,11 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-### Changed
-
 ### Fixed
+- **BREAKING:** Corrected `GetClipsDownload` to match the Twitch reference: endpoint path `/clips/download` → `/clips/downloads`; it now takes `*GetClipsDownloadParams` (`BroadcasterID`, `EditorID`, `ClipIDs`) and `ClipDownload` exposes `ClipID`/`LandscapeDownloadURL`/`PortraitDownloadURL` (was `ID`/`URL`/`ExpiresAt`)
+- **BREAKING:** `CreateClipFromVOD` now sends its parameters as query parameters (the Twitch endpoint reads them from the query string; they were incorrectly sent as a JSON body)
+- **BREAKING:** Corrected `GetAuthorizationByUser` to match the Twitch reference: endpoint path `/users/authorization` → `/authorization/users`; it now takes `UserIDs []string` (up to 10) and `UserAuthorization` exposes `UserID`/`UserName`/`UserLogin`/`Scopes` (removed the non-existent `ClientID`, renamed `Login` → `UserLogin`)
 
 ## [1.2.2] - 2026-04-23 ([#75](https://github.com/Its-donkey/kappopher/pull/75))
 
