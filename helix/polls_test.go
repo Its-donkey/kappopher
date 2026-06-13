@@ -189,7 +189,7 @@ func TestClient_EndPoll_Terminate(t *testing.T) {
 				{
 					ID:      params.ID,
 					Status:  "TERMINATED",
-					EndedAt: time.Now(),
+					EndedAt: NewNullableTime(time.Now()),
 				},
 			},
 		}

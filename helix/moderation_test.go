@@ -60,7 +60,7 @@ func TestClient_GetBannedUsers(t *testing.T) {
 					UserID:         twitchBannedUserID,
 					UserLogin:      twitchBannedUserLogin,
 					UserName:       twitchBannedUserName,
-					ExpiresAt:      mustParseTime("2022-03-15T02:00:28Z"),
+					ExpiresAt:      NewNullableTime(mustParseTime("2022-03-15T02:00:28Z")),
 					CreatedAt:      mustParseTime("2022-03-15T01:30:28Z"),
 					Reason:         twitchBannedReason,
 					ModeratorID:    twitchBannedModeratorID,

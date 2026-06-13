@@ -425,7 +425,7 @@ func TestClient_GetExtensionTransactions(t *testing.T) {
 					UserLogin:        "buyer",
 					UserName:         "Buyer",
 					ProductType:      "BITS_IN_EXTENSION",
-					ProductData: ExtensionTransactionProduct{
+					ProductData: ExtensionTransactionProductData{
 						SKU:           "product123",
 						Cost:          ExtensionBitsCost{Amount: 100, Type: "bits"},
 						InDevelopment: false,
@@ -451,6 +451,45 @@ func TestClient_GetExtensionTransactions(t *testing.T) {
 	}
 	if resp.Data[0].ProductData.SKU != "product123" {
 		t.Errorf("expected SKU 'product123', got %s", resp.Data[0].ProductData.SKU)
+	}
+}
+
+// TestClient_GetExtensionTransactions_ProductDataTags verifies that the
+// transaction endpoint's camelCase "displayName"/"inDevelopment" tags and the
+// "expiration" field decode correctly from a raw Twitch-shaped response.
+func TestClient_GetExtensionTransactions_ProductDataTags(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{
+			"data": [{
+				"id": "tx123",
+				"product_type": "BITS_IN_EXTENSION",
+				"product_data": {
+					"sku": "product123",
+					"cost": {"amount": 100, "type": "bits"},
+					"displayName": "Test Product",
+					"inDevelopment": true,
+					"expiration": "2024-12-31T00:00:00Z"
+				}
+			}]
+		}`))
+	})
+	defer server.Close()
+
+	resp, err := client.GetExtensionTransactions(context.Background(), &GetExtensionTransactionsParams{
+		ExtensionID: "ext123",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	pd := resp.Data[0].ProductData
+	if pd.DisplayName != "Test Product" {
+		t.Errorf("expected DisplayName from camelCase \"displayName\" tag, got %q", pd.DisplayName)
+	}
+	if !pd.InDevelopment {
+		t.Error("expected InDevelopment true from camelCase \"inDevelopment\" tag")
+	}
+	if pd.Expiration != "2024-12-31T00:00:00Z" {
+		t.Errorf("expected Expiration to decode, got %q", pd.Expiration)
 	}
 }
 

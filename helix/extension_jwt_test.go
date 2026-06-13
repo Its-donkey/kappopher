@@ -226,7 +226,7 @@ func TestExtensionTokenProvider_GetToken_Concurrent(t *testing.T) {
 	const goroutines = 50
 	done := make(chan *Token, goroutines)
 
-	for i := 0; i < goroutines; i++ {
+	for range goroutines {
 		go func() {
 			token := provider.GetToken()
 			done <- token
@@ -235,7 +235,7 @@ func TestExtensionTokenProvider_GetToken_Concurrent(t *testing.T) {
 
 	// Collect all tokens
 	var tokens []*Token
-	for i := 0; i < goroutines; i++ {
+	for range goroutines {
 		token := <-done
 		if token == nil {
 			t.Error("expected token, got nil")
@@ -399,7 +399,7 @@ func TestJWTClaimsStructure(t *testing.T) {
 	parts := strings.Split(token, ".")
 	claimsJSON, _ := base64.RawURLEncoding.DecodeString(parts[1])
 
-	var decoded map[string]interface{}
+	var decoded map[string]any
 	if err := json.Unmarshal(claimsJSON, &decoded); err != nil {
 		t.Fatalf("failed to decode claims: %v", err)
 	}

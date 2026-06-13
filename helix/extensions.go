@@ -199,10 +199,10 @@ type Extension struct {
 
 // ExtensionViews represents the views configuration for an extension.
 type ExtensionViews struct {
-	Mobile       ExtensionView `json:"mobile,omitempty"`
-	Panel        ExtensionView `json:"panel,omitempty"`
-	VideoOverlay ExtensionView `json:"video_overlay,omitempty"`
-	Component    ExtensionView `json:"component,omitempty"`
+	Mobile       ExtensionView `json:"mobile"`
+	Panel        ExtensionView `json:"panel"`
+	VideoOverlay ExtensionView `json:"video_overlay"`
+	Component    ExtensionView `json:"component"`
 }
 
 // ExtensionView represents a single view configuration.
@@ -301,24 +301,28 @@ func (c *Client) UpdateExtensionBitsProduct(ctx context.Context, params *UpdateE
 
 // ExtensionTransaction represents an extension transaction.
 type ExtensionTransaction struct {
-	ID               string                      `json:"id"`
-	Timestamp        string                      `json:"timestamp"`
-	BroadcasterID    string                      `json:"broadcaster_id"`
-	BroadcasterLogin string                      `json:"broadcaster_login"`
-	BroadcasterName  string                      `json:"broadcaster_name"`
-	UserID           string                      `json:"user_id"`
-	UserLogin        string                      `json:"user_login"`
-	UserName         string                      `json:"user_name"`
-	ProductType      string                      `json:"product_type"`
-	ProductData      ExtensionTransactionProduct `json:"product_data"`
+	ID               string                          `json:"id"`
+	Timestamp        string                          `json:"timestamp"`
+	BroadcasterID    string                          `json:"broadcaster_id"`
+	BroadcasterLogin string                          `json:"broadcaster_login"`
+	BroadcasterName  string                          `json:"broadcaster_name"`
+	UserID           string                          `json:"user_id"`
+	UserLogin        string                          `json:"user_login"`
+	UserName         string                          `json:"user_name"`
+	ProductType      string                          `json:"product_type"`
+	ProductData      ExtensionTransactionProductData `json:"product_data"`
 }
 
-// ExtensionTransactionProduct represents the product in a transaction.
-type ExtensionTransactionProduct struct {
+// ExtensionTransactionProductData represents the product in a transaction.
+// The transaction endpoint returns "displayName" and "inDevelopment" in
+// camelCase, unlike the Bits product endpoints which use "display_name" and
+// "in_development".
+type ExtensionTransactionProductData struct {
 	SKU           string            `json:"sku"`
 	Cost          ExtensionBitsCost `json:"cost"`
-	DisplayName   string            `json:"display_name"`
-	InDevelopment bool              `json:"in_development"`
+	DisplayName   string            `json:"displayName"`
+	InDevelopment bool              `json:"inDevelopment"`
+	Expiration    string            `json:"expiration,omitempty"`
 }
 
 // GetExtensionTransactionsParams contains parameters for GetExtensionTransactions.

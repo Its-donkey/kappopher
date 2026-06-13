@@ -3,7 +3,6 @@ package helix
 import (
 	"context"
 	"net/url"
-	"time"
 )
 
 // Commercial represents a started commercial.
@@ -34,12 +33,12 @@ func (c *Client) StartCommercial(ctx context.Context, params *StartCommercialPar
 
 // AdSchedule represents the ad schedule for a channel.
 type AdSchedule struct {
-	NextAdAt        time.Time `json:"next_ad_at,omitempty"`
-	LastAdAt        time.Time `json:"last_ad_at,omitempty"`
-	Duration        int       `json:"duration"`
-	PrerollFreeTime int       `json:"preroll_free_time"`
-	SnoozeCount     int       `json:"snooze_count"`
-	SnoozeRefreshAt time.Time `json:"snooze_refresh_at,omitempty"`
+	NextAdAt        NullableTime `json:"next_ad_at"`
+	LastAdAt        NullableTime `json:"last_ad_at"`
+	Duration        int          `json:"duration"`
+	PrerollFreeTime int          `json:"preroll_free_time"`
+	SnoozeCount     int          `json:"snooze_count"`
+	SnoozeRefreshAt NullableTime `json:"snooze_refresh_at"`
 }
 
 // GetAdSchedule gets the ad schedule for a channel.
@@ -60,9 +59,9 @@ func (c *Client) GetAdSchedule(ctx context.Context, broadcasterID string) (*AdSc
 
 // SnoozeNextAdResponse represents the response from SnoozeNextAd.
 type SnoozeNextAdResponse struct {
-	SnoozeCount     int       `json:"snooze_count"`
-	SnoozeRefreshAt time.Time `json:"snooze_refresh_at"`
-	NextAdAt        time.Time `json:"next_ad_at"`
+	SnoozeCount     int          `json:"snooze_count"`
+	SnoozeRefreshAt NullableTime `json:"snooze_refresh_at"`
+	NextAdAt        NullableTime `json:"next_ad_at"`
 }
 
 // SnoozeNextAd snoozes the next scheduled ad.

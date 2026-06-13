@@ -337,9 +337,9 @@ type ChannelPredictionEndEvent struct {
 type HypeTrainType string
 
 const (
-	HypeTrainTypeRegular    HypeTrainType = "regular"
+	HypeTrainTypeRegular     HypeTrainType = "regular"
 	HypeTrainTypeGoldenKappa HypeTrainType = "golden_kappa"
-	HypeTrainTypeShared     HypeTrainType = "shared"
+	HypeTrainTypeShared      HypeTrainType = "shared"
 )
 
 // HypeTrainParticipant represents a participant in a shared hype train (v2 only).
@@ -1277,6 +1277,9 @@ type ChatNotificationSub struct {
 }
 
 // ChatNotificationResub represents a resub notification.
+// Note: Twitch inconsistently sends "sub_plan" instead of "sub_tier" for resub
+// and shared_chat_resub notifications (see twitchdev/issues#1039). This struct
+// handles both field names transparently via custom unmarshaling.
 type ChatNotificationResub struct {
 	CumulativeMonths  int     `json:"cumulative_months"`
 	DurationMonths    int     `json:"duration_months"`
@@ -1288,6 +1291,29 @@ type ChatNotificationResub struct {
 	GifterUserID      *string `json:"gifter_user_id,omitempty"`
 	GifterUserLogin   *string `json:"gifter_user_login,omitempty"`
 	GifterUserName    *string `json:"gifter_user_name,omitempty"`
+}
+
+// UnmarshalJSON implements custom unmarshaling for ChatNotificationResub.
+// Twitch sends "sub_plan" instead of "sub_tier" for resub and shared_chat_resub
+// notifications (twitchdev/issues#1039). This handles both field names.
+func (r *ChatNotificationResub) UnmarshalJSON(data []byte) error {
+	type Alias ChatNotificationResub
+	aux := &struct {
+		*Alias
+		SubPlan string `json:"sub_plan"`
+	}{
+		Alias: (*Alias)(r),
+	}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+
+	// If sub_tier is empty but sub_plan was provided, use sub_plan.
+	if r.SubTier == "" && aux.SubPlan != "" {
+		r.SubTier = aux.SubPlan
+	}
+
+	return nil
 }
 
 // ChatNotificationSubGift represents a sub gift notification.

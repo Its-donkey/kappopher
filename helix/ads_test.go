@@ -108,12 +108,12 @@ func TestClient_GetAdSchedule(t *testing.T) {
 		resp := Response[AdSchedule]{
 			Data: []AdSchedule{
 				{
-					NextAdAt:        nextAdAt,
-					LastAdAt:        lastAdAt,
+					NextAdAt:        NewNullableTime(nextAdAt),
+					LastAdAt:        NewNullableTime(lastAdAt),
 					Duration:        60,
 					PrerollFreeTime: 300,
 					SnoozeCount:     2,
-					SnoozeRefreshAt: snoozeRefreshAt,
+					SnoozeRefreshAt: NewNullableTime(snoozeRefreshAt),
 				},
 			},
 		}
@@ -180,8 +180,8 @@ func TestClient_SnoozeNextAd(t *testing.T) {
 			Data: []SnoozeNextAdResponse{
 				{
 					SnoozeCount:     1,
-					SnoozeRefreshAt: snoozeRefreshAt,
-					NextAdAt:        nextAdAt,
+					SnoozeRefreshAt: NewNullableTime(snoozeRefreshAt),
+					NextAdAt:        NewNullableTime(nextAdAt),
 				},
 			},
 		}
