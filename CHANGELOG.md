@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-## [1.3.1] - 2026-06-13
+## [1.3.1] - 2026-06-13 ([#91](https://github.com/Its-donkey/kappopher/pull/91))
 
 ### Added
 - `GetEventSubSubscriptionsParams.SubscriptionID` (`subscription_id`) and `GetEventSubSubscriptionsParams.ConduitID` (`conduit_id`) filters for `GetEventSubSubscriptions`
