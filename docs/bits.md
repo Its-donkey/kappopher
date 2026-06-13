@@ -297,3 +297,61 @@ for _, cheermote := range resp.Data {
 }
 ```
 
+## GetCustomPowerUp
+
+Get a broadcaster's configured custom Bits Power-ups.
+
+**Requires:** user access token with the `bits:read` scope
+
+```go
+resp, err := client.GetCustomPowerUp(ctx, &helix.GetCustomPowerUpParams{
+    BroadcasterID: "274637212",
+    // Optional: filter to specific Power-up IDs (max 50)
+    IDs: []string{"92af127c-7326-4483-a52b-b0da0be61c02"},
+})
+if err != nil {
+    // handle error
+}
+
+for _, pu := range resp.Data {
+    fmt.Printf("%s — %d bits (enabled: %t)\n", pu.Title, pu.Bits, pu.IsEnabled)
+}
+```
+
+**Parameters:**
+- `BroadcasterID` (string, required): The broadcaster whose custom Power-ups to get. Must match the user ID in the OAuth token.
+- `IDs` ([]string, optional): Filter by Power-up IDs (max 50).
+
+**Sample Response:**
+```json
+{
+  "data": [
+    {
+      "broadcaster_name": "torpedo09",
+      "broadcaster_login": "torpedo09",
+      "broadcaster_id": "274637212",
+      "id": "92af127c-7326-4483-a52b-b0da0be61c02",
+      "image": null,
+      "background_color": "#00FF00",
+      "is_enabled": true,
+      "bits": 100,
+      "title": "game analysis",
+      "prompt": "",
+      "is_user_input_required": false,
+      "max_per_stream_setting": { "is_enabled": false, "max_per_stream": 0 },
+      "max_per_user_per_stream_setting": { "is_enabled": false, "max_per_user_per_stream": 0 },
+      "global_cooldown_setting": { "is_enabled": false, "global_cooldown_seconds": 0 },
+      "is_paused": false,
+      "is_in_stock": true,
+      "default_image": {
+        "url_1x": "https://static-cdn.jtvnw.net/.../28x28.png",
+        "url_2x": "https://static-cdn.jtvnw.net/.../56x56.png",
+        "url_4x": "https://static-cdn.jtvnw.net/.../112x112.png"
+      },
+      "redemptions_redeemed_current_stream": null,
+      "cooldown_expires_at": null
+    }
+  ]
+}
+```
+

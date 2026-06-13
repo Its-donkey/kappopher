@@ -718,16 +718,14 @@ type ChannelAdBreakBeginEvent struct {
 type ChannelBitsUseEvent struct {
 	EventSubBroadcaster
 	EventSubUser
-	BitsUsed int       `json:"bits_used"`
-	Type     string    `json:"type"` // cheer, power_up_celebration, power_up_gigantify, power_up_message_effect
-	UsedAt   time.Time `json:"used_at"`
-	Message  *string   `json:"message,omitempty"`
-	PowerUp  *PowerUp  `json:"power_up,omitempty"`
-}
-
-// PowerUp represents a bits power-up.
-type PowerUp struct {
-	Type string `json:"type"`
+	BitsUsed int               `json:"bits"`
+	Type     string            `json:"type"` // e.g. "cheer"
+	Message  *ChatEventMessage `json:"message,omitempty"`
+	// PowerUp and CustomPowerUp are null unless a Power-up is used. Twitch does
+	// not document their object fields, so they are kept as raw JSON to avoid
+	// asserting an unverified schema.
+	PowerUp       *json.RawMessage `json:"power_up,omitempty"`
+	CustomPowerUp *json.RawMessage `json:"custom_power_up,omitempty"`
 }
 
 // ChannelCustomPowerUpRedemptionAddEvent is sent when a viewer redeems a
