@@ -8,6 +8,68 @@ import (
 // Tests for eventsub_events.go event types using official Twitch API documentation payloads.
 // Reference: https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/
 
+// TestEventSubEvents_NewlyAddedFields verifies fields added to match the
+// official EventSub reference (shared-chat source fields, host_user_*,
+// is_source_only, watch_streak, modiversary).
+func TestEventSubEvents_NewlyAddedFields(t *testing.T) {
+	t.Run("moderate", func(t *testing.T) {
+		var e ChannelModerateEvent
+		if err := json.Unmarshal([]byte(`{
+			"broadcaster_user_id":"1","moderator_user_id":"2","action":"shared_chat_unban",
+			"source_broadcaster_user_id":"9","source_broadcaster_user_login":"src","source_broadcaster_user_name":"Src",
+			"shared_chat_unban":{"user_id":"5","user_login":"u","user_name":"U"}
+		}`), &e); err != nil {
+			t.Fatal(err)
+		}
+		if e.SourceBroadcasterUserID == nil || *e.SourceBroadcasterUserID != "9" {
+			t.Errorf("source_broadcaster_user_id not decoded: %v", e.SourceBroadcasterUserID)
+		}
+		if e.SharedChatUnban == nil || e.SharedChatUnban.UserID != "5" {
+			t.Errorf("shared_chat_unban not decoded: %+v", e.SharedChatUnban)
+		}
+	})
+
+	t.Run("notification", func(t *testing.T) {
+		var e ChannelChatNotificationEvent
+		if err := json.Unmarshal([]byte(`{
+			"notice_type":"watch_streak","is_source_only":true,
+			"watch_streak":{"streak_count":3,"channel_points_awarded":350},
+			"modiversary":{"months":12}
+		}`), &e); err != nil {
+			t.Fatal(err)
+		}
+		if e.WatchStreak == nil || e.WatchStreak.StreakCount != 3 || e.WatchStreak.ChannelPointsAwarded != 350 {
+			t.Errorf("watch_streak not decoded: %+v", e.WatchStreak)
+		}
+		if e.Modiversary == nil || e.Modiversary.Months != 12 {
+			t.Errorf("modiversary not decoded: %+v", e.Modiversary)
+		}
+		if e.IsSourceOnly == nil || !*e.IsSourceOnly {
+			t.Errorf("is_source_only not decoded: %v", e.IsSourceOnly)
+		}
+	})
+
+	t.Run("gueststar_host", func(t *testing.T) {
+		var e ChannelGuestStarSessionEndEvent
+		if err := json.Unmarshal([]byte(`{"session_id":"s","host_user_id":"7","host_user_name":"Host","host_user_login":"host"}`), &e); err != nil {
+			t.Fatal(err)
+		}
+		if e.HostUserID != "7" || e.HostUserLogin != "host" || e.HostUserName != "Host" {
+			t.Errorf("host_user_* not decoded: %+v", e)
+		}
+	})
+
+	t.Run("chatmessage_source_only", func(t *testing.T) {
+		var e ChannelChatMessageEvent
+		if err := json.Unmarshal([]byte(`{"chatter_user_id":"1","message_id":"m","is_source_only":false}`), &e); err != nil {
+			t.Fatal(err)
+		}
+		if e.IsSourceOnly == nil || *e.IsSourceOnly {
+			t.Errorf("is_source_only not decoded: %v", e.IsSourceOnly)
+		}
+	})
+}
+
 func TestHypeTrainBeginEvent_V1ToV2Conversion(t *testing.T) {
 	// Official Twitch v1 example from https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/#channelhype_trainbegin
 	// Modified is_golden_kappa_train to true for golden kappa test
@@ -191,8 +253,8 @@ func TestHypeTrainBeginEvent_V2ToV1Conversion(t *testing.T) {
 			}
 		],
 		"shared_train_participants": [
-			{"broadcaster_id": "111", "broadcaster_login": "user1", "broadcaster_name": "User1"},
-			{"broadcaster_id": "222", "broadcaster_login": "user2", "broadcaster_name": "User2"}
+			{"broadcaster_user_id": "111", "broadcaster_user_login": "user1", "broadcaster_user_name": "User1"},
+			{"broadcaster_user_id": "222", "broadcaster_user_login": "user2", "broadcaster_user_name": "User2"}
 		],
 		"level": 1,
 		"started_at": "2020-07-15T17:16:03.17106713Z",
@@ -216,6 +278,9 @@ func TestHypeTrainBeginEvent_V2ToV1Conversion(t *testing.T) {
 	}
 	if len(event3.SharedTrainParticipants) != 2 {
 		t.Errorf("expected 2 participants, got %d", len(event3.SharedTrainParticipants))
+	}
+	if event3.SharedTrainParticipants[0].BroadcasterID != "111" || event3.SharedTrainParticipants[0].BroadcasterLogin != "user1" {
+		t.Errorf("participant broadcaster_user_* not decoded: %+v", event3.SharedTrainParticipants[0])
 	}
 	if event3.IsGoldenKappaTrain {
 		t.Error("expected IsGoldenKappaTrain=false for shared train")
