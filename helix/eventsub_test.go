@@ -78,6 +78,8 @@ func TestClient_GetEventSubSubscriptions_WithFilters(t *testing.T) {
 		status := r.URL.Query().Get("status")
 		subType := r.URL.Query().Get("type")
 		userID := r.URL.Query().Get("user_id")
+		subscriptionID := r.URL.Query().Get("subscription_id")
+		conduitID := r.URL.Query().Get("conduit_id")
 
 		if status != "enabled" {
 			t.Errorf("expected status=enabled, got %s", status)
@@ -87,6 +89,12 @@ func TestClient_GetEventSubSubscriptions_WithFilters(t *testing.T) {
 		}
 		if userID != "12345" {
 			t.Errorf("expected user_id=12345, got %s", userID)
+		}
+		if subscriptionID != "sub-789" {
+			t.Errorf("expected subscription_id=sub-789, got %s", subscriptionID)
+		}
+		if conduitID != "conduit-abc" {
+			t.Errorf("expected conduit_id=conduit-abc, got %s", conduitID)
 		}
 
 		resp := EventSubResponse{
@@ -100,9 +108,11 @@ func TestClient_GetEventSubSubscriptions_WithFilters(t *testing.T) {
 	defer server.Close()
 
 	_, err := client.GetEventSubSubscriptions(context.Background(), &GetEventSubSubscriptionsParams{
-		Status: "enabled",
-		Type:   "channel.follow",
-		UserID: "12345",
+		Status:         "enabled",
+		Type:           "channel.follow",
+		UserID:         "12345",
+		SubscriptionID: "sub-789",
+		ConduitID:      "conduit-abc",
 	})
 
 	if err != nil {
