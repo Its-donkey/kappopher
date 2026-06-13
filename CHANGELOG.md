@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-## [1.3.0] - 2026-06-13
+## [1.3.0] - 2026-06-13 ([#87](https://github.com/Its-donkey/kappopher/pull/87))
 
 ### Added
 - `WithEventSubWSURL` option to point the high-level `EventSubWebSocket` at a custom WebSocket URL (useful for testing)
