@@ -4,7 +4,7 @@ title: Hype Train API
 description: Manage hype train events for Twitch channels.
 ---
 
-> **Note:** The Get Hype Train Events endpoint is deprecated and will be removed January 15, 2026. Use [EventSub](eventsub.md) for real-time hype train events instead.
+> **Note:** Twitch **removed** the Get Hype Train Events endpoint on 2026-02-05 in favor of [Get Hype Train Status](#gethypetrainstatus). Any live call now returns `404`. Use `GetHypeTrainStatus` (below) or [EventSub](eventsub.md) for real-time hype train events. `GetHypeTrainEvents` and its types remain for one release cycle and will be removed in the next major release.
 
 ## GetHypeTrainEvents
 
@@ -12,7 +12,7 @@ Get the broadcaster's hype train events.
 
 **Requires:** `channel:read:hype_train` scope
 
-**DEPRECATED:** This endpoint is deprecated. Use EventSub instead.
+**REMOVED BY TWITCH (2026-02-05):** This endpoint no longer exists and returns `404`. Use [`GetHypeTrainStatus`](#gethypetrainstatus) instead. Retained as deprecated for one release cycle.
 
 ```go
 resp, err := client.GetHypeTrainEvents(ctx, &helix.GetHypeTrainEventsParams{
