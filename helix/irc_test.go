@@ -467,6 +467,18 @@ func TestParseTimestamp(t *testing.T) {
 	}
 }
 
+func TestParseTimestamp_FallsBackToNow(t *testing.T) {
+	// An empty or unparseable timestamp falls back to the current time.
+	for _, in := range []string{"", "not-a-number"} {
+		before := time.Now()
+		ts := parseTimestamp(in)
+		after := time.Now()
+		if ts.Before(before) || ts.After(after) {
+			t.Errorf("parseTimestamp(%q) = %v, expected a time within [%v, %v]", in, ts, before, after)
+		}
+	}
+}
+
 func TestParseUserFromPrefix(t *testing.T) {
 	tests := []struct {
 		prefix   string
