@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `GetCustomPowerUp` (`GET /bits/custom_power_ups`) and the `CustomPowerUp` type, returning a broadcaster's configured custom Bits Power-ups
 - `SuspiciousUserAction` and `SuspiciousUserType` types, and the `SuspiciousUserStatusActiveMonitoring`/`SuspiciousUserStatusNoTreatment` status constants
 - EventSub event fields that were missing vs. the reference: `ChannelChatMessageEvent.IsSourceOnly`; `ChannelChatNotificationEvent.{IsSourceOnly,WatchStreak,Modiversary,SharedChatModiversary}` (+ `ChatNotificationWatchStreak`/`ChatNotificationModiversary` types); `ChannelModerateEvent.{SourceBroadcasterUserID,SourceBroadcasterUserLogin,SourceBroadcasterUserName,SharedChatUnban,SharedChatUntimeout}`; `ChannelGuestStarSessionEndEvent.{HostUserID,HostUserName,HostUserLogin}` and `ChannelGuestStarGuestUpdateEvent.{HostUserID,HostUserName,HostUserLogin}`
+- `IngestServer.URLTemplateSecure` (`url_template_secure`) — the RTMPS ingest URL template returned by the ingest endpoint
+- `AutomodSettingsUpdateEvent.Aggression` (`aggression`) — the documented AutoMod category level was missing from the `automod.settings.update` event
 
 ### Changed
 - Expanded test coverage (cache context invalidation, IRC timestamp fallback, WebSocket close-error classification, and the high-level `EventSubWebSocket.Connect` success/reconnect/error paths)
