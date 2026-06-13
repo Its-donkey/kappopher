@@ -119,27 +119,28 @@ const (
 
 // EventSub subscription types - Channel
 const (
-	EventSubTypeChannelUpdate              = "channel.update"
-	EventSubTypeChannelFollow              = "channel.follow"
-	EventSubTypeChannelAdBreakBegin        = "channel.ad_break.begin"
-	EventSubTypeChannelBitsUse             = "channel.bits.use"
-	EventSubTypeChannelSubscribe           = "channel.subscribe"
-	EventSubTypeChannelSubscriptionEnd     = "channel.subscription.end"
-	EventSubTypeChannelSubscriptionGift    = "channel.subscription.gift"
-	EventSubTypeChannelSubscriptionMessage = "channel.subscription.message"
-	EventSubTypeChannelCheer               = "channel.cheer"
-	EventSubTypeChannelRaid                = "channel.raid"
-	EventSubTypeChannelBan                 = "channel.ban"
-	EventSubTypeChannelUnban               = "channel.unban"
-	EventSubTypeChannelUnbanRequestCreate  = "channel.unban_request.create"
-	EventSubTypeChannelUnbanRequestResolve = "channel.unban_request.resolve"
-	EventSubTypeChannelModerate            = "channel.moderate"
-	EventSubTypeChannelModeratorAdd        = "channel.moderator.add"
-	EventSubTypeChannelModeratorRemove     = "channel.moderator.remove"
-	EventSubTypeChannelVIPAdd              = "channel.vip.add"
-	EventSubTypeChannelVIPRemove           = "channel.vip.remove"
-	EventSubTypeChannelWarningSend         = "channel.warning.send"
-	EventSubTypeChannelWarningAcknowledge  = "channel.warning.acknowledge"
+	EventSubTypeChannelUpdate                     = "channel.update"
+	EventSubTypeChannelFollow                     = "channel.follow"
+	EventSubTypeChannelAdBreakBegin               = "channel.ad_break.begin"
+	EventSubTypeChannelBitsUse                    = "channel.bits.use"
+	EventSubTypeChannelCustomPowerUpRedemptionAdd = "channel.custom_power_up_redemption.add"
+	EventSubTypeChannelSubscribe                  = "channel.subscribe"
+	EventSubTypeChannelSubscriptionEnd            = "channel.subscription.end"
+	EventSubTypeChannelSubscriptionGift           = "channel.subscription.gift"
+	EventSubTypeChannelSubscriptionMessage        = "channel.subscription.message"
+	EventSubTypeChannelCheer                      = "channel.cheer"
+	EventSubTypeChannelRaid                       = "channel.raid"
+	EventSubTypeChannelBan                        = "channel.ban"
+	EventSubTypeChannelUnban                      = "channel.unban"
+	EventSubTypeChannelUnbanRequestCreate         = "channel.unban_request.create"
+	EventSubTypeChannelUnbanRequestResolve        = "channel.unban_request.resolve"
+	EventSubTypeChannelModerate                   = "channel.moderate"
+	EventSubTypeChannelModeratorAdd               = "channel.moderator.add"
+	EventSubTypeChannelModeratorRemove            = "channel.moderator.remove"
+	EventSubTypeChannelVIPAdd                     = "channel.vip.add"
+	EventSubTypeChannelVIPRemove                  = "channel.vip.remove"
+	EventSubTypeChannelWarningSend                = "channel.warning.send"
+	EventSubTypeChannelWarningAcknowledge         = "channel.warning.acknowledge"
 )
 
 // EventSub subscription types - Channel Chat
@@ -302,27 +303,28 @@ var EventSubTypeVersion = map[string]string{
 	EventSubTypeAutomodSettingsUpdate: "1",
 	EventSubTypeAutomodTermsUpdate:    "1",
 	// Channel
-	EventSubTypeChannelUpdate:              "2",
-	EventSubTypeChannelFollow:              "2",
-	EventSubTypeChannelAdBreakBegin:        "1",
-	EventSubTypeChannelBitsUse:             "1",
-	EventSubTypeChannelSubscribe:           "1",
-	EventSubTypeChannelSubscriptionEnd:     "1",
-	EventSubTypeChannelSubscriptionGift:    "1",
-	EventSubTypeChannelSubscriptionMessage: "1",
-	EventSubTypeChannelCheer:               "1",
-	EventSubTypeChannelRaid:                "1",
-	EventSubTypeChannelBan:                 "1",
-	EventSubTypeChannelUnban:               "1",
-	EventSubTypeChannelUnbanRequestCreate:  "1",
-	EventSubTypeChannelUnbanRequestResolve: "1",
-	EventSubTypeChannelModerate:            "2",
-	EventSubTypeChannelModeratorAdd:        "1",
-	EventSubTypeChannelModeratorRemove:     "1",
-	EventSubTypeChannelVIPAdd:              "1",
-	EventSubTypeChannelVIPRemove:           "1",
-	EventSubTypeChannelWarningSend:         "1",
-	EventSubTypeChannelWarningAcknowledge:  "1",
+	EventSubTypeChannelUpdate:                     "2",
+	EventSubTypeChannelFollow:                     "2",
+	EventSubTypeChannelAdBreakBegin:               "1",
+	EventSubTypeChannelBitsUse:                    "1",
+	EventSubTypeChannelCustomPowerUpRedemptionAdd: "1",
+	EventSubTypeChannelSubscribe:                  "1",
+	EventSubTypeChannelSubscriptionEnd:            "1",
+	EventSubTypeChannelSubscriptionGift:           "1",
+	EventSubTypeChannelSubscriptionMessage:        "1",
+	EventSubTypeChannelCheer:                      "1",
+	EventSubTypeChannelRaid:                       "1",
+	EventSubTypeChannelBan:                        "1",
+	EventSubTypeChannelUnban:                      "1",
+	EventSubTypeChannelUnbanRequestCreate:         "1",
+	EventSubTypeChannelUnbanRequestResolve:        "1",
+	EventSubTypeChannelModerate:                   "2",
+	EventSubTypeChannelModeratorAdd:               "1",
+	EventSubTypeChannelModeratorRemove:            "1",
+	EventSubTypeChannelVIPAdd:                     "1",
+	EventSubTypeChannelVIPRemove:                  "1",
+	EventSubTypeChannelWarningSend:                "1",
+	EventSubTypeChannelWarningAcknowledge:         "1",
 	// Chat
 	EventSubTypeChannelChatClear:             "1",
 	EventSubTypeChannelChatClearUserMessages: "1",
