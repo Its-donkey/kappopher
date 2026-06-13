@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `GetEventSubSubscriptionsParams.SubscriptionID` (`subscription_id`) and `GetEventSubSubscriptionsParams.ConduitID` (`conduit_id`) filters for `GetEventSubSubscriptions`
 
 ### Changed
+- Deprecated `GetHypeTrainEvents`, `GetHypeTrainEventsParams`, `HypeTrainEvent`, and `HypeTrainEventData`: Twitch removed the "Get Hype Train Events" endpoint on 2026-02-05 (any live call now returns `404`). Use `GetHypeTrainStatus` instead. These will be removed in the next major release.
 
 ### Fixed
 
