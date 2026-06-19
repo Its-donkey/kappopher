@@ -1,5 +1,5 @@
 Changelog | Twitch Developers
-{"description":"Documentation Changelog","url":"https://dev.twitch.tv/change-log/","@type":"BlogPosting","headline":"Changelog","dateModified":"2026-06-16T14:45:37-07:00","datePublished":"2026-06-16T14:45:37-07:00","image":"https://dev.twitch.tv/marketing-assets/images/TwitchDev.png","mainEntityOfPage":{"@type":"WebPage","@id":"https://dev.twitch.tv/change-log/"},"@context":"http://schema.org"}
+{"description":"Documentation Changelog","url":"https://dev.twitch.tv/change-log/","@type":"BlogPosting","headline":"Changelog","dateModified":"2026-06-18T11:51:36-07:00","datePublished":"2026-06-18T11:51:36-07:00","image":"https://dev.twitch.tv/marketing-assets/images/TwitchDev.png","mainEntityOfPage":{"@type":"WebPage","@id":"https://dev.twitch.tv/change-log/"},"@context":"http://schema.org"}
 window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
@@ -32,6 +32,9 @@ Product Lifecycle
 Documentation Changelog
 Date
 Documentation Changes
+2026&#8209;06&#8209;18
+The maximum amount of shards that can be updated at a single time using the Update Conduit Shards API is now publicly stated as 100.
+Added viewermilestone and modiversary message types to IRC’s USERNOTICE Tags, representing Watch Streaks and Modiversary respectively.
 2026&#8209;06&#8209;12
 V1 of the channel.chat.notification EventSub subscription type has been updated to include modiversary and shared_chat_modiversary.
 The legacy PubSub migration guide has been removed.
@@ -1731,7 +1734,6 @@ $heading.attr("id",headingtext );
 });
 });
 Docs
-Status
 Support
 Showcase
 Blog
