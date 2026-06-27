@@ -1,5 +1,5 @@
 Changelog | Twitch Developers
-{"description":"Documentation Changelog","url":"https://dev.twitch.tv/change-log/","@type":"BlogPosting","headline":"Changelog","dateModified":"2026-06-25T16:12:02-07:00","datePublished":"2026-06-25T16:12:02-07:00","image":"https://dev.twitch.tv/marketing-assets/images/TwitchDev.png","mainEntityOfPage":{"@type":"WebPage","@id":"https://dev.twitch.tv/change-log/"},"@context":"http://schema.org"}
+{"description":"Documentation Changelog","url":"https://dev.twitch.tv/change-log/","@type":"BlogPosting","headline":"Changelog","dateModified":"2026-06-26T14:31:08-07:00","datePublished":"2026-06-26T14:31:08-07:00","image":"https://dev.twitch.tv/marketing-assets/images/TwitchDev.png","mainEntityOfPage":{"@type":"WebPage","@id":"https://dev.twitch.tv/change-log/"},"@context":"http://schema.org"}
 window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
@@ -32,6 +32,8 @@ Product Lifecycle
 Documentation Changelog
 Date
 Documentation Changes
+2026&#8209;06&#8209;26
+V1 of the stream.offline EventSub subscription type has been updated to include the id parameter in the event payload.
 2026&#8209;06&#8209;25
 Get Creator Goals API was updated to include the following goal types:
 new_bit
