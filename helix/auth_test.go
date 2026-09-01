@@ -109,6 +109,7 @@ func TestNewAuthClient(t *testing.T) {
 	config := AuthConfig{
 		ClientID:     "test-client-id",
 		ClientSecret: "test-secret",
+		ClientType:   ConfidentialClient,
 		RedirectURI:  "http://localhost/callback",
 		Scopes:       []string{"chat:read"},
 	}
@@ -423,6 +424,28 @@ func TestAuthClient_PollDeviceToken(t *testing.T) {
 	}
 }
 
+func TestAuthClient_PollDeviceToken_PublicClient(t *testing.T) {
+	// Test without client secret
+	serverWithoutSecret := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		if r.Form.Has("client_secret") {
+			t.Error("expected client_secret to be missing")
+		}
+		resp := Token{AccessToken: "token", TokenType: "bearer", ExpiresIn: 3600}
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer serverWithoutSecret.Close()
+
+	client5 := NewAuthClient(AuthConfig{ClientID: "test-client", ClientType: PublicClient})
+	client5.SetHTTPClient(serverWithoutSecret.Client())
+	client5.SetEndpoints(serverWithoutSecret.URL, "", "", "", "", "", "")
+
+	_, err := client5.PollDeviceToken(context.Background(), "device-code")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestAuthClient_RefreshToken(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -458,6 +481,15 @@ func TestAuthClient_RefreshToken(t *testing.T) {
 				t.Errorf("expected error %v, got %v", tt.expectError, err)
 			}
 		})
+	}
+}
+
+func TestAuthClient_RefreshToken_PublicClient(t *testing.T) {
+	// Test without client secret
+	client := NewAuthClient(AuthConfig{ClientID: "client", ClientType: PublicClient})
+	_, err := client.RefreshToken(context.Background(), "refresh")
+	if err == ErrMissingClientSecret {
+		t.Errorf("expected error not to be %v", err)
 	}
 }
 
@@ -1025,6 +1057,96 @@ func TestAuthClient_RefreshCurrentToken_Success(t *testing.T) {
 	client := NewAuthClient(AuthConfig{
 		ClientID:     "wbmytr93xzw8zbg0p1izqyzzc5mbiz",
 		ClientSecret: "test-secret",
+	})
+	client.SetHTTPClient(server.Client())
+	client.SetEndpoints(server.URL, "", "", "", "", "", "")
+	client.SetToken(&Token{AccessToken: "old-token", RefreshToken: "5b93chm6hdve3mycz05zfzatkfdenfspp1h1ar2xxdalen01"})
+
+	token, err := client.RefreshCurrentToken(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if token.AccessToken != "rfx2uswqe8l4g1mkagrvg5tv0ks3" {
+		t.Errorf("expected rfx2uswqe8l4g1mkagrvg5tv0ks3, got %s", token.AccessToken)
+	}
+
+	// Verify token was updated on client
+	storedToken := client.GetToken()
+	if storedToken.AccessToken != "rfx2uswqe8l4g1mkagrvg5tv0ks3" {
+		t.Error("token should be updated on client")
+	}
+}
+
+func TestAuthClient_RefreshToken_Success_PublicClient(t *testing.T) {
+	// Using official Twitch documentation values for Refresh Token Flow (public client)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		if r.Form.Get("grant_type") != "refresh_token" {
+			t.Errorf("expected grant_type refresh_token, got %s", r.Form.Get("grant_type"))
+		}
+		resp := Token{
+			AccessToken:  "rfx2uswqe8l4g1mkagrvg5tv0ks3",
+			RefreshToken: "5b93chm6hdve3mycz05zfzatkfdenfspp1h1ar2xxdalen01",
+			TokenType:    "bearer",
+			ExpiresIn:    14124,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	client := NewAuthClient(AuthConfig{
+		ClientID:     "wbmytr93xzw8zbg0p1izqyzzc5mbiz",
+		ClientType: PublicClient,
+	})
+	client.SetHTTPClient(server.Client())
+	client.SetEndpoints(server.URL, "", "", "", "", "", "")
+
+	token, err := client.RefreshToken(context.Background(), "5b93chm6hdve3mycz05zfzatkfdenfspp1h1ar2xxdalen01")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if token.AccessToken != "rfx2uswqe8l4g1mkagrvg5tv0ks3" {
+		t.Errorf("expected rfx2uswqe8l4g1mkagrvg5tv0ks3, got %s", token.AccessToken)
+	}
+}
+
+func TestAuthClient_RefreshToken_InvalidRefresh_PublicClient(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		resp := AuthErrorResponse{Message: "Invalid refresh token"}
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	client := NewAuthClient(AuthConfig{
+		ClientID:     "test-client",
+		ClientType: PublicClient,
+	})
+	client.SetHTTPClient(server.Client())
+	client.SetEndpoints(server.URL, "", "", "", "", "", "")
+
+	_, err := client.RefreshToken(context.Background(), "bad-refresh-token")
+	if err != ErrInvalidRefreshToken {
+		t.Errorf("expected ErrInvalidRefreshToken, got %v", err)
+	}
+}
+
+func TestAuthClient_RefreshCurrentToken_Success_PublicClient(t *testing.T) {
+	// Using official Twitch documentation values for Refresh Token Flow (public client)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := Token{
+			AccessToken:  "rfx2uswqe8l4g1mkagrvg5tv0ks3",
+			RefreshToken: "5b93chm6hdve3mycz05zfzatkfdenfspp1h1ar2xxdalen01",
+			TokenType:    "bearer",
+			ExpiresIn:    14124,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	client := NewAuthClient(AuthConfig{
+		ClientID:     "wbmytr93xzw8zbg0p1izqyzzc5mbiz",
+		ClientType: PublicClient,
 	})
 	client.SetHTTPClient(server.Client())
 	client.SetEndpoints(server.URL, "", "", "", "", "", "")
