@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - CI: added a stable `Test Pass` aggregate job (gates on the `Test` matrix) so branch protection can require a version-independent status check. This prevents the required check from going stale whenever the Go version matrix changes (as happened when `Test (1.24)` was retired for `Test (1.26)`).
+- Applied `go fix`: rewrote an in-loop string concatenation in `whispers_test.go` to use `strings.Builder` (Go 1.26 fixer). Test-only; no library behavior change.
 - `RefreshToken` and `PollDeviceToken` methods to allow to refresh an access token received when finishing a "Device Code Flow" for authentication using a public client (only possible for confidential clients till now).
 - `TestNewAuthClient`, to add the newly added `ClientType` in `AuthConfig`.
 - `auth.md` documentation to cover usage of both types of clients, public and confidential, when following the "Device Code Flow" for authentication.
