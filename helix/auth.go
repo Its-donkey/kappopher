@@ -117,10 +117,19 @@ type AuthErrorResponse struct {
 	Error   string `json:"error,omitempty"`
 }
 
+// AuthClientType represents the type of an OAuth client.
+type AuthClientType int
+// AuthClientType possible values, according to RFC 6749 (https://datatracker.ietf.org/doc/html/rfc6749#section-2.1).
+const (
+	ConfidentialClient AuthClientType = iota
+	PublicClient
+)
+
 // AuthConfig holds the configuration for OAuth.
 type AuthConfig struct {
 	ClientID     string
 	ClientSecret string
+	ClientType   AuthClientType
 	RedirectURI  string
 	Scopes       []string
 	ForceVerify  bool
@@ -337,7 +346,7 @@ func (c *AuthClient) PollDeviceToken(ctx context.Context, deviceCode string) (*T
 		"scopes":      {strings.Join(c.config.Scopes, " ")},
 	}
 
-	if c.config.ClientSecret != "" {
+	if c.config.ClientType == ConfidentialClient && c.config.ClientSecret != "" {
 		data.Set("client_secret", c.config.ClientSecret)
 	}
 
@@ -396,7 +405,7 @@ func (c *AuthClient) RefreshToken(ctx context.Context, refreshToken string) (*To
 	if c.config.ClientID == "" {
 		return nil, ErrMissingClientID
 	}
-	if c.config.ClientSecret == "" {
+	if c.config.ClientType == ConfidentialClient && c.config.ClientSecret == "" {
 		return nil, ErrMissingClientSecret
 	}
 	if refreshToken == "" {
@@ -408,6 +417,10 @@ func (c *AuthClient) RefreshToken(ctx context.Context, refreshToken string) (*To
 		"client_secret": {c.config.ClientSecret},
 		"grant_type":    {"refresh_token"},
 		"refresh_token": {refreshToken},
+	}
+
+	if c.config.ClientType == PublicClient {
+		data.Del("client_secret")
 	}
 
 	token, err := c.requestToken(ctx, data)
