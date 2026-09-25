@@ -61,7 +61,7 @@ jobs:
           echo "target=$TARGET_BRANCH" >> $GITHUB_OUTPUT
           echo "📌 Source: $SOURCE_BRANCH -> Target: $TARGET_BRANCH"
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ steps.branches.outputs.source }}
           fetch-depth: 0
@@ -327,7 +327,7 @@ jobs:
           echo "target=$TARGET_BRANCH" >> $GITHUB_OUTPUT
           echo "📌 Archiving target branch: $TARGET_BRANCH"
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
