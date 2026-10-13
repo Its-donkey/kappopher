@@ -114,6 +114,35 @@ fmt.Printf("App Access Token: %s\n", token.AccessToken)
 
 For devices with limited input capabilities (TVs, game consoles, CLI tools).
 
+Device Code Flow (DCF) allows for public and confidential client types. The major [differences](https://datatracker.ietf.org/doc/html/rfc6749#section-2.1) between a public and confidential client type is that public clients:
+
+- Do not need to maintain a client secret.
+- Can refresh an access token without passing a client secret.
+- Are only limited to the usage of DCF to obtain OAuth tokens and cannot use any of the other flows.
+
+### Setup by client type
+
+#### Confidential client
+
+```go
+auth := helix.NewAuthClient(helix.AuthConfig{
+    ClientID:     "your-client-id",
+    ClientSecret: "your-client-secret",
+    ClientType:   helix.ConfidentialClient, // Can be omitted (default value).
+    Scopes:       []string{helix.ScopeChatRead, helix.ScopeChatEdit},
+})
+```
+
+#### Public client
+
+```go
+auth := helix.NewAuthClient(helix.AuthConfig{
+    ClientID:     "your-client-id",
+    ClientType:   helix.PublicClient,
+    Scopes:       []string{helix.ScopeChatRead, helix.ScopeChatEdit},
+})
+```
+
 ### GetDeviceCode
 
 Initiate the device authorization flow.
@@ -127,7 +156,7 @@ fmt.Printf("Go to: %s\n", deviceCode.VerificationURI)
 fmt.Printf("Enter code: %s\n", deviceCode.UserCode)
 ```
 
-**Sample Response:**
+**Sample Response for a confidential client:**
 ```json
 {
   "device_code": "d3f2a1b0c9e8d7f6a5b4c3d2e1f0a9b8",
@@ -135,6 +164,17 @@ fmt.Printf("Enter code: %s\n", deviceCode.UserCode)
   "interval": 5,
   "user_code": "ABCD-1234",
   "verification_uri": "https://www.twitch.tv/activate"
+}
+```
+
+**Sample Response for a public client:**
+```json
+{
+  "device_code": "d3f2a1b0c9e8d7f6a5b4c3d2e1f0a9b8",
+  "expires_in": 1800,
+  "interval": 5,
+  "user_code": "ABCD-1234",
+  "verification_uri": "https://www.twitch.tv/activate?device-code=ABCD-1234"
 }
 ```
 
