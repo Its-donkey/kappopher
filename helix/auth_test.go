@@ -109,6 +109,7 @@ func TestNewAuthClient(t *testing.T) {
 	config := AuthConfig{
 		ClientID:     "test-client-id",
 		ClientSecret: "test-secret",
+		ClientType:   ConfidentialClient,
 		RedirectURI:  "http://localhost/callback",
 		Scopes:       []string{"chat:read"},
 	}
@@ -119,6 +120,9 @@ func TestNewAuthClient(t *testing.T) {
 	}
 	if client.config.ClientID != "test-client-id" {
 		t.Errorf("expected client_id test-client-id, got %s", client.config.ClientID)
+	}
+	if client.config.ClientType != ConfidentialClient {
+		t.Errorf("expected ClientType ConfidentialClient, got %d", client.config.ClientType)
 	}
 }
 
@@ -257,6 +261,12 @@ func TestAuthClient_ExchangeCode(t *testing.T) {
 			code:        "",
 			expectError: ErrMissingCode,
 		},
+		{
+			name:        "public client not supported",
+			config:      AuthConfig{ClientID: "client", ClientSecret: "secret", ClientType: PublicClient},
+			code:        "code",
+			expectError: ErrPublicClientFlowNotSupported,
+		},
 	}
 
 	for _, tt := range tests {
@@ -285,6 +295,11 @@ func TestAuthClient_GetAppAccessToken(t *testing.T) {
 			name:        "missing client secret",
 			config:      AuthConfig{ClientID: "client"},
 			expectError: ErrMissingClientSecret,
+		},
+		{
+			name:        "public client not supported",
+			config:      AuthConfig{ClientID: "client", ClientSecret: "secret", ClientType: PublicClient},
+			expectError: ErrPublicClientFlowNotSupported,
 		},
 	}
 
@@ -423,6 +438,44 @@ func TestAuthClient_PollDeviceToken(t *testing.T) {
 	}
 }
 
+func TestAuthClient_PollDeviceToken_PublicClient(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		if r.Form.Has("client_secret") {
+			t.Error("expected client_secret to be missing")
+		}
+		resp := Token{AccessToken: "token", TokenType: "bearer", ExpiresIn: 3600}
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	tests := []struct {
+		name   string
+		config AuthConfig
+	}{
+		{
+			name:   "without client secret",
+			config: AuthConfig{ClientID: "test-client", ClientType: PublicClient},
+		},
+		{
+			name:   "with client secret",
+			config: AuthConfig{ClientID: "test-client", ClientSecret: "secret", ClientType: PublicClient},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := NewAuthClient(tt.config)
+			client.SetHTTPClient(server.Client())
+			client.SetEndpoints(server.URL, "", "", "", "", "", "")
+			_, err := client.PollDeviceToken(context.Background(), "device-code")
+			if err != nil {
+				t.Errorf("unexpected error %v", err)
+			}
+		})
+	}
+}
+
 func TestAuthClient_RefreshToken(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -458,6 +511,55 @@ func TestAuthClient_RefreshToken(t *testing.T) {
 				t.Errorf("expected error %v, got %v", tt.expectError, err)
 			}
 		})
+	}
+}
+
+func TestAuthClient_RefreshToken_PublicClient(t *testing.T) {
+	// Test missing client ID
+	client := NewAuthClient(AuthConfig{ClientType: PublicClient})
+	_, err := client.RefreshToken(context.Background(), "refresh")
+	if err != ErrMissingClientID {
+		t.Fatalf("expected ErrMissingClientID, got %v", err)
+	}
+
+	// Test without client secret
+	serverWithoutSecret := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		if r.Form.Has("client_secret") {
+			t.Error("expected client_secret to be missing")
+		}
+		resp := Token{AccessToken: "token", TokenType: "bearer", ExpiresIn: 3600}
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer serverWithoutSecret.Close()
+
+	client2 := NewAuthClient(AuthConfig{ClientID: "test-client", ClientType: PublicClient})
+	client2.SetHTTPClient(serverWithoutSecret.Client())
+	client2.SetEndpoints(serverWithoutSecret.URL, "", "", "", "", "", "")
+
+	_, err = client2.RefreshToken(context.Background(), "refresh")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Test with client secret
+	serverWithSecret := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		if r.Form.Has("client_secret") {
+			t.Error("expected client_secret to be missing")
+		}
+		resp := Token{AccessToken: "token", TokenType: "bearer", ExpiresIn: 3600}
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer serverWithSecret.Close()
+
+	client3 := NewAuthClient(AuthConfig{ClientID: "test-client", ClientSecret: "secret", ClientType: PublicClient})
+	client3.SetHTTPClient(serverWithSecret.Client())
+	client3.SetEndpoints(serverWithSecret.URL, "", "", "", "", "", "")
+
+	_, err = client3.RefreshToken(context.Background(), "refresh")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
@@ -752,6 +854,12 @@ func TestAuthClient_ExchangeCodeForOIDCToken(t *testing.T) {
 			code:        "",
 			expectError: ErrMissingCode,
 		},
+		{
+			name:        "public client not supported",
+			config:      AuthConfig{ClientID: "client", ClientSecret: "secret", ClientType: PublicClient},
+			code:        "code",
+			expectError: ErrPublicClientFlowNotSupported,
+		},
 	}
 
 	for _, tt := range tests {
@@ -962,6 +1070,9 @@ func TestAuthClient_RefreshToken_Success(t *testing.T) {
 		if r.Form.Get("grant_type") != "refresh_token" {
 			t.Errorf("expected grant_type refresh_token, got %s", r.Form.Get("grant_type"))
 		}
+		if r.Form.Get("client_secret") != "test-secret" {
+			t.Errorf("expected client_secret test-secret, got %s", r.Form.Get("client_secret"))
+		}
 		resp := Token{
 			AccessToken:  "rfx2uswqe8l4g1mkagrvg5tv0ks3",
 			RefreshToken: "5b93chm6hdve3mycz05zfzatkfdenfspp1h1ar2xxdalen01",
@@ -1025,6 +1136,104 @@ func TestAuthClient_RefreshCurrentToken_Success(t *testing.T) {
 	client := NewAuthClient(AuthConfig{
 		ClientID:     "wbmytr93xzw8zbg0p1izqyzzc5mbiz",
 		ClientSecret: "test-secret",
+	})
+	client.SetHTTPClient(server.Client())
+	client.SetEndpoints(server.URL, "", "", "", "", "", "")
+	client.SetToken(&Token{AccessToken: "old-token", RefreshToken: "5b93chm6hdve3mycz05zfzatkfdenfspp1h1ar2xxdalen01"})
+
+	token, err := client.RefreshCurrentToken(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if token.AccessToken != "rfx2uswqe8l4g1mkagrvg5tv0ks3" {
+		t.Errorf("expected rfx2uswqe8l4g1mkagrvg5tv0ks3, got %s", token.AccessToken)
+	}
+
+	// Verify token was updated on client
+	storedToken := client.GetToken()
+	if storedToken.AccessToken != "rfx2uswqe8l4g1mkagrvg5tv0ks3" {
+		t.Error("token should be updated on client")
+	}
+}
+
+func TestAuthClient_RefreshToken_Success_PublicClient(t *testing.T) {
+	// Using official Twitch documentation values for Refresh Token Flow (public client)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		if r.Form.Get("grant_type") != "refresh_token" {
+			t.Errorf("expected grant_type refresh_token, got %s", r.Form.Get("grant_type"))
+		}
+		if r.Form.Has("client_secret") {
+			t.Error("expected client_secret to be missing")
+		}
+		resp := Token{
+			AccessToken:  "rfx2uswqe8l4g1mkagrvg5tv0ks3",
+			RefreshToken: "5b93chm6hdve3mycz05zfzatkfdenfspp1h1ar2xxdalen01",
+			TokenType:    "bearer",
+			ExpiresIn:    14124,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	client := NewAuthClient(AuthConfig{
+		ClientID:     "wbmytr93xzw8zbg0p1izqyzzc5mbiz",
+		ClientType: PublicClient,
+	})
+	client.SetHTTPClient(server.Client())
+	client.SetEndpoints(server.URL, "", "", "", "", "", "")
+
+	token, err := client.RefreshToken(context.Background(), "5b93chm6hdve3mycz05zfzatkfdenfspp1h1ar2xxdalen01")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if token.AccessToken != "rfx2uswqe8l4g1mkagrvg5tv0ks3" {
+		t.Errorf("expected rfx2uswqe8l4g1mkagrvg5tv0ks3, got %s", token.AccessToken)
+	}
+}
+
+func TestAuthClient_RefreshToken_InvalidRefresh_PublicClient(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		resp := AuthErrorResponse{Message: "Invalid refresh token"}
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	client := NewAuthClient(AuthConfig{
+		ClientID:     "test-client",
+		ClientType: PublicClient,
+	})
+	client.SetHTTPClient(server.Client())
+	client.SetEndpoints(server.URL, "", "", "", "", "", "")
+
+	_, err := client.RefreshToken(context.Background(), "bad-refresh-token")
+	if err != ErrInvalidRefreshToken {
+		t.Errorf("expected ErrInvalidRefreshToken, got %v", err)
+	}
+}
+
+func TestAuthClient_RefreshCurrentToken_Success_PublicClient(t *testing.T) {
+	// Using official Twitch documentation values for Refresh Token Flow (public client)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		if r.Form.Has("client_secret") {
+			t.Error("expected client_secret to be missing")
+		}
+
+		resp := Token{
+			AccessToken:  "rfx2uswqe8l4g1mkagrvg5tv0ks3",
+			RefreshToken: "5b93chm6hdve3mycz05zfzatkfdenfspp1h1ar2xxdalen01",
+			TokenType:    "bearer",
+			ExpiresIn:    14124,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	client := NewAuthClient(AuthConfig{
+		ClientID:     "wbmytr93xzw8zbg0p1izqyzzc5mbiz",
+		ClientType: PublicClient,
 	})
 	client.SetHTTPClient(server.Client())
 	client.SetEndpoints(server.URL, "", "", "", "", "", "")
