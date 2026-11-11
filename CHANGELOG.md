@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-## [1.5.1] - 2026-11-11
+## [1.5.1] - 2026-11-11 ([#105](https://github.com/Its-donkey/kappopher/pull/105))
 
 ### Added
 - `AuthClientType` with `ConfidentialClient` (the default) and `PublicClient`, set through the new `AuthConfig.ClientType`. Public clients have no client secret and can only use the Device Code Flow ([#100](https://github.com/Its-donkey/kappopher/issues/100))
