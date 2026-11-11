@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-## [1.5.0] - 2026-11-11
+## [1.5.0] - 2026-11-11 ([#103](https://github.com/Its-donkey/kappopher/pull/103))
 
 ### Added
 - `HypeTrainCurrent` and `HypeTrainRecord` types for the Get Hype Train Status response
