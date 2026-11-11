@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+## [1.5.2] - 2026-11-11
+
+### Added
 - EventSub status constants `EventSubStatusChatUserBanned` (`chat_user_banned`), `EventSubStatusGuestStarModeratorRemoved` (`guest_star_moderator_removed`) and `EventSubStatusConduitDeleted` (`conduit_deleted`), from Twitch's 2026-11-10 docs changelog
 
 ### Changed
