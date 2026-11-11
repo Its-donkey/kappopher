@@ -230,13 +230,15 @@ Update the shards for a conduit.
 
 **Requires:** App access token
 
+Twitch accepts at most 100 shards per request (`helix.MaxConduitShardsPerUpdate`); `UpdateConduitShards` returns an error without sending the request if `Shards` holds more, so split larger updates into batches.
+
 ```go
 resp, err := client.UpdateConduitShards(ctx, &helix.UpdateConduitShardsParams{
     ConduitID: "your-conduit-id",
-    Shards: []helix.ConduitShardUpdate{
+    Shards: []helix.UpdateConduitShardParams{
         {
             ID: "0",
-            Transport: helix.ConduitShardTransport{
+            Transport: helix.UpdateConduitShardTransport{
                 Method:   "webhook",
                 Callback: "https://example.com/webhook",
                 Secret:   "your-webhook-secret",
@@ -244,7 +246,7 @@ resp, err := client.UpdateConduitShards(ctx, &helix.UpdateConduitShardsParams{
         },
         {
             ID: "1",
-            Transport: helix.ConduitShardTransport{
+            Transport: helix.UpdateConduitShardTransport{
                 Method:    "websocket",
                 SessionID: "your-session-id",
             },

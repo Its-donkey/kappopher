@@ -299,12 +299,9 @@ func main() {
             fmt.Printf("🚂 Level %d: %d/%d (%.1f%%)\n", e.Level, e.Progress, e.Goal, progress)
             fmt.Printf("   Total: %d\n", e.Total)
 
-            // Show latest contribution
-            if e.LastContribution.UserName != "" {
-                fmt.Printf("   Latest: %s contributed %d via %s\n",
-                    e.LastContribution.UserName,
-                    e.LastContribution.Total,
-                    e.LastContribution.Type)
+            // Show top contributors (v2 does not send last_contribution)
+            for _, c := range e.TopContributions {
+                fmt.Printf("   Top: %s contributed %d via %s\n", c.UserName, c.Total, c.Type)
             }
         },
     )
