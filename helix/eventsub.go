@@ -22,6 +22,9 @@ type EventSubSubscription struct {
 	CreatedAt time.Time         `json:"created_at"`
 	Transport EventSubTransport `json:"transport"`
 	Cost      int               `json:"cost"`
+	// IsBatchingEnabled reports whether Twitch batches this subscription's
+	// notifications (drop.entitlement.grant).
+	IsBatchingEnabled bool `json:"is_batching_enabled,omitempty"`
 }
 
 // EventSubTransport represents the transport for an EventSub subscription.
@@ -55,7 +58,8 @@ type EventSubResponse struct {
 }
 
 // GetEventSubSubscriptions gets EventSub subscriptions.
-// Requires: App access token.
+// Requires: app access token for webhook and conduit subscriptions, or a user access
+// token for the WebSocket subscriptions that user created.
 func (c *Client) GetEventSubSubscriptions(ctx context.Context, params *GetEventSubSubscriptionsParams) (*EventSubResponse, error) {
 	q := url.Values{}
 	if params != nil {
@@ -90,6 +94,9 @@ type CreateEventSubSubscriptionParams struct {
 	Version   string                  `json:"version"`
 	Condition map[string]string       `json:"condition"`
 	Transport CreateEventSubTransport `json:"transport"`
+	// IsBatchingEnabled batches notifications; drop.entitlement.grant requires
+	// it to be true.
+	IsBatchingEnabled bool `json:"is_batching_enabled,omitempty"`
 }
 
 // CreateEventSubTransport represents the transport when creating a subscription.
@@ -166,7 +173,8 @@ func existingSubscriptionID(er ErrorResponse) string {
 }
 
 // DeleteEventSubSubscription deletes an EventSub subscription.
-// Requires: App access token.
+// Requires: app access token for webhook and conduit subscriptions, or a user access
+// token for a WebSocket subscription that user created.
 func (c *Client) DeleteEventSubSubscription(ctx context.Context, subscriptionID string) error {
 	q := url.Values{}
 	q.Set("id", subscriptionID)

@@ -174,6 +174,9 @@ type Response[T any] struct {
 	Total        *int        `json:"total,omitempty"`
 	TotalCost    *int        `json:"total_cost,omitempty"`
 	MaxTotalCost *int        `json:"max_total_cost,omitempty"`
+	// Template is the emote image URL template, returned by Get Channel
+	// Emotes, Get Global Emotes and Get Emote Sets.
+	Template string `json:"template,omitempty"`
 }
 
 // Pagination contains pagination information.

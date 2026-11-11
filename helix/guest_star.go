@@ -3,6 +3,7 @@ package helix
 import (
 	"context"
 	"net/url"
+	"strconv"
 )
 
 // GuestStarSettings represents channel Guest Star settings.
@@ -60,15 +61,17 @@ type GuestStarSession struct {
 
 // GuestStarGuest represents a guest in a Guest Star session.
 type GuestStarGuest struct {
-	SlotID          string                 `json:"slot_id"`
-	IsLive          bool                   `json:"is_live"`
-	UserID          string                 `json:"user_id"`
-	UserDisplayName string                 `json:"user_display_name"`
-	UserLogin       string                 `json:"user_login"`
-	Volume          int                    `json:"volume"`
-	AssignedAt      string                 `json:"assigned_at"`
-	AudioSettings   GuestStarAudioSettings `json:"audio"`
-	VideoSettings   GuestStarVideoSettings `json:"video"`
+	SlotID string `json:"slot_id"`
+	IsLive bool   `json:"is_live"`
+	UserID string `json:"user_id"`
+	// Deprecated: no longer in the Twitch docs for Guest Star sessions.
+	UserDisplayName string `json:"user_display_name"`
+	// Deprecated: no longer in the Twitch docs for Guest Star sessions.
+	UserLogin     string                 `json:"user_login"`
+	Volume        int                    `json:"volume"`
+	AssignedAt    string                 `json:"assigned_at"`
+	AudioSettings GuestStarAudioSettings `json:"audio"`
+	VideoSettings GuestStarVideoSettings `json:"video"`
 }
 
 // GuestStarAudioSettings represents audio settings for a guest.
@@ -223,9 +226,7 @@ func (c *Client) UpdateGuestStarSlot(ctx context.Context, params *UpdateGuestSta
 	q.Set("moderator_id", params.ModeratorID)
 	q.Set("session_id", params.SessionID)
 	q.Set("source_slot_id", params.SourceSlotID)
-	if params.DestinationSlotID != "" {
-		q.Set("destination_slot_id", params.DestinationSlotID)
-	}
+	q.Set("destination_slot_id", params.DestinationSlotID)
 
 	return c.patch(ctx, "/guest_star/slot", q, nil, nil)
 }
@@ -234,12 +235,41 @@ func (c *Client) UpdateGuestStarSlot(ctx context.Context, params *UpdateGuestSta
 // Requires: channel:manage:guest_star or moderator:manage:guest_star scope.
 // Note: This is a BETA endpoint.
 func (c *Client) DeleteGuestStarSlot(ctx context.Context, broadcasterID, moderatorID, sessionID, guestID, slotID string) error {
+	return c.DeleteGuestStarSlotWithParams(ctx, &DeleteGuestStarSlotParams{
+		BroadcasterID: broadcasterID,
+		ModeratorID:   moderatorID,
+		SessionID:     sessionID,
+		GuestID:       guestID,
+		SlotID:        slotID,
+	})
+}
+
+// DeleteGuestStarSlotParams contains parameters for DeleteGuestStarSlotWithParams.
+type DeleteGuestStarSlotParams struct {
+	BroadcasterID string
+	ModeratorID   string
+	SessionID     string
+	GuestID       string
+	SlotID        string
+	// ShouldReinviteGuest re-invites the removed guest to the session's
+	// waiting room when true.
+	ShouldReinviteGuest *bool
+}
+
+// DeleteGuestStarSlotWithParams removes a guest from a slot, optionally
+// re-inviting them.
+// Requires: channel:manage:guest_star or moderator:manage:guest_star scope.
+// Note: This is a BETA endpoint.
+func (c *Client) DeleteGuestStarSlotWithParams(ctx context.Context, params *DeleteGuestStarSlotParams) error {
 	q := url.Values{}
-	q.Set("broadcaster_id", broadcasterID)
-	q.Set("moderator_id", moderatorID)
-	q.Set("session_id", sessionID)
-	q.Set("guest_id", guestID)
-	q.Set("slot_id", slotID)
+	q.Set("broadcaster_id", params.BroadcasterID)
+	q.Set("moderator_id", params.ModeratorID)
+	q.Set("session_id", params.SessionID)
+	q.Set("guest_id", params.GuestID)
+	q.Set("slot_id", params.SlotID)
+	if params.ShouldReinviteGuest != nil {
+		q.Set("should_reinvite_guest", strconv.FormatBool(*params.ShouldReinviteGuest))
+	}
 
 	return c.delete(ctx, "/guest_star/slot", q, nil)
 }
@@ -250,10 +280,11 @@ type UpdateGuestStarSlotSettingsParams struct {
 	ModeratorID    string `json:"-"`
 	SessionID      string `json:"-"`
 	SlotID         string `json:"-"`
-	IsAudioEnabled *bool  `json:"is_audio_enabled,omitempty"`
-	IsVideoEnabled *bool  `json:"is_video_enabled,omitempty"`
-	IsLive         *bool  `json:"is_live,omitempty"`
-	Volume         *int   `json:"volume,omitempty"`
+	IsAudioEnabled *bool  `json:"-"`
+	IsVideoEnabled *bool  `json:"-"`
+	IsLive         *bool  `json:"-"`
+	// Deprecated: Twitch does not support setting the volume; it is not sent.
+	Volume *int `json:"-"`
 }
 
 // UpdateGuestStarSlotSettings updates the settings for a Guest Star slot.
@@ -265,6 +296,15 @@ func (c *Client) UpdateGuestStarSlotSettings(ctx context.Context, params *Update
 	q.Set("moderator_id", params.ModeratorID)
 	q.Set("session_id", params.SessionID)
 	q.Set("slot_id", params.SlotID)
+	if params.IsAudioEnabled != nil {
+		q.Set("is_audio_enabled", strconv.FormatBool(*params.IsAudioEnabled))
+	}
+	if params.IsVideoEnabled != nil {
+		q.Set("is_video_enabled", strconv.FormatBool(*params.IsVideoEnabled))
+	}
+	if params.IsLive != nil {
+		q.Set("is_live", strconv.FormatBool(*params.IsLive))
+	}
 
-	return c.patch(ctx, "/guest_star/slot_settings", q, params, nil)
+	return c.patch(ctx, "/guest_star/slot_settings", q, nil, nil)
 }

@@ -3,6 +3,7 @@ package helix
 import (
 	"context"
 	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -22,10 +23,11 @@ type BitsLeaderboardResponse struct {
 	Total     int               `json:"total"`
 }
 
-// DateRange represents a date range.
+// DateRange represents a date range. Twitch sends empty strings when the
+// request has no started_at, which decode to unset values.
 type DateRange struct {
-	StartedAt time.Time `json:"started_at"`
-	EndedAt   time.Time `json:"ended_at"`
+	StartedAt NullableTime `json:"started_at"`
+	EndedAt   NullableTime `json:"ended_at"`
 }
 
 // GetBitsLeaderboardParams contains parameters for GetBitsLeaderboard.
@@ -42,7 +44,7 @@ func (c *Client) GetBitsLeaderboard(ctx context.Context, params *GetBitsLeaderbo
 	q := url.Values{}
 	if params != nil {
 		if params.Count > 0 {
-			q.Set("count", url.QueryEscape(string(rune(params.Count))))
+			q.Set("count", strconv.Itoa(params.Count))
 		}
 		if params.Period != "" {
 			q.Set("period", params.Period)

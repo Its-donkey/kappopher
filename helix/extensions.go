@@ -74,8 +74,8 @@ func (c *Client) SetExtensionRequiredConfiguration(ctx context.Context, params *
 
 // SendExtensionPubSubMessageParams contains parameters for SendExtensionPubSubMessage.
 type SendExtensionPubSubMessageParams struct {
-	Target            []string `json:"target"` // broadcast, global, whisper-<user_id>
-	BroadcasterID     string   `json:"broadcaster_id"`
+	Target            []string `json:"target"`                   // broadcast, global, whisper-<opaque_user_id>
+	BroadcasterID     string   `json:"broadcaster_id,omitempty"` // required unless IsGlobalBroadcast
 	IsGlobalBroadcast bool     `json:"is_global_broadcast,omitempty"`
 	Message           string   `json:"message"`
 }
@@ -158,7 +158,7 @@ func (c *Client) CreateExtensionSecret(ctx context.Context, extensionID string, 
 
 // SendExtensionChatMessageParams contains parameters for SendExtensionChatMessage.
 type SendExtensionChatMessageParams struct {
-	BroadcasterID    string `json:"broadcaster_id"`
+	BroadcasterID    string `json:"-"` // sent as the broadcaster_id query parameter
 	Text             string `json:"text"`
 	ExtensionID      string `json:"extension_id"`
 	ExtensionVersion string `json:"extension_version"`
@@ -167,7 +167,9 @@ type SendExtensionChatMessageParams struct {
 // SendExtensionChatMessage sends a chat message from an extension.
 // Requires: JWT created by extension.
 func (c *Client) SendExtensionChatMessage(ctx context.Context, params *SendExtensionChatMessageParams) error {
-	return c.post(ctx, "/extensions/chat", nil, params, nil)
+	q := url.Values{}
+	q.Set("broadcaster_id", params.BroadcasterID)
+	return c.post(ctx, "/extensions/chat", q, params, nil)
 }
 
 // Extension represents a Twitch extension.
@@ -203,13 +205,33 @@ type ExtensionViews struct {
 	Panel        ExtensionView `json:"panel"`
 	VideoOverlay ExtensionView `json:"video_overlay"`
 	Component    ExtensionView `json:"component"`
+	Config       ExtensionView `json:"config"`      // shown to broadcasters configuring the extension
+	LiveConfig   ExtensionView `json:"live_config"` // shown in the dashboard's Live module
 }
 
-// ExtensionView represents a single view configuration.
+// ExtensionView represents a single view configuration. The sizing fields
+// apply to the component view only.
 type ExtensionView struct {
 	ViewerURL              string `json:"viewer_url"`
 	Height                 int    `json:"height,omitempty"`
 	CanLinkExternalContent bool   `json:"can_link_external_content,omitempty"`
+
+	AspectRatioX int  `json:"aspect_ratio_x,omitempty"`
+	AspectRatioY int  `json:"aspect_ratio_y,omitempty"`
+	Autoscale    bool `json:"autoscale,omitempty"`
+	ScalePixels  int  `json:"scale_pixels,omitempty"`
+	TargetHeight int  `json:"target_height,omitempty"` // percent of the maximum component height
+
+	// Deprecated by Twitch.
+	AspectWidth int `json:"aspect_width,omitempty"`
+	// Deprecated by Twitch.
+	AspectHeight int `json:"aspect_height,omitempty"`
+	// Deprecated by Twitch.
+	Size float64 `json:"size,omitempty"`
+	// Deprecated by Twitch.
+	Zoom bool `json:"zoom,omitempty"`
+	// Deprecated by Twitch.
+	ZoomPixels int `json:"zoom_pixels,omitempty"`
 }
 
 // GetExtensions gets information about extensions.
@@ -323,6 +345,8 @@ type ExtensionTransactionProductData struct {
 	DisplayName   string            `json:"displayName"`
 	InDevelopment bool              `json:"inDevelopment"`
 	Expiration    string            `json:"expiration,omitempty"`
+	Domain        string            `json:"domain,omitempty"`    // twitch.ext.<extension_id>
+	Broadcast     bool              `json:"broadcast,omitempty"` // whether the purchase was broadcast to all viewers
 }
 
 // GetExtensionTransactionsParams contains parameters for GetExtensionTransactions.

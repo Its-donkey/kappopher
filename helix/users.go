@@ -94,14 +94,18 @@ type BlockedUser struct {
 // GetUserBlockListParams contains parameters for GetUserBlockList.
 type GetUserBlockListParams struct {
 	BroadcasterID string
+	UserIDs       []string // Optional: check whether these users are blocked
 	*PaginationParams
 }
 
 // GetUserBlockList gets the authenticated user's block list.
-// Requires: user:read:blocked_users scope.
+// Requires: user:read:blocked_users or user:manage:blocked_users scope.
 func (c *Client) GetUserBlockList(ctx context.Context, params *GetUserBlockListParams) (*Response[BlockedUser], error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
+	for _, id := range params.UserIDs {
+		q.Add("user_id", id)
+	}
 	addPaginationParams(q, params.PaginationParams)
 
 	var resp Response[BlockedUser]
@@ -152,7 +156,7 @@ type UserExtension struct {
 }
 
 // GetUserExtensions gets extensions installed by the authenticated user.
-// Requires: user:read:broadcast scope.
+// Requires: user:read:broadcast, user:edit:broadcast or channel:manage:extensions scope.
 func (c *Client) GetUserExtensions(ctx context.Context) (*Response[UserExtension], error) {
 	var resp Response[UserExtension]
 	if err := c.get(ctx, "/users/extensions/list", nil, &resp); err != nil {
@@ -208,7 +212,7 @@ type ActiveExtension struct {
 }
 
 // GetUserActiveExtensions gets the active extensions for a user.
-// Requires: user:read:broadcast or user:edit:broadcast scope.
+// Requires: user or app access token; no scope. With an app token, pass the user ID.
 func (c *Client) GetUserActiveExtensions(ctx context.Context, userID string) (*UserActiveExtensions, error) {
 	q := url.Values{}
 	if userID != "" {
@@ -230,7 +234,7 @@ type UpdateUserExtensionsParams struct {
 }
 
 // UpdateUserExtensions updates the active extensions for the authenticated user.
-// Requires: user:edit:broadcast scope.
+// Requires: user:edit:broadcast or channel:manage:extensions scope.
 func (c *Client) UpdateUserExtensions(ctx context.Context, params *UpdateUserExtensionsParams) (*UserActiveExtensions, error) {
 	var resp struct {
 		Data UserActiveExtensions `json:"data"`
@@ -243,10 +247,11 @@ func (c *Client) UpdateUserExtensions(ctx context.Context, params *UpdateUserExt
 
 // UserAuthorization represents the scopes a user has granted the application.
 type UserAuthorization struct {
-	UserID    string   `json:"user_id"`
-	UserName  string   `json:"user_name"`
-	UserLogin string   `json:"user_login"`
-	Scopes    []string `json:"scopes"`
+	UserID        string   `json:"user_id"`
+	UserName      string   `json:"user_name"`
+	UserLogin     string   `json:"user_login"`
+	Scopes        []string `json:"scopes"`
+	HasAuthorized bool     `json:"has_authorized"`
 }
 
 // GetAuthorizationByUserParams contains parameters for GetAuthorizationByUser.

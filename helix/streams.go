@@ -110,6 +110,7 @@ type StreamMarker struct {
 	CreatedAt       time.Time `json:"created_at"`
 	Description     string    `json:"description"`
 	PositionSeconds int       `json:"position_seconds"`
+	URL             string    `json:"URL,omitempty"` // Get Stream Markers: link to the marker in the video
 }
 
 // CreateStreamMarkerParams contains parameters for CreateStreamMarker.
@@ -119,7 +120,7 @@ type CreateStreamMarkerParams struct {
 }
 
 // CreateStreamMarker creates a marker in the stream.
-// Requires: channel:manage:broadcast scope.
+// Requires: channel:manage:broadcast or user:edit:broadcast scope.
 func (c *Client) CreateStreamMarker(ctx context.Context, params *CreateStreamMarkerParams) (*StreamMarker, error) {
 	var resp Response[StreamMarker]
 	if err := c.post(ctx, "/streams/markers", nil, params, &resp); err != nil {
@@ -150,7 +151,7 @@ type GetStreamMarkersParams struct {
 }
 
 // GetStreamMarkers gets stream markers.
-// Requires: user:read:broadcast scope.
+// Requires: user:read:broadcast or channel:manage:broadcast scope.
 func (c *Client) GetStreamMarkers(ctx context.Context, params *GetStreamMarkersParams) (*Response[VideoStreamMarkers], error) {
 	q := url.Values{}
 	if params.UserID != "" {

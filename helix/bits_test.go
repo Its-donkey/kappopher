@@ -21,8 +21,8 @@ func TestClient_GetBitsLeaderboard(t *testing.T) {
 				{UserID: "3", UserLogin: "third", UserName: "Third Place", Rank: 3, Score: 2500},
 			},
 			DateRange: DateRange{
-				StartedAt: time.Now().Add(-7 * 24 * time.Hour),
-				EndedAt:   time.Now(),
+				StartedAt: NewNullableTime(time.Now().Add(-7 * 24 * time.Hour)),
+				EndedAt:   NewNullableTime(time.Now()),
 			},
 			Total: 3,
 		}

@@ -29,8 +29,8 @@ func TestClient_GetExtensionAnalytics(t *testing.T) {
 					URL:         "https://example.com/report.csv",
 					Type:        "overview_v2",
 					DateRange: DateRange{
-						StartedAt: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
-						EndedAt:   time.Date(2024, 1, 31, 23, 59, 59, 0, time.UTC),
+						StartedAt: NewNullableTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)),
+						EndedAt:   NewNullableTime(time.Date(2024, 1, 31, 23, 59, 59, 0, time.UTC)),
 					},
 				},
 			},
@@ -75,8 +75,8 @@ func TestClient_GetGameAnalytics(t *testing.T) {
 					URL:    "https://example.com/game_report.csv",
 					Type:   "overview_v2",
 					DateRange: DateRange{
-						StartedAt: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
-						EndedAt:   time.Date(2024, 1, 31, 23, 59, 59, 0, time.UTC),
+						StartedAt: NewNullableTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)),
+						EndedAt:   NewNullableTime(time.Date(2024, 1, 31, 23, 59, 59, 0, time.UTC)),
 					},
 				},
 			},
