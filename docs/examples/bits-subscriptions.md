@@ -342,8 +342,15 @@ func main() {
         map[string]string{"broadcaster_user_id": broadcasterID},
         func(event json.RawMessage) {
             e, _ := helix.ParseWSEvent[helix.ChannelSubscriptionGiftEvent](event)
-            fmt.Printf("%s gifted %d subs! (Tier %s, Total: %d)\n",
-                e.UserName, e.Total, e.Tier, e.CumulativeTotal)
+            if e.IsAnonymous {
+                fmt.Printf("An anonymous gifter gifted %d subs! (Tier %s)\n", e.Total, e.Tier)
+                return
+            }
+            fmt.Printf("%s gifted %d subs! (Tier %s)\n", e.UserName, e.Total, e.Tier)
+            // CumulativeTotal is nil for anonymous gifts or when not shared.
+            if e.CumulativeTotal != nil {
+                fmt.Printf("  %d gifted in this channel so far\n", *e.CumulativeTotal)
+            }
         },
     )
 
@@ -354,8 +361,9 @@ func main() {
             e, _ := helix.ParseWSEvent[helix.ChannelSubscriptionMessageEvent](event)
             fmt.Printf("Resub: %s - %d months! Message: %s\n",
                 e.UserName, e.CumulativeMonths, e.Message.Text)
-            if e.StreakMonths > 0 {
-                fmt.Printf("  Streak: %d months\n", e.StreakMonths)
+            // StreakMonths is nil when the user doesn't share their streak.
+            if e.StreakMonths != nil {
+                fmt.Printf("  Streak: %d months\n", *e.StreakMonths)
             }
         },
     )

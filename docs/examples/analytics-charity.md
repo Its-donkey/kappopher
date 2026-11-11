@@ -600,10 +600,10 @@ func main() {
     // Update conduit shards
     _, err = client.UpdateConduitShards(ctx, &helix.UpdateConduitShardsParams{
         ConduitID: conduit.Data[0].ID,
-        Shards: []helix.ConduitShardUpdate{
+        Shards: []helix.UpdateConduitShardParams{
             {
                 ID: "0",
-                Transport: helix.ConduitShardTransport{
+                Transport: helix.UpdateConduitShardTransport{
                     Method:   "websocket",
                     SessionID: "websocket-session-id",
                 },

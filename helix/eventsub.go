@@ -510,14 +510,62 @@ func FromToBroadcasterCondition(fromBroadcasterID, toBroadcasterID string) map[s
 	return cond
 }
 
-// ClientCondition returns a condition with client_id for extension events.
+// BroadcasterUserCondition returns a condition with broadcaster_user_id and
+// user_id, as used by the chat types (channel.chat.message,
+// channel.chat.notification, channel.chat.user_message_hold, ...).
+func BroadcasterUserCondition(broadcasterID, userID string) map[string]string {
+	return map[string]string{
+		"broadcaster_user_id": broadcasterID,
+		"user_id":             userID,
+	}
+}
+
+// ClientCondition returns a condition with client_id, as used by
+// user.authorization.grant and user.authorization.revoke. For
+// extension.bits_transaction.create use ExtensionClientCondition; for
+// conduit.shard.disabled use ConduitShardDisabledCondition.
 func ClientCondition(clientID string) map[string]string {
 	return map[string]string{"client_id": clientID}
 }
 
+// ExtensionClientCondition returns a condition with extension_client_id for
+// extension.bits_transaction.create.
+func ExtensionClientCondition(extensionClientID string) map[string]string {
+	return map[string]string{"extension_client_id": extensionClientID}
+}
+
 // ConduitCondition returns a condition with conduit_id.
+//
+// Deprecated: conduit.shard.disabled requires client_id, so this condition
+// alone is rejected by Twitch. Use ConduitShardDisabledCondition.
 func ConduitCondition(conduitID string) map[string]string {
 	return map[string]string{"conduit_id": conduitID}
+}
+
+// ConduitShardDisabledCondition returns a condition for conduit.shard.disabled.
+// clientID (the client that owns the conduits) is required; conduitID is
+// optional and, when set, limits the subscription to that conduit.
+func ConduitShardDisabledCondition(clientID, conduitID string) map[string]string {
+	cond := map[string]string{"client_id": clientID}
+	if conduitID != "" {
+		cond["conduit_id"] = conduitID
+	}
+	return cond
+}
+
+// DropCondition returns a condition for drop.entitlement.grant.
+// organizationID is required; categoryID and campaignID are optional filters
+// and are left out when empty. Subscriptions to this type must also set
+// IsBatchingEnabled.
+func DropCondition(organizationID, categoryID, campaignID string) map[string]string {
+	cond := map[string]string{"organization_id": organizationID}
+	if categoryID != "" {
+		cond["category_id"] = categoryID
+	}
+	if campaignID != "" {
+		cond["campaign_id"] = campaignID
+	}
+	return cond
 }
 
 // RewardCondition returns a condition for channel points reward events.

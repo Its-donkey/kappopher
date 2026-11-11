@@ -91,6 +91,18 @@ type WebSocketReconnectPayload struct {
 type WebSocketNotificationPayload struct {
 	Subscription EventSubSubscription `json:"subscription"`
 	Event        json.RawMessage      `json:"event"`
+	// Events is the "events" array of a batched notification
+	// (drop.entitlement.grant), which has no Event.
+	Events json.RawMessage `json:"events,omitempty"`
+}
+
+// eventData returns the event JSON, or the events array of a batched
+// notification when there is no event.
+func (p *WebSocketNotificationPayload) eventData() json.RawMessage {
+	if len(p.Event) == 0 && len(p.Events) > 0 {
+		return p.Events
+	}
+	return p.Event
 }
 
 // ErrAlreadyConnecting is returned when Connect is called while already connecting.
@@ -139,6 +151,9 @@ func WithWSWelcomeHandler(fn func(*WebSocketSession)) EventSubWSOption {
 }
 
 // WithWSNotificationHandler sets the handler for notification messages.
+// The handler receives the notification's event object; for a batched type
+// (drop.entitlement.grant) it receives the events array instead, which
+// ParseEventSubEvents decodes.
 func WithWSNotificationHandler(fn func(*EventSubSubscription, json.RawMessage)) EventSubWSOption {
 	return func(c *EventSubWebSocketClient) {
 		c.onNotification = fn
@@ -392,7 +407,7 @@ func (c *EventSubWebSocketClient) handleNotification(msg WebSocketMessage) {
 		return
 	}
 
-	c.onNotification(&payload.Subscription, payload.Event)
+	c.onNotification(&payload.Subscription, payload.eventData())
 }
 
 // handleReconnect processes a reconnect message.
@@ -699,7 +714,9 @@ func (e *EventSubWebSocket) handleReconnect(reconnectURL string) {
 }
 
 // Subscribe creates a subscription for the given event type.
-// Returns an error if not connected.
+// Returns an error if not connected. The handler receives each notification's
+// event object, or the events array for a batched type (see
+// ParseEventSubEvents).
 func (e *EventSubWebSocket) Subscribe(ctx context.Context, eventType, version string, condition map[string]string, handler func(json.RawMessage)) error {
 	if e.sessionID == "" {
 		return errors.New("not connected: call Connect first")

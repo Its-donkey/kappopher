@@ -320,9 +320,48 @@ cond := helix.UserCondition("12345")
 // Returns: map[string]string{"user_id": "12345"}
 
 // For channel points with optional reward filter
-cond := helix.ChannelPointsCondition("12345", "reward-uuid")
+cond := helix.RewardCondition("12345", "reward-uuid")
 // Returns: map[string]string{"broadcaster_user_id": "12345", "reward_id": "reward-uuid"}
+
+// For chat types (channel.chat.message, channel.chat.notification, ...)
+cond := helix.BroadcasterUserCondition("12345", "67890")
+// Returns: map[string]string{"broadcaster_user_id": "12345", "user_id": "67890"}
+
+// For user.authorization.grant / user.authorization.revoke
+cond := helix.ClientCondition("your-client-id")
+// Returns: map[string]string{"client_id": "your-client-id"}
+
+// For extension.bits_transaction.create
+cond := helix.ExtensionClientCondition("your-extension-client-id")
+// Returns: map[string]string{"extension_client_id": "your-extension-client-id"}
+
+// For conduit.shard.disabled (conduit ID optional)
+cond := helix.ConduitShardDisabledCondition("your-client-id", "conduit-id")
+// Returns: map[string]string{"client_id": "your-client-id", "conduit_id": "conduit-id"}
+
+// For drop.entitlement.grant (category and campaign optional)
+cond := helix.DropCondition("org-id", "category-id", "")
+// Returns: map[string]string{"organization_id": "org-id", "category_id": "category-id"}
 ```
+
+### Batched Notifications (drop.entitlement.grant)
+
+`drop.entitlement.grant` batches: its notification has an `events` array instead of an `event` object. Create the subscription with `IsBatchingEnabled: true`, then decode the batch with `ParseEventSubEvents`:
+
+```go
+// Webhook: the batch is in msg.Events
+events, err := helix.ParseEventSubEvents[helix.DropEntitlementGrantEvent](msg.Events)
+if err != nil {
+    log.Printf("bad drop batch: %v", err)
+    return
+}
+for _, e := range events {
+    // e.ID de-duplicates the event; e.Data.EntitlementID de-duplicates the entitlement
+    fmt.Printf("%s got benefit %s\n", e.Data.UserLogin, e.Data.BenefitID)
+}
+```
+
+On a WebSocket (conduit) shard, the notification handler receives the `events` array as its raw event, so pass it to `ParseEventSubEvents` the same way.
 
 ### SubscribeToChannel
 

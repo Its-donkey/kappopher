@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"maps"
 	"net/http"
 	"testing"
 	"time"
@@ -404,6 +405,28 @@ func TestConduitCondition(t *testing.T) {
 	}
 	if len(cond) != 1 {
 		t.Errorf("expected 1 key, got %d", len(cond))
+	}
+}
+
+func TestConditionHelpers(t *testing.T) {
+	tests := []struct {
+		name string
+		got  map[string]string
+		want map[string]string
+	}{
+		{"BroadcasterUserCondition", BroadcasterUserCondition("1", "2"), map[string]string{"broadcaster_user_id": "1", "user_id": "2"}},
+		{"ExtensionClientCondition", ExtensionClientCondition("ext"), map[string]string{"extension_client_id": "ext"}},
+		{"ConduitShardDisabledCondition", ConduitShardDisabledCondition("client", "conduit"), map[string]string{"client_id": "client", "conduit_id": "conduit"}},
+		{"ConduitShardDisabledCondition no conduit", ConduitShardDisabledCondition("client", ""), map[string]string{"client_id": "client"}},
+		{"DropCondition", DropCondition("org", "cat", "camp"), map[string]string{"organization_id": "org", "category_id": "cat", "campaign_id": "camp"}},
+		{"DropCondition org only", DropCondition("org", "", ""), map[string]string{"organization_id": "org"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if !maps.Equal(tt.got, tt.want) {
+				t.Errorf("got %v, want %v", tt.got, tt.want)
+			}
+		})
 	}
 }
 
