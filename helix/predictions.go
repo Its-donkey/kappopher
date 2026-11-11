@@ -70,7 +70,7 @@ type CreatePredictionParams struct {
 	BroadcasterID    string                    `json:"broadcaster_id"`
 	Title            string                    `json:"title"`
 	Outcomes         []CreatePredictionOutcome `json:"outcomes"`          // 2-10 outcomes
-	PredictionWindow int                       `json:"prediction_window"` // 30-1800 seconds
+	PredictionWindow int                       `json:"prediction_window"` // 1-1800 seconds
 }
 
 // CreatePredictionOutcome represents an outcome when creating a prediction.

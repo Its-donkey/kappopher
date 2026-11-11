@@ -130,7 +130,7 @@ resp, err := client.CreatePrediction(ctx, &helix.CreatePredictionParams{
         {Title: "Yes"},
         {Title: "No"},
     },
-    PredictionWindow: 300, // 5 minutes (30-1800 seconds)
+    PredictionWindow: 300, // 5 minutes (1-1800 seconds)
 })
 
 fmt.Printf("Created prediction: %s (ID: %s)\n", resp.Data[0].Title, resp.Data[0].ID)
@@ -155,7 +155,7 @@ resp, err = client.CreatePrediction(ctx, &helix.CreatePredictionParams{
 - `Title` - Required. The prediction title
 - `Outcomes` - Required. Array of outcomes (2-10 outcomes)
   - `Title` - Required. The outcome title
-- `PredictionWindow` - Required. Prediction window in seconds (30-1800)
+- `PredictionWindow` - Required. Prediction window in seconds (1-1800)
 
 **Sample Response:**
 ```json

@@ -22,11 +22,10 @@ resp, err = client.GetChannelStreamSchedule(ctx, &helix.GetChannelStreamSchedule
     IDs:           []string{"segment-id-1", "segment-id-2"},
 })
 
-// Get segments starting from a specific time with UTC offset
+// Get segments starting from a specific time
 resp, err = client.GetChannelStreamSchedule(ctx, &helix.GetChannelStreamScheduleParams{
     BroadcasterID: "12345",
-    StartTime:     "2025-12-15T10:00:00Z",
-    UTCOffset:     "-04:00", // e.g., Eastern Daylight Time
+    StartTime:     time.Date(2025, 12, 15, 10, 0, 0, 0, time.UTC),
     PaginationParams: &helix.PaginationParams{
         First: 20,
     },
@@ -47,8 +46,8 @@ for _, segment := range schedule.Segments {
 **Parameters:**
 - `BroadcasterID` - Required. ID of the broadcaster
 - `IDs` - Optional. Array of segment IDs to retrieve (max 100)
-- `StartTime` - Optional. Start time for segments (RFC3339 format)
-- `UTCOffset` - Optional. UTC offset for localization (e.g., "-04:00")
+- `StartTime` - Optional. Start time for segments
+- `UTCOffset` - Deprecated. Twitch documents `utc_offset` as not supported
 - `PaginationParams` - Optional. Pagination parameters
 
 **Response Fields:**

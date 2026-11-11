@@ -44,6 +44,7 @@ func (c *Client) GetGames(ctx context.Context, params *GetGamesParams) (*Respons
 
 // GetTopGamesParams contains parameters for GetTopGames.
 type GetTopGamesParams struct {
+	// PaginationParams.Before is not supported by this endpoint; use After.
 	*PaginationParams
 }
 

@@ -8,10 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- EventSub status constants `EventSubStatusChatUserBanned` (`chat_user_banned`), `EventSubStatusGuestStarModeratorRemoved` (`guest_star_moderator_removed`) and `EventSubStatusConduitDeleted` (`conduit_deleted`), from Twitch's 2026-11-10 docs changelog
 
 ### Changed
+- Doc comments brought in line with Twitch's 2026-11-10 docs changelog: Guest Star `group_layout` is `TILED` or `SCREENSHARE`; Create Prediction's window is 1-1800 seconds; Get Videos lists the `past_premiere` and `premiere_upload` types and the `duration` format; Get Conduit Shards lists `websocket_connection_unused`; Get Broadcaster Subscriptions omits `total` and `points` when filtering by user
+- `PaginationParams.Before` is documented as unsupported on Get Clips, Get Stream Markers, Get Top Games and Get Banned Users
 
 ### Fixed
+- Stale `docs/` examples: Guest Star layout values, prediction window range, conduit shard statuses (no `disabled`; adds `websocket_failed_to_reconnect`), polls (no `MODERATED` status or Bits voting fields), and Get Channel Stream Schedule (`StartTime` is a `time.Time`; `UTCOffset` is deprecated)
 
 ## [1.5.1] - 2026-11-11 ([#105](https://github.com/Its-donkey/kappopher/pull/105))
 
