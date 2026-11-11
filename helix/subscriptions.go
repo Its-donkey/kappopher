@@ -38,6 +38,8 @@ type SubscriptionsResponse struct {
 
 // GetBroadcasterSubscriptions gets the list of subscribers for a channel.
 // Requires: channel:read:subscriptions scope.
+// Or an extension's app access token, if the broadcaster granted channel:read:subscriptions
+// in the Extensions manager.
 func (c *Client) GetBroadcasterSubscriptions(ctx context.Context, params *GetBroadcasterSubscriptionsParams) (*SubscriptionsResponse, error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
@@ -67,6 +69,7 @@ type UserSubscription struct {
 
 // CheckUserSubscription checks if a user is subscribed to a channel.
 // Requires: user:read:subscriptions scope.
+// Or an app access token, if the user has authorized the app with that scope.
 func (c *Client) CheckUserSubscription(ctx context.Context, broadcasterID, userID string) (*UserSubscription, error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", broadcasterID)

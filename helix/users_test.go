@@ -600,3 +600,42 @@ func TestClient_GetAuthorizationByUser_Error(t *testing.T) {
 		t.Fatal("expected error, got nil")
 	}
 }
+
+func TestUserActiveExtensions_MarshalKeepsZeroComponentPosition(t *testing.T) {
+	slots := UserActiveExtensions{
+		Panel: map[string]ActiveExtension{"1": {Active: true, ID: "ext1", Version: "1.0.0"}},
+		Component: map[string]ActiveExtension{
+			"1": {Active: true, ID: "ext2", Version: "2.0.0", X: 0, Y: 0},
+			"2": {Active: false},
+		},
+	}
+	raw, err := json.Marshal(UpdateUserExtensionsParams{Data: slots})
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+
+	var got struct {
+		Data map[string]map[string]map[string]any `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &got); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	c1 := got.Data["component"]["1"]
+	if c1["x"] != float64(0) || c1["y"] != float64(0) {
+		t.Errorf("expected x and y of 0 for an active component, got %s", raw)
+	}
+	if c2 := got.Data["component"]["2"]; len(c2) != 1 || c2["active"] != false {
+		t.Errorf("expected an inactive slot to carry only active, got %v", c2)
+	}
+	if _, ok := got.Data["panel"]["1"]["x"]; ok {
+		t.Errorf("panels have no position, got %s", raw)
+	}
+
+	var back UserActiveExtensions
+	if err := json.Unmarshal(raw[len(`{"data":`):len(raw)-1], &back); err != nil {
+		t.Fatalf("round trip: %v", err)
+	}
+	if back.Component["1"].ID != "ext2" || back.Panel["1"].ID != "ext1" {
+		t.Errorf("round trip lost slots: %+v", back)
+	}
+}

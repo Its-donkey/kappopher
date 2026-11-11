@@ -355,6 +355,242 @@ func TestParseChatMessage(t *testing.T) {
 	if chat.Badges["subscriber"] != "12" {
 		t.Errorf("Subscriber badge: got %q, want %q", chat.Badges["subscriber"], "12")
 	}
+
+	// PRIVMSG has no login tag; the login comes from the prefix nick.
+	if chat.User != "testuser" {
+		t.Errorf("User: got %q, want %q", chat.User, "testuser")
+	}
+
+	if chat.RoomID != "12345" {
+		t.Errorf("RoomID: got %q, want %q", chat.RoomID, "12345")
+	}
+
+	if chat.UserType != "mod" {
+		t.Errorf("UserType: got %q, want %q", chat.UserType, "mod")
+	}
+
+	if chat.Turbo {
+		t.Error("Turbo should be false")
+	}
+
+	if chat.SourceID != "" || chat.SourceRoomID != "" || len(chat.SourceBadges) != 0 {
+		t.Errorf("Source fields should be empty outside shared chat: %q %q %v", chat.SourceID, chat.SourceRoomID, chat.SourceBadges)
+	}
+}
+
+func TestParseChatMessage_UserFallsBackToLoginTag(t *testing.T) {
+	chat := parseChatMessage(parseIRCMessage("@id=abc;login=foo;room-id=1 PRIVMSG #bar :hi"))
+	if chat.User != "foo" {
+		t.Errorf("User: got %q, want %q", chat.User, "foo")
+	}
+}
+
+func TestParseChatMessage_DocsExample(t *testing.T) {
+	// Example from the Twitch IRC tag reference.
+	raw := "@badge-info=;badges=turbo/1;color=#0D4200;display-name=ronni;emotes=25:0-4,12-16/1902:6-10;id=b34ccfc7-4977-403a-8a94-33c6bac34fb8;mod=0;room-id=1337;subscriber=0;tmi-sent-ts=1507246572675;turbo=1;user-id=1337;user-type=global_mod :ronni!ronni@ronni.tmi.twitch.tv PRIVMSG #ronni :Kappa Keepo Kappa"
+	chat := parseChatMessage(parseIRCMessage(raw))
+
+	if chat.User != "ronni" {
+		t.Errorf("User: got %q, want %q", chat.User, "ronni")
+	}
+	if chat.RoomID != "1337" {
+		t.Errorf("RoomID: got %q, want %q", chat.RoomID, "1337")
+	}
+	if !chat.Turbo {
+		t.Error("Turbo should be true")
+	}
+	if chat.UserType != "global_mod" {
+		t.Errorf("UserType: got %q, want %q", chat.UserType, "global_mod")
+	}
+	if len(chat.Emotes) != 3 {
+		t.Errorf("Emotes: got %d, want 3", len(chat.Emotes))
+	}
+	if chat.Gifs != nil {
+		t.Errorf("Gifs: got %v, want nil", chat.Gifs)
+	}
+	if chat.IsVIP {
+		t.Error("IsVIP should be false")
+	}
+}
+
+func TestParseChatMessage_VIP(t *testing.T) {
+	tests := []struct {
+		name string
+		raw  string
+		want bool
+	}{
+		{
+			// Example from the Twitch IRC tag reference (prefix and command added).
+			name: "vip tag and badge",
+			raw:  "@badge-info=;badges=vip/1,partner/1;client-nonce=cd15335a5e2059c3b087e22612de485e;color=;display-name=fun2bfun;emotes=;first-msg=0;flags=;id=1fd20412-965f-4c96-beb3-52266448f564;mod=0;returning-chatter=0;room-id=102336968;subscriber=0;tmi-sent-ts=1661372052425;turbo=0;user-id=12345678;user-type=;vip=1 :fun2bfun!fun2bfun@fun2bfun.tmi.twitch.tv PRIVMSG #bar :hello",
+			want: true,
+		},
+		{
+			// A VIP who chose to display another badge still has the vip tag.
+			name: "vip tag without badge",
+			raw:  "@badges=partner/1;id=1;room-id=1;vip=1 :fun2bfun!fun2bfun@fun2bfun.tmi.twitch.tv PRIVMSG #bar :hello",
+			want: true,
+		},
+		{
+			name: "vip tag present with empty value",
+			raw:  "@badges=;id=1;room-id=1;vip= :fun2bfun!fun2bfun@fun2bfun.tmi.twitch.tv PRIVMSG #bar :hello",
+			want: true,
+		},
+		{
+			name: "vip=0",
+			raw:  "@badges=;id=1;room-id=1;vip=0 :fun2bfun!fun2bfun@fun2bfun.tmi.twitch.tv PRIVMSG #bar :hello",
+			want: false,
+		},
+		{
+			name: "no vip tag or badge",
+			raw:  "@badges=partner/1;id=1;room-id=1 :fun2bfun!fun2bfun@fun2bfun.tmi.twitch.tv PRIVMSG #bar :hello",
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			chat := parseChatMessage(parseIRCMessage(tt.raw))
+			if chat.IsVIP != tt.want {
+				t.Errorf("IsVIP: got %v, want %v", chat.IsVIP, tt.want)
+			}
+		})
+	}
+
+	chat := parseChatMessage(parseIRCMessage(tests[0].raw))
+	if chat.ClientNonce != "cd15335a5e2059c3b087e22612de485e" {
+		t.Errorf("ClientNonce: got %q", chat.ClientNonce)
+	}
+	if chat.Badges["vip"] != "1" || chat.Badges["partner"] != "1" {
+		t.Errorf("Badges: got %v", chat.Badges)
+	}
+}
+
+func TestParseChatMessage_Gifs(t *testing.T) {
+	// Example from the Twitch IRC tag reference.
+	raw := "@badge-info=subscriber/30;badges=broadcaster/1,subscriber/0;color=#033700;display-name=TwitchDev;emotes=;first-msg=0;flags=;gifs=0-33|joSNxeswxuc74Juo8X|https://media4.giphy.com/media/joSNxeswxuc74Juo8X/giphy.gif?cid=095d7a5dzizsiwgabonagkmigggv8v1spfai91ac3x0dsiy0&ep=v1_gifs_trending&rid=giphy.gif&ct=g;id=401abf17-7e99-45d6-9bdf-43934e839327;mod=0;returning-chatter=0;room-id=12826;subscriber=1;tmi-sent-ts=1783632907018;turbo=0;user-id=141981764;user-type= :twitchdev!twitchdev@twitchdev.tmi.twitch.tv PRIVMSG #twitch :[Y A Y Yes GIF by Djemilah Birnie]"
+	chat := parseChatMessage(parseIRCMessage(raw))
+
+	if len(chat.Gifs) != 1 {
+		t.Fatalf("Gifs: got %d, want 1", len(chat.Gifs))
+	}
+	want := IRCGif{
+		ID:    "joSNxeswxuc74Juo8X",
+		URL:   "https://media4.giphy.com/media/joSNxeswxuc74Juo8X/giphy.gif?cid=095d7a5dzizsiwgabonagkmigggv8v1spfai91ac3x0dsiy0&ep=v1_gifs_trending&rid=giphy.gif&ct=g",
+		Start: 0,
+		End:   33,
+	}
+	if chat.Gifs[0] != want {
+		t.Errorf("Gif: got %+v, want %+v", chat.Gifs[0], want)
+	}
+	if chat.User != "twitchdev" {
+		t.Errorf("User: got %q, want %q", chat.User, "twitchdev")
+	}
+	if !chat.IsBroadcaster {
+		t.Error("IsBroadcaster should be true")
+	}
+}
+
+func TestParseGifs(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+		want []IRCGif
+	}{
+		{name: "empty", in: "", want: nil},
+		{
+			name: "multiple",
+			in:   "0-4|a1|https://example.com/a.gif,6-10|b2|https://example.com/b.gif",
+			want: []IRCGif{
+				{ID: "a1", URL: "https://example.com/a.gif", Start: 0, End: 4},
+				{ID: "b2", URL: "https://example.com/b.gif", Start: 6, End: 10},
+			},
+		},
+		{
+			name: "comma inside URL",
+			in:   "0-4|a1|https://example.com/a.gif?x=1,2,6-10|b2|https://example.com/b.gif",
+			want: []IRCGif{
+				{ID: "a1", URL: "https://example.com/a.gif?x=1,2", Start: 0, End: 4},
+				{ID: "b2", URL: "https://example.com/b.gif", Start: 6, End: 10},
+			},
+		},
+		{name: "malformed", in: "garbage,x-y|id|url,1-2|id", want: nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := parseGifs(tt.in)
+			if len(got) != len(tt.want) {
+				t.Fatalf("got %d gifs (%+v), want %d", len(got), got, len(tt.want))
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("gif %d: got %+v, want %+v", i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
+func TestParseChatMessage_Reply(t *testing.T) {
+	raw := "@badge-info=;badges=;color=;display-name=bob;emotes=;id=c3d4;mod=0;reply-parent-display-name=Carol;reply-parent-msg-body=nice\\sone;reply-parent-msg-id=b2c3;reply-parent-user-id=222;reply-parent-user-login=carol;reply-thread-parent-msg-id=a1b2;reply-thread-parent-user-login=alice;room-id=1337;subscriber=0;tmi-sent-ts=1642786203573;turbo=0;user-id=333;user-type= :bob!bob@bob.tmi.twitch.tv PRIVMSG #dallas :@carol agreed"
+	chat := parseChatMessage(parseIRCMessage(raw))
+
+	if chat.ReplyParentMsgID != "b2c3" || chat.ReplyParentUserLogin != "carol" || chat.ReplyParentUserID != "222" || chat.ReplyParentDisplayName != "Carol" {
+		t.Errorf("Reply parent fields: got %q %q %q %q", chat.ReplyParentMsgID, chat.ReplyParentUserLogin, chat.ReplyParentUserID, chat.ReplyParentDisplayName)
+	}
+	if chat.ReplyParentMsgBody != "nice one" {
+		t.Errorf("ReplyParentMsgBody: got %q, want %q", chat.ReplyParentMsgBody, "nice one")
+	}
+	if chat.ReplyThreadParentMsgID != "a1b2" {
+		t.Errorf("ReplyThreadParentMsgID: got %q, want %q", chat.ReplyThreadParentMsgID, "a1b2")
+	}
+	if chat.ReplyThreadParentUserLogin != "alice" {
+		t.Errorf("ReplyThreadParentUserLogin: got %q, want %q", chat.ReplyThreadParentUserLogin, "alice")
+	}
+}
+
+func TestParseChatMessage_SharedChat(t *testing.T) {
+	// Examples from the Twitch IRC "Shared Chat" section: the same message as
+	// delivered to the source channel and to another channel in the session.
+	source := "@badge-info=;badges=staff/1,twitchcon-2024---san-diego/1;client-nonce=99a343c9cf2fcf4e96e0abc358f7b59b;color=#FF4500;display-name=TwitchDev;emotes=;first-msg=1;flags=;id=4dcec0e7-7f79-4a82-8aed-91aac9d0640c;mod=0;returning-chatter=0;room-id=12826;source-badge-info=;source-badges=staff/1,twitchcon-2024---san-diego/1;source-id=4dcec0e7-7f79-4a82-8aed-91aac9d0640c;source-room-id=12826;subscriber=0;tmi-sent-ts=1725918561648;turbo=0;user-id=141981764;user-type=staff :twitchdev!twitchdev@twitchdev.tmi.twitch.tv PRIVMSG #twitch :Howdy!"
+	shared := "@badge-info=;badges=staff/1,twitchcon-2024---san-diego/1;client-nonce=99a343c9cf2fcf4e96e0abc358f7b59b;color=#FF4500;display-name=TwitchDev;emotes=;flags=;id=17152d83-1fc8-4869-9d44-5157ee212ff1;mod=0;room-id=197886470;source-badge-info=;source-badges=staff/1,twitchcon-2024---san-diego/1;source-id=4dcec0e7-7f79-4a82-8aed-91aac9d0640c;source-room-id=12826;source-only=0;subscriber=0;tmi-sent-ts=1725918561648;turbo=0;user-id=141981764;user-type=staff :twitchdev!twitchdev@twitchdev.tmi.twitch.tv PRIVMSG #twitchrivals :Howdy!"
+
+	src := parseChatMessage(parseIRCMessage(source))
+	dup := parseChatMessage(parseIRCMessage(shared))
+
+	if src.RoomID != "12826" || src.SourceRoomID != "12826" {
+		t.Errorf("source copy: RoomID %q SourceRoomID %q, want both 12826", src.RoomID, src.SourceRoomID)
+	}
+	if src.SourceID != src.ID {
+		t.Errorf("source copy: SourceID %q should equal ID %q", src.SourceID, src.ID)
+	}
+	if dup.Channel != "twitchrivals" || dup.RoomID != "197886470" {
+		t.Errorf("duplicate: Channel %q RoomID %q", dup.Channel, dup.RoomID)
+	}
+	if dup.SourceRoomID != "12826" {
+		t.Errorf("duplicate: SourceRoomID got %q, want %q", dup.SourceRoomID, "12826")
+	}
+	if dup.SourceID != src.ID || dup.ID == src.ID {
+		t.Errorf("duplicate: ID %q SourceID %q, source ID %q", dup.ID, dup.SourceID, src.ID)
+	}
+	if dup.SourceBadges["staff"] != "1" || dup.SourceBadges["twitchcon-2024---san-diego"] != "1" {
+		t.Errorf("duplicate: SourceBadges got %v", dup.SourceBadges)
+	}
+	if len(dup.SourceBadgeInfo) != 0 {
+		t.Errorf("duplicate: SourceBadgeInfo got %v, want empty", dup.SourceBadgeInfo)
+	}
+	if dup.SourceOnly {
+		t.Error("duplicate: SourceOnly should be false")
+	}
+	if dup.User != "twitchdev" || dup.UserType != "staff" {
+		t.Errorf("duplicate: User %q UserType %q", dup.User, dup.UserType)
+	}
+
+	only := parseChatMessage(parseIRCMessage(strings.Replace(source, "source-room-id=12826;", "source-room-id=12826;source-only=1;", 1)))
+	if !only.SourceOnly {
+		t.Error("SourceOnly should be true when source-only=1")
+	}
 }
 
 func TestParseUserNotice(t *testing.T) {
@@ -381,6 +617,205 @@ func TestParseUserNotice(t *testing.T) {
 
 	if notice.MsgParams["recipient-user-name"] != "testrecipient" {
 		t.Errorf("recipient-user-name: got %q, want %q", notice.MsgParams["recipient-user-name"], "testrecipient")
+	}
+}
+
+func TestParseUserNotice_DocsExamples(t *testing.T) {
+	// Examples from the Twitch IRC USERNOTICE tag reference unless noted.
+	t.Run("resub", func(t *testing.T) {
+		raw := "@badge-info=;badges=staff/1,broadcaster/1,turbo/1;color=#008000;display-name=ronni;emotes=;id=db25007f-7a18-43eb-9379-80131e44d633;login=ronni;mod=0;msg-id=resub;msg-param-cumulative-months=6;msg-param-streak-months=2;msg-param-should-share-streak=1;msg-param-sub-plan=Prime;msg-param-sub-plan-name=Prime;room-id=12345678;subscriber=1;system-msg=ronni\\shas\\ssubscribed\\sfor\\s6\\smonths!;tmi-sent-ts=1507246572675;turbo=1;user-id=87654321;user-type=staff :tmi.twitch.tv USERNOTICE #dallas :Great stream -- keep it up!"
+		n := parseUserNotice(parseIRCMessage(raw))
+
+		if n.ID != "db25007f-7a18-43eb-9379-80131e44d633" {
+			t.Errorf("ID: got %q", n.ID)
+		}
+		if n.Type != UserNoticeTypeResub {
+			t.Errorf("Type: got %q, want %q", n.Type, UserNoticeTypeResub)
+		}
+		if n.RoomID != "12345678" {
+			t.Errorf("RoomID: got %q, want %q", n.RoomID, "12345678")
+		}
+		if n.IsMod {
+			t.Error("IsMod should be false")
+		}
+		if !n.IsSubscriber {
+			t.Error("IsSubscriber should be true")
+		}
+		if !n.Turbo {
+			t.Error("Turbo should be true")
+		}
+		if n.UserType != "staff" {
+			t.Errorf("UserType: got %q, want %q", n.UserType, "staff")
+		}
+		if n.SystemMessage != "ronni has subscribed for 6 months!" {
+			t.Errorf("SystemMessage: got %q", n.SystemMessage)
+		}
+		if n.Message != "Great stream -- keep it up!" {
+			t.Errorf("Message: got %q", n.Message)
+		}
+		if n.MsgParams["cumulative-months"] != "6" || n.MsgParams["streak-months"] != "2" {
+			t.Errorf("MsgParams: got %v", n.MsgParams)
+		}
+		if n.SourceID != "" || n.SourceRoomID != "" || n.SourceMsgID != "" {
+			t.Errorf("Source fields should be empty outside shared chat: %q %q %q", n.SourceID, n.SourceRoomID, n.SourceMsgID)
+		}
+	})
+
+	t.Run("modiversary", func(t *testing.T) {
+		raw := "@badge-info=;badges=staff/1,moderator/1;color=#007EFE;display-name=BlueLava;emotes=;flags=;id=5d0a7492-b2c4-441b-be78-8606d16ec5e8;login=bluelava;mod=1;msg-id=modiversary;msg-param-months=108;room-id=141981764;subscriber=0;system-msg=has\\sbeen\\sa\\smoderator\\sfor\\s24\\smonths!;tmi-sent-ts=1780142048673;user-id=135093069;user-type=mod;vip=0 :tmi.twitch.tv USERNOTICE #twitchdev :I'm celebrating my 9 year Mod Anniversary!"
+		n := parseUserNotice(parseIRCMessage(raw))
+
+		if n.Type != UserNoticeTypeModiversary {
+			t.Errorf("Type: got %q, want %q", n.Type, UserNoticeTypeModiversary)
+		}
+		if !n.IsMod {
+			t.Error("IsMod should be true")
+		}
+		if n.MsgParams["months"] != "108" {
+			t.Errorf("months: got %q, want %q", n.MsgParams["months"], "108")
+		}
+		if n.User != "bluelava" || n.RoomID != "141981764" {
+			t.Errorf("User %q RoomID %q", n.User, n.RoomID)
+		}
+	})
+
+	t.Run("viewermilestone", func(t *testing.T) {
+		raw := "@badge-info=;badges=;color=#1E90FF;display-name=TwitchDev;emotes=;flags=;id=97459ff9-8cd9-47d0-8a81-1fa5fe1d4367;login=twitchdev;mod=0;msg-id=viewermilestone;msg-param-category=watch-streak;msg-param-id=a872953b-606f-410a-9970-c95b744f116c;msg-param-value=3;room-id=197886470;subscriber=0;system-msg=TwitchDev\\swatched\\s3\\sconsecutive\\sstreams\\sthis\\smonth\\sand\\ssparked\\sa\\swatch\\sstreak!;tmi-sent-ts=1681057151588;user-id=141981764;user-type= :tmi.twitch.tv USERNOTICE #twitchrivals"
+		n := parseUserNotice(parseIRCMessage(raw))
+
+		if n.Type != UserNoticeTypeViewerMilestone {
+			t.Errorf("Type: got %q, want %q", n.Type, UserNoticeTypeViewerMilestone)
+		}
+		if n.MsgParams["category"] != ViewerMilestoneCategoryWatchStreak {
+			t.Errorf("category: got %q, want %q", n.MsgParams["category"], ViewerMilestoneCategoryWatchStreak)
+		}
+		if n.MsgParams["id"] != "a872953b-606f-410a-9970-c95b744f116c" {
+			t.Errorf("milestone id: got %q", n.MsgParams["id"])
+		}
+		if n.MsgParams["id"] == n.ID {
+			t.Error("milestone id should differ from the message ID")
+		}
+		if n.MsgParams["value"] != "3" {
+			t.Errorf("value: got %q, want %q", n.MsgParams["value"], "3")
+		}
+		if n.Message != "" {
+			t.Errorf("Message: got %q, want empty", n.Message)
+		}
+	})
+
+	t.Run("sharedchatnotice", func(t *testing.T) {
+		// Built from the documented USERNOTICE and shared chat tags: a sub in
+		// channel 12826 as delivered to another channel in the session.
+		raw := "@badge-info=subscriber/1;badges=subscriber/0;color=#8A2BE2;display-name=Viewer;emotes=;flags=;id=0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0;login=viewer;mod=0;msg-id=sharedchatnotice;msg-param-cumulative-months=1;msg-param-should-share-streak=0;msg-param-sub-plan=1000;msg-param-sub-plan-name=Channel\\sSubscription;room-id=197886470;source-badge-info=subscriber/1;source-badges=subscriber/0;source-id=9a8b7c6d-5e4f-3a2b-1c0d-e9f8a7b6c5d4;source-msg-id=sub;source-room-id=12826;subscriber=0;system-msg=Viewer\\ssubscribed\\sat\\sTier\\s1.;tmi-sent-ts=1725918561648;user-id=55554444;user-type= :tmi.twitch.tv USERNOTICE #twitchrivals"
+		n := parseUserNotice(parseIRCMessage(raw))
+
+		if n.Type != UserNoticeTypeSharedChatNotice {
+			t.Errorf("Type: got %q, want %q", n.Type, UserNoticeTypeSharedChatNotice)
+		}
+		if n.SourceMsgID != UserNoticeTypeSub {
+			t.Errorf("SourceMsgID: got %q, want %q", n.SourceMsgID, UserNoticeTypeSub)
+		}
+		if n.SourceID != "9a8b7c6d-5e4f-3a2b-1c0d-e9f8a7b6c5d4" {
+			t.Errorf("SourceID: got %q", n.SourceID)
+		}
+		if n.SourceRoomID != "12826" || n.RoomID != "197886470" {
+			t.Errorf("SourceRoomID %q RoomID %q", n.SourceRoomID, n.RoomID)
+		}
+		if n.SourceBadges["subscriber"] != "0" || n.SourceBadgeInfo["subscriber"] != "1" {
+			t.Errorf("SourceBadges %v SourceBadgeInfo %v", n.SourceBadges, n.SourceBadgeInfo)
+		}
+	})
+}
+
+func TestParseClearMessage(t *testing.T) {
+	tests := []struct {
+		name       string
+		raw        string
+		wantRoomID string
+	}{
+		{
+			// Example from the Twitch IRC CLEARMSG tag reference (room-id is optional and may be empty).
+			name:       "empty room-id",
+			raw:        "@login=ronni;room-id=;target-msg-id=abc-123-def;tmi-sent-ts=1642720582342 :tmi.twitch.tv CLEARMSG #dallas :HeyGuys",
+			wantRoomID: "",
+		},
+		{
+			name:       "room-id set",
+			raw:        "@login=foo;room-id=12345678;target-msg-id=94e6c7ff-bf98-4faa-af5d-7ad633a158a9;tmi-sent-ts=1642720582342 :tmi.twitch.tv CLEARMSG #bar :what a great day",
+			wantRoomID: "12345678",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := parseClearMessage(parseIRCMessage(tt.raw))
+			if c.RoomID != tt.wantRoomID {
+				t.Errorf("RoomID: got %q, want %q", c.RoomID, tt.wantRoomID)
+			}
+			if c.User == "" || c.TargetMsgID == "" || c.Message == "" {
+				t.Errorf("User %q TargetMsgID %q Message %q should be set", c.User, c.TargetMsgID, c.Message)
+			}
+		})
+	}
+}
+
+func TestParseNotice_TargetUserID(t *testing.T) {
+	// Example from the Twitch IRC NOTICE tag reference.
+	raw := "@msg-id=whisper_restricted;target-user-id=12345678 :tmi.twitch.tv NOTICE #bar :Your settings prevent you from sending this whisper."
+	n := parseNotice(parseIRCMessage(raw))
+
+	if n.MsgID != NoticeMsgIDWhisperRestricted {
+		t.Errorf("MsgID: got %q, want %q", n.MsgID, NoticeMsgIDWhisperRestricted)
+	}
+	if n.TargetUserID != "12345678" {
+		t.Errorf("TargetUserID: got %q, want %q", n.TargetUserID, "12345678")
+	}
+	if n.Channel != "bar" {
+		t.Errorf("Channel: got %q, want %q", n.Channel, "bar")
+	}
+
+	n = parseNotice(parseIRCMessage("@msg-id=msg_requires_verified_phone_number :tmi.twitch.tv NOTICE #bar :A verified phone number is required to chat in this channel. Please visit https://www.twitch.tv/settings/security to verify your phone number."))
+	if n.MsgID != NoticeMsgIDMsgRequiresVerifiedPhoneNumber {
+		t.Errorf("MsgID: got %q, want %q", n.MsgID, NoticeMsgIDMsgRequiresVerifiedPhoneNumber)
+	}
+	if n.TargetUserID != "" {
+		t.Errorf("TargetUserID: got %q, want empty", n.TargetUserID)
+	}
+}
+
+func TestParseGlobalUserState_DocsExample(t *testing.T) {
+	raw := "@badge-info=subscriber/8;badges=subscriber/6;color=#0D4200;display-name=dallas;emote-sets=0,33,50,237,793,2126,3517,4578,5569,9400,10337,12239;turbo=0;user-id=12345678;user-type=admin :tmi.twitch.tv GLOBALUSERSTATE"
+	g := parseGlobalUserState(parseIRCMessage(raw))
+
+	if g.UserType != "admin" {
+		t.Errorf("UserType: got %q, want %q", g.UserType, "admin")
+	}
+	if g.Turbo {
+		t.Error("Turbo should be false")
+	}
+	if g.UserID != "12345678" || len(g.EmoteSets) != 12 {
+		t.Errorf("UserID %q EmoteSets %v", g.UserID, g.EmoteSets)
+	}
+}
+
+func TestParseUserState_DocsExample(t *testing.T) {
+	raw := "@badge-info=;badges=staff/1;color=#0D4200;display-name=ronni;emote-sets=0,33,50,237,793,2126,3517,4578,5569,9400,10337,12239;mod=1;subscriber=1;turbo=1;user-type=staff :tmi.twitch.tv USERSTATE #dallas"
+	u := parseUserState(parseIRCMessage(raw))
+
+	if u.UserType != "staff" {
+		t.Errorf("UserType: got %q, want %q", u.UserType, "staff")
+	}
+	if !u.Turbo || !u.IsMod || !u.IsSubscriber {
+		t.Errorf("Turbo %v IsMod %v IsSubscriber %v, want all true", u.Turbo, u.IsMod, u.IsSubscriber)
+	}
+	if u.ID != "" {
+		t.Errorf("ID: got %q, want empty on join", u.ID)
+	}
+
+	// After the bot sends a PRIVMSG, USERSTATE carries the sent message's ID.
+	u = parseUserState(parseIRCMessage("@badge-info=;badges=moderator/1;color=#FF4500;display-name=mybot;emote-sets=0,300374282;id=7eb848c9-1060-4e5e-9f4c-612877982e79;mod=1;subscriber=0;user-type=mod :tmi.twitch.tv USERSTATE #bar"))
+	if u.ID != "7eb848c9-1060-4e5e-9f4c-612877982e79" {
+		t.Errorf("ID: got %q", u.ID)
 	}
 }
 

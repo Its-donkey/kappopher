@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -24,6 +25,31 @@ const (
 	ExtensionRoleViewer ExtensionJWTRole = "viewer"
 )
 
+// Extension PubSub targets, used in ExtensionPubSubPerms and as
+// SendExtensionPubSubMessageParams targets.
+const (
+	ExtensionPubSubTargetBroadcast = "broadcast" // every viewer of a channel
+	ExtensionPubSubTargetGlobal    = "global"    // every viewer of the extension on every channel
+	ExtensionPubSubTargetAll       = "*"         // any target
+)
+
+// ExtensionChannelAll is the channel_id for a token that sends a global
+// PubSub message.
+const ExtensionChannelAll = "all"
+
+// ExtensionPubSubWhisperTarget returns the whisper target for one viewer,
+// identified by their opaque user ID.
+func ExtensionPubSubWhisperTarget(opaqueUserID string) string {
+	return "whisper-" + opaqueUserID
+}
+
+// ExtensionPubSubPerms are the PubSub targets a token may listen to and send
+// to (the JWT's pubsub_perms claim).
+type ExtensionPubSubPerms struct {
+	Listen []string `json:"listen,omitempty"`
+	Send   []string `json:"send,omitempty"`
+}
+
 // ExtensionJWTClaims represents the claims in a Twitch Extension JWT.
 type ExtensionJWTClaims struct {
 	// Required claims
@@ -36,9 +62,24 @@ type ExtensionJWTClaims struct {
 	OpaqueUserID string `json:"opaque_user_id,omitempty"` // Opaque user identifier
 	IsUnlinked   bool   `json:"is_unlinked,omitempty"`    // Whether user has not shared identity
 
-	// PubSub specific
-	PubsubPermsListen []string `json:"pubsub_perms_listen,omitempty"` // Channels to listen to
-	PubsubPermsSend   []string `json:"pubsub_perms_send,omitempty"`   // Channels to send to
+	// PubsubPerms are the PubSub targets the token may listen and send to.
+	PubsubPerms *ExtensionPubSubPerms `json:"pubsub_perms,omitempty"`
+
+	// Deprecated: Twitch nests PubSub permissions under pubsub_perms; use
+	// PubsubPerms. CreateToken still signs these into pubsub_perms.listen when
+	// PubsubPerms is nil, and ParseExtensionJWT fills them from it.
+	PubsubPermsListen []string `json:"-"`
+	// Deprecated: see PubsubPermsListen; this is pubsub_perms.send.
+	PubsubPermsSend []string `json:"-"`
+}
+
+// signed is the claims as they are signed: the deprecated flat PubSub fields
+// folded into PubsubPerms.
+func (c ExtensionJWTClaims) signed() ExtensionJWTClaims {
+	if c.PubsubPerms == nil && (len(c.PubsubPermsListen) > 0 || len(c.PubsubPermsSend) > 0) {
+		c.PubsubPerms = &ExtensionPubSubPerms{Listen: c.PubsubPermsListen, Send: c.PubsubPermsSend}
+	}
+	return c
 }
 
 // ExtensionJWT represents an extension JWT configuration and signer.
@@ -96,7 +137,7 @@ func (e *ExtensionJWT) CreateToken(claims *ExtensionJWTClaims) (string, error) {
 		return "", fmt.Errorf("marshaling header: %w", err)
 	}
 
-	claimsJSON, err := json.Marshal(claims)
+	claimsJSON, err := json.Marshal(claims.signed())
 	if err != nil {
 		return "", fmt.Errorf("marshaling claims: %w", err)
 	}
@@ -135,17 +176,43 @@ func (e *ExtensionJWT) CreateBroadcasterToken(channelID string, expiration time.
 	return e.CreateToken(claims)
 }
 
-// CreatePubSubToken creates a token for PubSub operations.
+// CreatePubSubToken creates an EBS token for sending Extension PubSub
+// messages to channelID (ExtensionChannelAll for a global message), with
+// the given pubsub_perms listen and send targets.
 func (e *ExtensionJWT) CreatePubSubToken(channelID string, listen, send []string, expiration time.Duration) (string, error) {
+	return e.CreateExternalToken(channelID, &ExtensionPubSubPerms{Listen: listen, Send: send}, expiration)
+}
+
+// CreateExternalToken creates an EBS token (role external, signed as the
+// extension owner) scoped to channelID, with optional PubSub permissions. Use
+// it for extension endpoints that act on a channel, such as Send Extension
+// PubSub Message, Send Extension Chat Message and Set Extension Configuration
+// Segment.
+func (e *ExtensionJWT) CreateExternalToken(channelID string, perms *ExtensionPubSubPerms, expiration time.Duration) (string, error) {
 	claims := &ExtensionJWTClaims{
-		Exp:               time.Now().Add(expiration).Unix(),
-		UserID:            e.ownerID,
-		Role:              ExtensionRoleExternal,
-		ChannelID:         channelID,
-		PubsubPermsListen: listen,
-		PubsubPermsSend:   send,
+		Exp:         time.Now().Add(expiration).Unix(),
+		UserID:      e.ownerID,
+		Role:        ExtensionRoleExternal,
+		ChannelID:   channelID,
+		PubsubPerms: perms,
 	}
 	return e.CreateToken(claims)
+}
+
+// ParseToken verifies a JWT signed with this extension's secret, such as the
+// one the extension frontend sends to the EBS, and returns its claims.
+func (e *ExtensionJWT) ParseToken(tokenString string) (*ExtensionJWTClaims, error) {
+	return parseExtensionJWT(tokenString, e.secret)
+}
+
+// ParseAuthorizationHeader verifies the JWT in an Authorization header value
+// ("Bearer <token>"), as the extension frontend sends it to the EBS.
+func (e *ExtensionJWT) ParseAuthorizationHeader(header string) (*ExtensionJWTClaims, error) {
+	scheme, token, ok := strings.Cut(strings.TrimSpace(header), " ")
+	if !ok || !strings.EqualFold(scheme, "Bearer") || strings.TrimSpace(token) == "" {
+		return nil, fmt.Errorf("authorization header is not a bearer token")
+	}
+	return e.ParseToken(strings.TrimSpace(token))
 }
 
 // sign creates an HMAC-SHA256 signature.
@@ -231,7 +298,12 @@ func ParseExtensionJWT(tokenString, base64Secret string) (*ExtensionJWTClaims, e
 	if err != nil {
 		return nil, fmt.Errorf("decoding secret: %w", err)
 	}
+	return parseExtensionJWT(tokenString, secret)
+}
 
+// parseExtensionJWT verifies tokenString against the decoded secret and
+// returns its claims.
+func parseExtensionJWT(tokenString string, secret []byte) (*ExtensionJWTClaims, error) {
 	// Split token into parts
 	parts := splitToken(tokenString)
 	if len(parts) != 3 {
@@ -267,6 +339,11 @@ func ParseExtensionJWT(tokenString, base64Secret string) (*ExtensionJWTClaims, e
 	// Check expiration
 	if time.Now().Unix() > claims.Exp {
 		return nil, fmt.Errorf("token expired")
+	}
+
+	if claims.PubsubPerms != nil {
+		claims.PubsubPermsListen = claims.PubsubPerms.Listen
+		claims.PubsubPermsSend = claims.PubsubPerms.Send
 	}
 
 	return &claims, nil

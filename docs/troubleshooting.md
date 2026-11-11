@@ -142,17 +142,14 @@ description: Solutions to common issues when using Kappopher.
 
 **Solutions:**
 
-1. **Check token format** - Must include `oauth:` prefix:
+1. **Check token format** - The `oauth:` prefix is added if missing:
    ```go
-   helix.WithIRCToken("oauth:your-token-here")
+   client := helix.NewIRCClient("your_username", "oauth:your-token-here")
    ```
 
 2. **Verify token scopes** - Need `chat:read` to read, `chat:edit` to send
 
-3. **Check username matches token** - The nick must match the token owner:
-   ```go
-   helix.WithIRCNick("your_username")
-   ```
+3. **Check username matches token** - The nick (first argument to `NewIRCClient`) must match the token owner.
 
 ### Messages not sending
 
@@ -173,6 +170,14 @@ description: Solutions to common issues when using Kappopher.
 
 4. **Check for shadowban** - Your messages might be hidden from others
 
+5. **Handle NOTICE messages** - Twitch reports why a message was rejected with a NOTICE; compare `MsgID` to the `NoticeMsgID*` constants:
+   ```go
+   helix.WithNoticeHandler(func(n *helix.Notice) {
+       log.Printf("%s: %s (%s)", n.Channel, n.Message, n.MsgID)
+   })
+   ```
+   For example, `msg_requires_verified_phone_number` means the bot account needs a verified phone number.
+
 ### Not receiving messages
 
 **Symptoms:** Connected and joined but no messages received.
@@ -181,8 +186,12 @@ description: Solutions to common issues when using Kappopher.
 
 1. **Verify message handler is set**:
    ```go
-   helix.WithIRCMessageHandler(func(msg *helix.IRCMessage) {
+   helix.WithMessageHandler(func(msg *helix.ChatMessage) {
        fmt.Printf("Received: %+v\n", msg)
+   })
+   // or log every raw line
+   helix.WithRawMessageHandler(func(raw string) {
+       fmt.Println(raw)
    })
    ```
 
@@ -288,7 +297,7 @@ description: Solutions to common issues when using Kappopher.
    ```go
    helix.WithEventSubAutoReconnect(true)
    // or for IRC
-   helix.WithIRCAutoReconnect(true)
+   helix.WithAutoReconnect(true)
    ```
 
 2. **Handle reconnection**:

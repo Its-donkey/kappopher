@@ -14,25 +14,31 @@ type DropsEntitlement struct {
 	UserID            string    `json:"user_id"`
 	GameID            string    `json:"game_id"`
 	FulfillmentStatus string    `json:"fulfillment_status"` // CLAIMED, FULFILLED
-	LastUpdated       time.Time `json:"updated_at"`
+	LastUpdated       time.Time `json:"last_updated"`
 }
 
 // GetDropsEntitlementsParams contains parameters for GetDropsEntitlements.
 type GetDropsEntitlementsParams struct {
-	ID                string // Entitlement ID
-	UserID            string // Filter by user
-	GameID            string // Filter by game
-	FulfillmentStatus string // CLAIMED, FULFILLED
+	// Deprecated: use IDs.
+	ID                string
+	IDs               []string // Entitlement IDs (max 100)
+	UserID            string   // Filter by user
+	GameID            string   // Filter by game
+	FulfillmentStatus string   // CLAIMED, FULFILLED
 	*PaginationParams
 }
 
 // GetDropsEntitlements gets drops entitlements.
-// Requires: App access token or user token with viewing:activity:read scope.
+// Requires: app or user access token whose client ID is owned by a member of the
+// organization that owns the game.
 func (c *Client) GetDropsEntitlements(ctx context.Context, params *GetDropsEntitlementsParams) (*Response[DropsEntitlement], error) {
 	q := url.Values{}
 	if params != nil {
 		if params.ID != "" {
-			q.Set("id", params.ID)
+			q.Add("id", params.ID)
+		}
+		for _, id := range params.IDs {
+			q.Add("id", id)
 		}
 		if params.UserID != "" {
 			q.Set("user_id", params.UserID)

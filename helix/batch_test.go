@@ -104,10 +104,10 @@ func TestBatch_MultipleRequests(t *testing.T) {
 
 func TestBatch_WithConcurrencyLimit(t *testing.T) {
 	var maxConcurrent int32
-	var currentConcurrent int32
+	var currentConcurrent atomic.Int32
 
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
-		current := atomic.AddInt32(&currentConcurrent, 1)
+		current := currentConcurrent.Add(1)
 		for {
 			max := atomic.LoadInt32(&maxConcurrent)
 			if current > max {
@@ -120,7 +120,7 @@ func TestBatch_WithConcurrencyLimit(t *testing.T) {
 		}
 
 		time.Sleep(10 * time.Millisecond)
-		atomic.AddInt32(&currentConcurrent, -1)
+		currentConcurrent.Add(-1)
 
 		resp := Response[User]{Data: []User{{ID: "123"}}}
 		_ = json.NewEncoder(w).Encode(resp)
@@ -148,9 +148,9 @@ func TestBatch_WithConcurrencyLimit(t *testing.T) {
 }
 
 func TestBatch_StopOnError(t *testing.T) {
-	var requestCount int32
+	var requestCount atomic.Int32
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
-		count := atomic.AddInt32(&requestCount, 1)
+		count := requestCount.Add(1)
 		if count == 1 {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -389,9 +389,9 @@ func TestBatchWithCallback_EmptyRequests(t *testing.T) {
 }
 
 func TestBatchWithCallback_StopOnError(t *testing.T) {
-	var requestCount int32
+	var requestCount atomic.Int32
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
-		count := atomic.AddInt32(&requestCount, 1)
+		count := requestCount.Add(1)
 		if count == 1 {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

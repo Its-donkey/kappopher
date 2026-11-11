@@ -31,7 +31,10 @@ type Clip struct {
 // CreateClipParams contains parameters for CreateClip.
 type CreateClipParams struct {
 	BroadcasterID string
-	HasDelay      bool // Add delay before clip creation (for live streams)
+	Title         string   // Optional clip title
+	Duration      *float64 // Optional clip length in seconds (5-60, default 30)
+	// Deprecated: Twitch no longer documents has_delay.
+	HasDelay bool
 }
 
 // CreateClipResponse represents the response from CreateClip.
@@ -45,6 +48,12 @@ type CreateClipResponse struct {
 func (c *Client) CreateClip(ctx context.Context, params *CreateClipParams) (*CreateClipResponse, error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
+	if params.Title != "" {
+		q.Set("title", params.Title)
+	}
+	if params.Duration != nil {
+		q.Set("duration", strconv.FormatFloat(*params.Duration, 'f', -1, 64))
+	}
 	if params.HasDelay {
 		q.Set("has_delay", "true")
 	}
@@ -120,6 +129,7 @@ type GetClipsDownloadParams struct {
 
 // GetClipsDownload provides URLs to download the video files for the specified clips.
 // Requires: editor:manage:clips or channel:manage:clips scope.
+// Or an app access token, if the editor has authorized the app with one of those scopes.
 func (c *Client) GetClipsDownload(ctx context.Context, params *GetClipsDownloadParams) (*Response[ClipDownload], error) {
 	q := url.Values{}
 	q.Set("editor_id", params.EditorID)
@@ -148,6 +158,7 @@ type CreateClipFromVODParams struct {
 
 // CreateClipFromVOD creates a clip from a broadcaster's VOD.
 // Requires: editor:manage:clips or channel:manage:clips scope.
+// Or an app access token, if the editor has authorized the app with one of those scopes.
 func (c *Client) CreateClipFromVOD(ctx context.Context, params *CreateClipFromVODParams) (*CreateClipResponse, error) {
 	q := url.Values{}
 	q.Set("editor_id", params.EditorID)

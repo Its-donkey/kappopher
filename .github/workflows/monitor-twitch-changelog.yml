@@ -13,77 +13,36 @@ jobs:
   check-changelog:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
       - name: Checkout state branch
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: state/twitch-changelog
+          path: state
 
-      - name: Check for changelog updates
+      - name: Check the changelog feed
+        id: feed
+        # Twitch's changelog RSS feed (https://dev.twitch.tv/docs/rss/change-log.xml);
+        # the HTML page's layout changed in November 2026 and is not stable to scrape.
+        # Entries are tracked by guid in state/.github/twitch-changelog-seen.txt.
+        run: |
+          python3 .github/scripts/twitch_changelog.py \
+            --state state/.github/twitch-changelog-seen.txt \
+            --body "$RUNNER_TEMP/new-entries.md"
+
+      - name: Open or update the triage issue
+        if: steps.feed.outputs.count != '0'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
           CHANGELOG_URL="https://dev.twitch.tv/docs/change-log/"
-          HASH_FILE=".github/twitch-changelog-hash"
-          ENTRIES_FILE=".github/twitch-changelog-entries.txt"
+          TODAY=$(date -u +%Y-%m-%d)
+          ENTRIES=$(cat "$RUNNER_TEMP/new-entries.md")
 
-          # Fetch the changelog page
-          echo "Fetching Twitch changelog..."
-          HTTP_CODE=$(curl -s -w "%{http_code}" -o /tmp/changelog.html "$CHANGELOG_URL")
-
-          if [ "$HTTP_CODE" != "200" ]; then
-            echo "::warning::Failed to fetch changelog (HTTP $HTTP_CODE)"
-            exit 0
-          fi
-
-          # Extract line-structured plain text (strip tags, collapse intra-line
-          # whitespace, drop blank lines) so we can diff it later
-          sed -e 's/<script[^>]*>.*<\/script>//g' \
-              -e 's/<style[^>]*>.*<\/style>//g' \
-              -e 's/<[^>]*>//g' \
-              /tmp/changelog.html \
-            | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//' \
-            | grep -v '^$' \
-            > /tmp/new-entries.txt
-
-          NEW_HASH=$(sha256sum /tmp/new-entries.txt | awk '{print $1}')
-          echo "New hash: $NEW_HASH"
-
-          OLD_HASH=""
-          if [ -f "$HASH_FILE" ]; then
-            OLD_HASH=$(cat "$HASH_FILE")
-            echo "Old hash: $OLD_HASH"
-          else
-            echo "No previous hash found (first run)"
-          fi
-
-          if [ "$NEW_HASH" = "$OLD_HASH" ]; then
-            echo "No changes detected"
-            exit 0
-          fi
-
-          echo "Changelog has changed!"
-
-          # Build the list of lines present in the new snapshot but not the old
-          # one (the "what's new" payload for the issue body). Capped at 100
-          # lines so issue bodies can't blow past GitHub's size limit.
-          if [ -f "$ENTRIES_FILE" ]; then
-            NEW_LINES=$(
-              { diff --new-line-format='%L' \
-                     --old-line-format='' \
-                     --unchanged-line-format='' \
-                     "$ENTRIES_FILE" /tmp/new-entries.txt || true; } \
-              | head -100
-            )
-            if [ -z "$NEW_LINES" ]; then
-              NEW_LINES="(hash changed but no added text — likely a formatting-only change)"
-            fi
-          else
-            NEW_LINES="(no prior snapshot — first run with the entry differ; see the URL for full context)"
-          fi
-
-          # Check if there's already an open issue for this
           EXISTING_ISSUE=$(gh issue list \
             --repo "$GITHUB_REPOSITORY" \
             --state open \
@@ -91,35 +50,36 @@ jobs:
             --json number \
             --jq '.[0].number // empty')
 
-          TODAY=$(date -u +%Y-%m-%d)
-
           if [ -n "$EXISTING_ISSUE" ]; then
             echo "Open issue #$EXISTING_ISSUE exists — adding comment"
-            COMMENT_BODY=$(printf '%s\n\n**New entries since last check:**\n```\n%s\n```\n\n**Full changelog:** %s\n' \
-              "Another change detected on ${TODAY}." \
-              "$NEW_LINES" \
-              "$CHANGELOG_URL")
+            printf 'New changelog entries on %s:\n\n%s\n\n**Full changelog:** %s\n' \
+              "$TODAY" "$ENTRIES" "$CHANGELOG_URL" > "$RUNNER_TEMP/body.md"
             gh issue comment "$EXISTING_ISSUE" \
               --repo "$GITHUB_REPOSITORY" \
-              --body "$COMMENT_BODY"
+              --body-file "$RUNNER_TEMP/body.md"
           else
             echo "Creating new issue"
-            ISSUE_BODY=$(printf 'The Twitch API changelog has been updated.\n\n**New entries since last check:**\n```\n%s\n```\n\n**Full changelog:** %s\n\n## Action needed\n- [ ] Review the new entries above for relevance to kappopher\n- [ ] Open follow-up issues for any endpoints/events needing library updates\n- [ ] Close this issue when triage is complete\n\n---\n*Automatically created by the changelog monitor workflow.*\n' \
-              "$NEW_LINES" \
-              "$CHANGELOG_URL")
+            printf 'The Twitch API changelog has new entries.\n\n%s\n\n**Full changelog:** %s\n\n## Action needed\n- [ ] Review the new entries above for relevance to kappopher\n- [ ] Open follow-up issues for any endpoints/events needing library updates\n- [ ] Close this issue when triage is complete\n\n---\n*Automatically created by the changelog monitor workflow.*\n' \
+              "$ENTRIES" "$CHANGELOG_URL" > "$RUNNER_TEMP/body.md"
             gh issue create \
               --repo "$GITHUB_REPOSITORY" \
               --title "Twitch API changelog updated - ${TODAY}" \
               --label "twitch-changelog" \
-              --body "$ISSUE_BODY"
+              --body-file "$RUNNER_TEMP/body.md"
           fi
 
-          # Persist the new hash and the full entries snapshot back to
-          # state/twitch-changelog so tomorrow's run can diff against it.
-          cp /tmp/new-entries.txt "$ENTRIES_FILE"
-          echo "$NEW_HASH" > "$HASH_FILE"
+      - name: Save state
+        working-directory: state
+        run: |
+          set -euo pipefail
+          # The page-scrape monitor's hash and snapshot are no longer used.
+          git rm -q --ignore-unmatch .github/twitch-changelog-hash .github/twitch-changelog-entries.txt
+          git add .github/twitch-changelog-seen.txt
+          if git diff --cached --quiet; then
+            echo "State unchanged"
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "$HASH_FILE" "$ENTRIES_FILE"
-          git commit -m "Update Twitch changelog state (hash + entries snapshot)"
+          git commit -m "Update Twitch changelog state (seen feed entries)"
           git push

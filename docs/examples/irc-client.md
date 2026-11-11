@@ -9,7 +9,7 @@ description: Build chat bots using the low-level IRC/WebSocket client.
 The IRC client provides direct WebSocket connection to Twitch chat, offering:
 - Lower latency than EventSub for chat messages
 - Direct message sending without API rate limits
-- Full IRC message parsing with tags (badges, emotes, etc.)
+- Full IRC message parsing into typed structs (badges, emotes, etc.)
 - Support for all TMI (Twitch Messaging Interface) events
 
 ## Basic IRC Client
@@ -30,12 +30,10 @@ func main() {
 
     // Create IRC client
     irc := helix.NewIRCClient(
-        helix.WithIRCToken("oauth:your-oauth-token"), // Get from twitchtokengenerator.com
-        helix.WithIRCNick("your_bot_username"),
-        helix.WithIRCMessageHandler(func(msg *helix.IRCMessage) {
-            if msg.Command == "PRIVMSG" {
-                fmt.Printf("[%s] %s: %s\n", msg.Channel, msg.User, msg.Text)
-            }
+        "your_bot_username",
+        "oauth:your-oauth-token", // Get from twitchtokengenerator.com
+        helix.WithMessageHandler(func(msg *helix.ChatMessage) {
+            fmt.Printf("[%s] %s: %s\n", msg.Channel, msg.User, msg.Message)
         }),
     )
 
@@ -46,10 +44,7 @@ func main() {
     defer irc.Close()
 
     // Join channels
-    if err := irc.Join("channel1"); err != nil {
-        log.Fatal(err)
-    }
-    if err := irc.Join("channel2"); err != nil {
+    if err := irc.Join("channel1", "channel2"); err != nil {
         log.Fatal(err)
     }
 
@@ -62,6 +57,10 @@ func main() {
 
 ## ChatBotClient (High-Level)
 
+`ChatBotClient` wraps the IRC client and takes its token from an `AuthClient`.
+Instead of one handler per IRC command, you register typed callbacks such as
+`OnMessage`, `OnSub` and `OnRaid`.
+
 ```go
 package main
 
@@ -69,6 +68,7 @@ import (
     "context"
     "fmt"
     "log"
+    "time"
 
     "github.com/Its-donkey/kappopher/helix"
 )
@@ -76,24 +76,38 @@ import (
 func main() {
     ctx := context.Background()
 
-    // Setup auth client
+    // Auth client holding the bot account's user access token
     authClient := helix.NewAuthClient(helix.AuthConfig{
         ClientID:     "your-client-id",
         ClientSecret: "your-client-secret",
     })
+    authClient.SetToken(&helix.Token{AccessToken: "your-user-access-token"})
 
-    // Create Helix client for API calls
-    helixClient := helix.NewClient("your-client-id", authClient)
+    // Create ChatBotClient (the nick is the bot's username)
+    bot := helix.NewChatBotClient("your_bot_username", authClient)
 
-    // Create ChatBotClient (combines IRC + Helix API)
-    bot := helix.NewChatBotClient(helixClient,
-        helix.WithChatBotMessageHandler(func(msg *helix.IRCMessage) {
-            handleMessage(ctx, bot, msg)
-        }),
-        helix.WithChatBotAutoReconnect(true),
-    )
+    // Respond to commands
+    bot.OnMessage(func(msg *helix.ChatMessage) {
+        switch msg.Message {
+        case "!ping":
+            bot.Say(msg.Channel, "Pong!")
+        case "!time":
+            bot.Say(msg.Channel, fmt.Sprintf("Current time: %s", time.Now().Format(time.RFC1123)))
+        }
+    })
 
-    // Connect with user token
+    // Typed event callbacks
+    bot.OnSub(func(n *helix.UserNotice) {
+        bot.Say(n.Channel, fmt.Sprintf("Welcome to the family, %s!", n.DisplayName))
+    })
+    bot.OnRaid(func(n *helix.UserNotice) {
+        bot.Say(n.Channel, fmt.Sprintf("Thanks for the raid, %s!", n.DisplayName))
+    })
+    bot.OnError(func(err error) {
+        log.Printf("chat error: %v", err)
+    })
+
+    // Connect using the auth client's token
     if err := bot.Connect(ctx); err != nil {
         log.Fatal(err)
     }
@@ -107,23 +121,13 @@ func main() {
     fmt.Println("Bot is running!")
     select {}
 }
-
-func handleMessage(ctx context.Context, bot *helix.ChatBotClient, msg *helix.IRCMessage) {
-    if msg.Command != "PRIVMSG" {
-        return
-    }
-
-    // Respond to commands
-    switch msg.Text {
-    case "!ping":
-        bot.Say(msg.Channel, "Pong!")
-    case "!time":
-        bot.Say(msg.Channel, fmt.Sprintf("Current time: %s", time.Now().Format(time.RFC1123)))
-    }
-}
 ```
 
 ## IRC Message Handling
+
+Each kind of IRC message has its own handler option and is delivered already
+parsed into a typed struct, so there is no need to switch on the IRC command or
+read raw tags.
 
 ```go
 package main
@@ -139,10 +143,18 @@ import (
 func main() {
     ctx := context.Background()
 
-    irc := helix.NewIRCClient(
-        helix.WithIRCToken("oauth:token"),
-        helix.WithIRCNick("bot_name"),
-        helix.WithIRCMessageHandler(handleIRCMessage),
+    irc := helix.NewIRCClient("bot_name", "oauth:token",
+        helix.WithMessageHandler(handleChatMessage),
+        helix.WithUserNoticeHandler(handleUserNotice),
+        helix.WithRoomStateHandler(handleRoomState),
+        helix.WithClearChatHandler(handleClearChat),
+        helix.WithClearMessageHandler(handleClearMsg),
+        helix.WithNoticeHandler(func(n *helix.Notice) {
+            fmt.Printf("Notice (%s): %s\n", n.MsgID, n.Message)
+        }),
+        helix.WithUserStateHandler(func(s *helix.UserState) {
+            fmt.Printf("User state updated in %s\n", s.Channel)
+        }),
     )
 
     if err := irc.Connect(ctx); err != nil {
@@ -150,67 +162,37 @@ func main() {
     }
     defer irc.Close()
 
-    irc.Join("channel")
+    if err := irc.Join("channel"); err != nil {
+        log.Fatal(err)
+    }
     select {}
 }
 
-func handleIRCMessage(msg *helix.IRCMessage) {
-    switch msg.Command {
-    case "PRIVMSG":
-        handleChatMessage(msg)
-
-    case "USERNOTICE":
-        handleUserNotice(msg)
-
-    case "ROOMSTATE":
-        handleRoomState(msg)
-
-    case "CLEARCHAT":
-        handleClearChat(msg)
-
-    case "CLEARMSG":
-        handleClearMsg(msg)
-
-    case "NOTICE":
-        fmt.Printf("Notice: %s\n", msg.Text)
-
-    case "RECONNECT":
-        fmt.Println("Server requested reconnect")
-
-    case "USERSTATE":
-        fmt.Printf("User state updated in %s\n", msg.Channel)
-    }
-}
-
-func handleChatMessage(msg *helix.IRCMessage) {
-    // Access IRC tags
-    displayName := msg.Tags["display-name"]
-    badges := msg.Tags["badges"]
-    color := msg.Tags["color"]
-    emotes := msg.Tags["emotes"]
-    msgID := msg.Tags["id"]
+func handleChatMessage(msg *helix.ChatMessage) {
+    // Parsed fields are available directly on the message
+    displayName := msg.DisplayName
+    badges := msg.Badges
+    color := msg.Color
+    emotes := msg.Emotes
+    msgID := msg.ID
 
     // Check for bits
-    if bits, ok := msg.Tags["bits"]; ok {
-        fmt.Printf("💎 %s cheered %s bits: %s\n", displayName, bits, msg.Text)
+    if msg.Bits > 0 {
+        fmt.Printf("💎 %s cheered %d bits: %s\n", displayName, msg.Bits, msg.Message)
         return
     }
 
     // Check user status
-    isMod := msg.Tags["mod"] == "1"
-    isSub := msg.Tags["subscriber"] == "1"
-    isVIP := msg.Tags["vip"] == "1"
-
     prefix := ""
-    if isMod {
+    if msg.IsMod {
         prefix = "🗡️"
-    } else if isVIP {
+    } else if msg.IsVIP {
         prefix = "💎"
-    } else if isSub {
+    } else if msg.IsSubscriber {
         prefix = "⭐"
     }
 
-    fmt.Printf("%s[%s] %s: %s\n", prefix, msg.Channel, displayName, msg.Text)
+    fmt.Printf("%s[%s] %s: %s\n", prefix, msg.Channel, displayName, msg.Message)
 
     // Store message ID for potential moderation
     _ = msgID
@@ -219,79 +201,85 @@ func handleChatMessage(msg *helix.IRCMessage) {
     _ = emotes
 }
 
-func handleUserNotice(msg *helix.IRCMessage) {
-    msgID := msg.Tags["msg-id"]
-    displayName := msg.Tags["display-name"]
+func handleUserNotice(n *helix.UserNotice) {
+    // Type-specific details live in MsgParams (the msg-param- prefix is removed)
+    switch n.Type {
+    case helix.UserNoticeTypeSub:
+        plan := n.MsgParams["sub-plan"]
+        fmt.Printf("🎉 %s subscribed! (Tier %s)\n", n.DisplayName, tierName(plan))
 
-    switch msgID {
-    case "sub":
-        plan := msg.Tags["msg-param-sub-plan"]
-        fmt.Printf("🎉 %s subscribed! (Tier %s)\n", displayName, tierName(plan))
-
-    case "resub":
-        months := msg.Tags["msg-param-cumulative-months"]
-        plan := msg.Tags["msg-param-sub-plan"]
-        fmt.Printf("🎉 %s resubscribed for %s months! (Tier %s)\n", displayName, months, tierName(plan))
-        if msg.Text != "" {
-            fmt.Printf("   Message: %s\n", msg.Text)
+    case helix.UserNoticeTypeResub:
+        months := n.MsgParams["cumulative-months"]
+        plan := n.MsgParams["sub-plan"]
+        fmt.Printf("🎉 %s resubscribed for %s months! (Tier %s)\n", n.DisplayName, months, tierName(plan))
+        if n.Message != "" {
+            fmt.Printf("   Message: %s\n", n.Message)
         }
 
-    case "subgift":
-        recipient := msg.Tags["msg-param-recipient-display-name"]
-        plan := msg.Tags["msg-param-sub-plan"]
-        fmt.Printf("🎁 %s gifted a sub to %s! (Tier %s)\n", displayName, recipient, tierName(plan))
+    case helix.UserNoticeTypeSubGift:
+        recipient := n.MsgParams["recipient-display-name"]
+        plan := n.MsgParams["sub-plan"]
+        fmt.Printf("🎁 %s gifted a sub to %s! (Tier %s)\n", n.DisplayName, recipient, tierName(plan))
 
-    case "submysterygift":
-        count := msg.Tags["msg-param-mass-gift-count"]
-        fmt.Printf("🎁 %s gifted %s subs to the community!\n", displayName, count)
+    case helix.UserNoticeTypeSubMysteryGift:
+        count := n.MsgParams["mass-gift-count"]
+        fmt.Printf("🎁 %s gifted %s subs to the community!\n", n.DisplayName, count)
 
-    case "raid":
-        viewers := msg.Tags["msg-param-viewerCount"]
-        fmt.Printf("🚀 %s is raiding with %s viewers!\n", displayName, viewers)
+    case helix.UserNoticeTypeRaid:
+        viewers := n.MsgParams["viewerCount"]
+        fmt.Printf("🚀 %s is raiding with %s viewers!\n", n.DisplayName, viewers)
 
-    case "announcement":
-        fmt.Printf("📢 Announcement from %s: %s\n", displayName, msg.Text)
+    case helix.UserNoticeTypeViewerMilestone:
+        // e.g. a watch streak
+        fmt.Printf("🏆 %s reached a %s milestone: %s\n",
+            n.DisplayName, n.MsgParams["category"], n.MsgParams["value"])
+
+    case helix.UserNoticeTypeModiversary:
+        fmt.Printf("🗡️ %s has been a moderator for %s months!\n", n.DisplayName, n.MsgParams["months"])
+
+    case helix.UserNoticeTypeSharedChatNotice:
+        // An event in another channel of a shared chat session.
+        // SourceMsgID holds the original type (sub, raid, ...).
+        fmt.Printf("🔗 Shared chat %s: %s\n", n.SourceMsgID, n.SystemMessage)
+
+    case helix.UserNoticeTypeAnnouncement:
+        fmt.Printf("📢 Announcement from %s: %s\n", n.DisplayName, n.Message)
     }
 }
 
-func handleRoomState(msg *helix.IRCMessage) {
-    channel := msg.Channel
-    fmt.Printf("Room state for %s:\n", channel)
+func handleRoomState(state *helix.RoomState) {
+    fmt.Printf("Room state for %s:\n", state.Channel)
 
-    if emoteOnly := msg.Tags["emote-only"]; emoteOnly == "1" {
+    if state.EmoteOnly {
         fmt.Println("  - Emote-only mode ON")
     }
-    if followersOnly := msg.Tags["followers-only"]; followersOnly != "-1" {
-        fmt.Printf("  - Followers-only: %s minutes\n", followersOnly)
+    if state.FollowersOnly != -1 {
+        fmt.Printf("  - Followers-only: %d minutes\n", state.FollowersOnly)
     }
-    if slow := msg.Tags["slow"]; slow != "0" {
-        fmt.Printf("  - Slow mode: %s seconds\n", slow)
+    if state.Slow != 0 {
+        fmt.Printf("  - Slow mode: %d seconds\n", state.Slow)
     }
-    if subsOnly := msg.Tags["subs-only"]; subsOnly == "1" {
+    if state.SubsOnly {
         fmt.Println("  - Subscribers-only mode ON")
     }
-    if r9k := msg.Tags["r9k"]; r9k == "1" {
+    if state.R9K {
         fmt.Println("  - R9K mode ON")
     }
 }
 
-func handleClearChat(msg *helix.IRCMessage) {
-    if targetUser := msg.Tags["target-user-id"]; targetUser != "" {
-        duration := msg.Tags["ban-duration"]
-        if duration == "" {
-            fmt.Printf("🔨 %s was permanently banned\n", msg.Text)
-        } else {
-            fmt.Printf("⏰ %s was timed out for %s seconds\n", msg.Text, duration)
-        }
-    } else {
-        fmt.Printf("🧹 Chat was cleared in %s\n", msg.Channel)
+func handleClearChat(c *helix.ClearChat) {
+    switch {
+    case c.User == "":
+        fmt.Printf("🧹 Chat was cleared in %s\n", c.Channel)
+    case c.BanDuration == 0:
+        fmt.Printf("🔨 %s was permanently banned\n", c.User)
+    default:
+        fmt.Printf("⏰ %s was timed out for %d seconds\n", c.User, c.BanDuration)
     }
 }
 
-func handleClearMsg(msg *helix.IRCMessage) {
-    targetMsgID := msg.Tags["target-msg-id"]
-    login := msg.Tags["login"]
-    fmt.Printf("🗑️ Message from %s deleted (ID: %s)\n", login, targetMsgID)
+func handleClearMsg(m *helix.ClearMessage) {
+    fmt.Printf("🗑️ Message from %s deleted (ID: %s)\n", m.User, m.TargetMsgID)
 }
 
 func tierName(plan string) string {
@@ -310,6 +298,29 @@ func tierName(plan string) string {
 }
 ```
 
+### Handling Notices
+
+`Notice.MsgID` identifies the kind of notice, and the `NoticeMsgID*` constants cover the common ones.
+
+```go
+func handleNotice(n *helix.Notice) {
+    switch n.MsgID {
+    case helix.NoticeMsgIDSlowOn:
+        fmt.Printf("Slow mode enabled in %s\n", n.Channel)
+    case helix.NoticeMsgIDMsgRateLimit:
+        fmt.Println("Slow down, the bot is being rate limited")
+    case helix.NoticeMsgIDMsgDuplicate:
+        fmt.Println("Duplicate message was rejected")
+    case helix.NoticeMsgIDMsgBanned:
+        log.Printf("Bot is banned from %s", n.Channel)
+    default:
+        fmt.Printf("Notice: %s\n", n.Message)
+    }
+}
+```
+
+Register it with `helix.WithNoticeHandler(handleNotice)`.
+
 ## Sending Messages
 
 ```go
@@ -317,7 +328,6 @@ package main
 
 import (
     "context"
-    "fmt"
     "log"
 
     "github.com/Its-donkey/kappopher/helix"
@@ -326,10 +336,7 @@ import (
 func main() {
     ctx := context.Background()
 
-    irc := helix.NewIRCClient(
-        helix.WithIRCToken("oauth:token"),
-        helix.WithIRCNick("bot_name"),
-    )
+    irc := helix.NewIRCClient("bot_name", "oauth:token")
 
     if err := irc.Connect(ctx); err != nil {
         log.Fatal(err)
@@ -337,7 +344,9 @@ func main() {
     defer irc.Close()
 
     channel := "channel_name"
-    irc.Join(channel)
+    if err := irc.Join(channel); err != nil {
+        log.Fatal(err)
+    }
 
     // Send a message
     if err := irc.Say(channel, "Hello, chat!"); err != nil {
@@ -358,6 +367,10 @@ func main() {
 
 ## Auto-Reconnect
 
+When auto-reconnect is enabled the client reconnects after a dropped connection
+and rejoins the channels it had joined, so the reconnect handler is only needed
+for logging or resetting your own state.
+
 ```go
 package main
 
@@ -365,6 +378,7 @@ import (
     "context"
     "fmt"
     "log"
+    "time"
 
     "github.com/Its-donkey/kappopher/helix"
 )
@@ -372,15 +386,14 @@ import (
 func main() {
     ctx := context.Background()
 
-    irc := helix.NewIRCClient(
-        helix.WithIRCToken("oauth:token"),
-        helix.WithIRCNick("bot_name"),
-        helix.WithIRCAutoReconnect(true),
-        helix.WithIRCReconnectHandler(func() {
-            fmt.Println("Reconnected! Rejoining channels...")
-            // Rejoin channels after reconnect
-            irc.Join("channel1")
-            irc.Join("channel2")
+    irc := helix.NewIRCClient("bot_name", "oauth:token",
+        helix.WithAutoReconnect(true),
+        helix.WithReconnectDelay(5*time.Second),
+        helix.WithDisconnectHandler(func() {
+            fmt.Println("Disconnected from chat")
+        }),
+        helix.WithReconnectHandler(func() {
+            fmt.Println("Reconnecting... channels are rejoined automatically")
         }),
         helix.WithIRCErrorHandler(func(err error) {
             log.Printf("IRC error: %v", err)
@@ -392,8 +405,9 @@ func main() {
     }
     defer irc.Close()
 
-    irc.Join("channel1")
-    irc.Join("channel2")
+    if err := irc.Join("channel1", "channel2"); err != nil {
+        log.Fatal(err)
+    }
 
     fmt.Println("Bot running with auto-reconnect...")
     select {}
@@ -424,36 +438,34 @@ type ChatBot struct {
     cdMu     sync.Mutex
 }
 
-type CommandFunc func(msg *helix.IRCMessage, args []string) string
+type CommandFunc func(msg *helix.ChatMessage, args []string) string
 
-func NewChatBot(token, nick string) *ChatBot {
+func NewChatBot(nick, token string) *ChatBot {
     bot := &ChatBot{
         commands: make(map[string]CommandFunc),
         cooldown: make(map[string]time.Time),
     }
 
-    bot.irc = helix.NewIRCClient(
-        helix.WithIRCToken(token),
-        helix.WithIRCNick(nick),
-        helix.WithIRCAutoReconnect(true),
-        helix.WithIRCMessageHandler(bot.handleMessage),
+    bot.irc = helix.NewIRCClient(nick, token,
+        helix.WithAutoReconnect(true),
+        helix.WithMessageHandler(bot.handleMessage),
     )
 
     // Register commands
-    bot.commands["!ping"] = func(msg *helix.IRCMessage, args []string) string {
+    bot.commands["!ping"] = func(msg *helix.ChatMessage, args []string) string {
         return "Pong!"
     }
 
-    bot.commands["!dice"] = func(msg *helix.IRCMessage, args []string) string {
-        return fmt.Sprintf("@%s rolled a %d!", msg.Tags["display-name"], rand.Intn(6)+1)
+    bot.commands["!dice"] = func(msg *helix.ChatMessage, args []string) string {
+        return fmt.Sprintf("@%s rolled a %d!", msg.DisplayName, rand.Intn(6)+1)
     }
 
-    bot.commands["!uptime"] = func(msg *helix.IRCMessage, args []string) string {
+    bot.commands["!uptime"] = func(msg *helix.ChatMessage, args []string) string {
         // Implement actual uptime check
         return "Stream has been live for 2 hours!"
     }
 
-    bot.commands["!commands"] = func(msg *helix.IRCMessage, args []string) string {
+    bot.commands["!commands"] = func(msg *helix.ChatMessage, args []string) string {
         cmds := make([]string, 0, len(bot.commands))
         for cmd := range bot.commands {
             cmds = append(cmds, cmd)
@@ -461,7 +473,7 @@ func NewChatBot(token, nick string) *ChatBot {
         return "Commands: " + strings.Join(cmds, ", ")
     }
 
-    bot.commands["!8ball"] = func(msg *helix.IRCMessage, args []string) string {
+    bot.commands["!8ball"] = func(msg *helix.ChatMessage, args []string) string {
         answers := []string{
             "Yes!", "No!", "Maybe...", "Ask again later",
             "Definitely!", "I don't think so", "It is certain",
@@ -472,12 +484,8 @@ func NewChatBot(token, nick string) *ChatBot {
     return bot
 }
 
-func (b *ChatBot) handleMessage(msg *helix.IRCMessage) {
-    if msg.Command != "PRIVMSG" {
-        return
-    }
-
-    text := strings.TrimSpace(msg.Text)
+func (b *ChatBot) handleMessage(msg *helix.ChatMessage) {
+    text := strings.TrimSpace(msg.Message)
     if !strings.HasPrefix(text, "!") {
         return
     }
@@ -524,7 +532,7 @@ func (b *ChatBot) Close() error {
 func main() {
     ctx := context.Background()
 
-    bot := NewChatBot("oauth:your-token", "your_bot_name")
+    bot := NewChatBot("your_bot_name", "oauth:your-token")
 
     if err := bot.Connect(ctx); err != nil {
         log.Fatal(err)

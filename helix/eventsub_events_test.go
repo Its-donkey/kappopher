@@ -150,10 +150,10 @@ func TestChannelBitsUseEvent_OfficialPayload(t *testing.T) {
 	}
 	// power_up and custom_power_up are null -> nil.
 	if event.PowerUp != nil {
-		t.Errorf("PowerUp = %s, want nil", *event.PowerUp)
+		t.Errorf("PowerUp = %+v, want nil", *event.PowerUp)
 	}
 	if event.CustomPowerUp != nil {
-		t.Errorf("CustomPowerUp = %s, want nil", *event.CustomPowerUp)
+		t.Errorf("CustomPowerUp = %+v, want nil", *event.CustomPowerUp)
 	}
 	if event.Message == nil {
 		t.Fatal("Message is nil, want decoded object")
@@ -963,8 +963,8 @@ func TestChannelSubscriptionGiftEvent(t *testing.T) {
 	if event.Tier != "1000" {
 		t.Errorf("expected Tier=1000, got %s", event.Tier)
 	}
-	if event.CumulativeTotal != 284 {
-		t.Errorf("expected CumulativeTotal=284, got %d", event.CumulativeTotal)
+	if event.CumulativeTotal == nil || *event.CumulativeTotal != 284 {
+		t.Errorf("expected CumulativeTotal=284, got %v", event.CumulativeTotal)
 	}
 }
 
@@ -1071,8 +1071,8 @@ func TestChatNotificationResub_SubTierField(t *testing.T) {
 	if resub.CumulativeMonths != 15 {
 		t.Errorf("expected CumulativeMonths=15, got %d", resub.CumulativeMonths)
 	}
-	if resub.StreakMonths != 10 {
-		t.Errorf("expected StreakMonths=10, got %d", resub.StreakMonths)
+	if resub.StreakMonths == nil || *resub.StreakMonths != 10 {
+		t.Errorf("expected StreakMonths=10, got %v", resub.StreakMonths)
 	}
 }
 

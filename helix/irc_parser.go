@@ -196,6 +196,52 @@ func parseEmotes(emoteStr string) []IRCEmote {
 	return emotes
 }
 
+// parseGifs parses the gifs tag into a slice of IRCGif.
+// Format: start-end|gifID|gifURL,start-end|gifID|gifURL
+// A comma that does not begin a new start-end|gifID|... entry is treated as
+// part of the preceding URL.
+func parseGifs(gifStr string) []IRCGif {
+	if gifStr == "" {
+		return nil
+	}
+
+	var gifs []IRCGif
+	for part := range strings.SplitSeq(gifStr, ",") {
+		gif, ok := parseGif(part)
+		if !ok {
+			if len(gifs) > 0 && part != "" {
+				gifs[len(gifs)-1].URL += "," + part
+			}
+			continue
+		}
+		gifs = append(gifs, gif)
+	}
+
+	return gifs
+}
+
+// parseGif parses a single start-end|gifID|gifURL entry.
+func parseGif(s string) (IRCGif, bool) {
+	positions, rest, ok := strings.Cut(s, "|")
+	if !ok {
+		return IRCGif{}, false
+	}
+	id, url, ok := strings.Cut(rest, "|")
+	if !ok {
+		return IRCGif{}, false
+	}
+	before, after, ok := strings.Cut(positions, "-")
+	if !ok {
+		return IRCGif{}, false
+	}
+	start, err1 := strconv.Atoi(before)
+	end, err2 := strconv.Atoi(after)
+	if err1 != nil || err2 != nil {
+		return IRCGif{}, false
+	}
+	return IRCGif{ID: id, URL: url, Start: start, End: end}, true
+}
+
 // parseBadges parses the badges tag into a map.
 // Format: badge/version,badge/version
 func parseBadges(badgeStr string) map[string]string {
@@ -273,31 +319,55 @@ func parseChatMessage(msg *IRCMessage) *ChatMessage {
 
 	badges := parseBadges(msg.Tags["badges"])
 
+	// PRIVMSG carries the sender's login in the prefix (nick!user@host), not
+	// in a tag; fall back to a login tag if the prefix has none.
+	user := parseUserFromPrefix(msg.Prefix)
+	if user == "" {
+		user = msg.Tags["login"]
+	}
+
+	// Twitch includes the vip tag only when the sender is a VIP, so its
+	// presence is the signal; tolerate an explicit vip=0.
+	vipTag, hasVIPTag := msg.Tags["vip"]
+	isVIP := badges["vip"] != "" || (hasVIPTag && vipTag != "0")
+
 	return &ChatMessage{
-		ID:                     msg.Tags["id"],
-		Channel:                channel,
-		User:                   msg.Tags["login"],
-		UserID:                 msg.Tags["user-id"],
-		Message:                msg.Trailing,
-		Emotes:                 parseEmotes(msg.Tags["emotes"]),
-		Badges:                 badges,
-		BadgeInfo:              parseBadges(msg.Tags["badge-info"]),
-		Color:                  msg.Tags["color"],
-		DisplayName:            msg.Tags["display-name"],
-		IsMod:                  parseBool(msg.Tags["mod"]),
-		IsVIP:                  badges["vip"] != "",
-		IsSubscriber:           parseBool(msg.Tags["subscriber"]),
-		IsBroadcaster:          badges["broadcaster"] != "",
-		Bits:                   parseInt(msg.Tags["bits"]),
-		FirstMessage:           parseBool(msg.Tags["first-msg"]),
-		ReturningChatter:       parseBool(msg.Tags["returning-chatter"]),
-		ReplyParentMsgID:       msg.Tags["reply-parent-msg-id"],
-		ReplyParentUserID:      msg.Tags["reply-parent-user-id"],
-		ReplyParentUserLogin:   msg.Tags["reply-parent-user-login"],
-		ReplyParentDisplayName: msg.Tags["reply-parent-display-name"],
-		ReplyParentMsgBody:     msg.Tags["reply-parent-msg-body"],
-		Timestamp:              parseTimestamp(msg.Tags["tmi-sent-ts"]),
-		Raw:                    msg.Raw,
+		ID:                         msg.Tags["id"],
+		Channel:                    channel,
+		RoomID:                     msg.Tags["room-id"],
+		User:                       user,
+		UserID:                     msg.Tags["user-id"],
+		UserType:                   msg.Tags["user-type"],
+		Message:                    msg.Trailing,
+		Emotes:                     parseEmotes(msg.Tags["emotes"]),
+		Badges:                     badges,
+		BadgeInfo:                  parseBadges(msg.Tags["badge-info"]),
+		Color:                      msg.Tags["color"],
+		DisplayName:                msg.Tags["display-name"],
+		IsMod:                      parseBool(msg.Tags["mod"]),
+		IsVIP:                      isVIP,
+		IsSubscriber:               parseBool(msg.Tags["subscriber"]),
+		IsBroadcaster:              badges["broadcaster"] != "",
+		Turbo:                      parseBool(msg.Tags["turbo"]),
+		Bits:                       parseInt(msg.Tags["bits"]),
+		Gifs:                       parseGifs(msg.Tags["gifs"]),
+		ClientNonce:                msg.Tags["client-nonce"],
+		FirstMessage:               parseBool(msg.Tags["first-msg"]),
+		ReturningChatter:           parseBool(msg.Tags["returning-chatter"]),
+		ReplyParentMsgID:           msg.Tags["reply-parent-msg-id"],
+		ReplyParentUserID:          msg.Tags["reply-parent-user-id"],
+		ReplyParentUserLogin:       msg.Tags["reply-parent-user-login"],
+		ReplyParentDisplayName:     msg.Tags["reply-parent-display-name"],
+		ReplyParentMsgBody:         msg.Tags["reply-parent-msg-body"],
+		ReplyThreadParentMsgID:     msg.Tags["reply-thread-parent-msg-id"],
+		ReplyThreadParentUserLogin: msg.Tags["reply-thread-parent-user-login"],
+		SourceID:                   msg.Tags["source-id"],
+		SourceRoomID:               msg.Tags["source-room-id"],
+		SourceBadges:               parseBadges(msg.Tags["source-badges"]),
+		SourceBadgeInfo:            parseBadges(msg.Tags["source-badge-info"]),
+		SourceOnly:                 parseBool(msg.Tags["source-only"]),
+		Timestamp:                  parseTimestamp(msg.Tags["tmi-sent-ts"]),
+		Raw:                        msg.Raw,
 	}
 }
 
@@ -318,20 +388,31 @@ func parseUserNotice(msg *IRCMessage) *UserNotice {
 	}
 
 	return &UserNotice{
-		Type:          msg.Tags["msg-id"],
-		Channel:       channel,
-		User:          msg.Tags["login"],
-		UserID:        msg.Tags["user-id"],
-		DisplayName:   msg.Tags["display-name"],
-		Message:       msg.Trailing,
-		SystemMessage: msg.Tags["system-msg"],
-		MsgParams:     msgParams,
-		Badges:        parseBadges(msg.Tags["badges"]),
-		BadgeInfo:     parseBadges(msg.Tags["badge-info"]),
-		Color:         msg.Tags["color"],
-		Emotes:        parseEmotes(msg.Tags["emotes"]),
-		Timestamp:     parseTimestamp(msg.Tags["tmi-sent-ts"]),
-		Raw:           msg.Raw,
+		ID:              msg.Tags["id"],
+		Type:            msg.Tags["msg-id"],
+		Channel:         channel,
+		RoomID:          msg.Tags["room-id"],
+		User:            msg.Tags["login"],
+		UserID:          msg.Tags["user-id"],
+		UserType:        msg.Tags["user-type"],
+		DisplayName:     msg.Tags["display-name"],
+		Message:         msg.Trailing,
+		SystemMessage:   msg.Tags["system-msg"],
+		MsgParams:       msgParams,
+		Badges:          parseBadges(msg.Tags["badges"]),
+		BadgeInfo:       parseBadges(msg.Tags["badge-info"]),
+		Color:           msg.Tags["color"],
+		Emotes:          parseEmotes(msg.Tags["emotes"]),
+		IsMod:           parseBool(msg.Tags["mod"]),
+		IsSubscriber:    parseBool(msg.Tags["subscriber"]),
+		Turbo:           parseBool(msg.Tags["turbo"]),
+		SourceID:        msg.Tags["source-id"],
+		SourceRoomID:    msg.Tags["source-room-id"],
+		SourceMsgID:     msg.Tags["source-msg-id"],
+		SourceBadges:    parseBadges(msg.Tags["source-badges"]),
+		SourceBadgeInfo: parseBadges(msg.Tags["source-badge-info"]),
+		Timestamp:       parseTimestamp(msg.Tags["tmi-sent-ts"]),
+		Raw:             msg.Raw,
 	}
 }
 
@@ -367,10 +448,11 @@ func parseNotice(msg *IRCMessage) *Notice {
 	}
 
 	return &Notice{
-		Channel: channel,
-		Message: msg.Trailing,
-		MsgID:   msg.Tags["msg-id"],
-		Raw:     msg.Raw,
+		Channel:      channel,
+		Message:      msg.Trailing,
+		MsgID:        msg.Tags["msg-id"],
+		TargetUserID: msg.Tags["target-user-id"],
+		Raw:          msg.Raw,
 	}
 }
 
@@ -401,6 +483,7 @@ func parseClearMessage(msg *IRCMessage) *ClearMessage {
 
 	return &ClearMessage{
 		Channel:     channel,
+		RoomID:      msg.Tags["room-id"],
 		User:        msg.Tags["login"],
 		Message:     msg.Trailing,
 		TargetMsgID: msg.Tags["target-msg-id"],
@@ -440,11 +523,13 @@ func parseGlobalUserState(msg *IRCMessage) *GlobalUserState {
 
 	return &GlobalUserState{
 		UserID:      msg.Tags["user-id"],
+		UserType:    msg.Tags["user-type"],
 		DisplayName: msg.Tags["display-name"],
 		Color:       msg.Tags["color"],
 		Badges:      parseBadges(msg.Tags["badges"]),
 		BadgeInfo:   parseBadges(msg.Tags["badge-info"]),
 		EmoteSets:   emoteSets,
+		Turbo:       parseBool(msg.Tags["turbo"]),
 		Raw:         msg.Raw,
 	}
 }
@@ -465,13 +550,16 @@ func parseUserState(msg *IRCMessage) *UserState {
 
 	return &UserState{
 		Channel:      channel,
+		ID:           msg.Tags["id"],
 		DisplayName:  msg.Tags["display-name"],
+		UserType:     msg.Tags["user-type"],
 		Color:        msg.Tags["color"],
 		Badges:       badges,
 		BadgeInfo:    parseBadges(msg.Tags["badge-info"]),
 		EmoteSets:    emoteSets,
 		IsMod:        parseBool(msg.Tags["mod"]),
 		IsSubscriber: parseBool(msg.Tags["subscriber"]),
+		Turbo:        parseBool(msg.Tags["turbo"]),
 		Raw:          msg.Raw,
 	}
 }

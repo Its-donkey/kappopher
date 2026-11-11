@@ -140,6 +140,43 @@ func TestClient_GetAdSchedule(t *testing.T) {
 	}
 }
 
+func TestClient_GetAdSchedule_UnixTimestamps(t *testing.T) {
+	// Twitch sends these as Unix timestamps in seconds, 0 when unset.
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"data":[{"next_ad_at":1700000600,"last_ad_at":0,"duration":60,"preroll_free_time":90,"snooze_count":1,"snooze_refresh_at":1700003600}]}`))
+	})
+	defer server.Close()
+
+	result, err := client.GetAdSchedule(context.Background(), "12345")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !result.NextAdAt.Valid || result.NextAdAt.Unix() != 1700000600 {
+		t.Errorf("unexpected next_ad_at %+v", result.NextAdAt)
+	}
+	if result.LastAdAt.Valid {
+		t.Errorf("expected last_ad_at unset, got %+v", result.LastAdAt)
+	}
+	if !result.SnoozeRefreshAt.Valid || result.SnoozeRefreshAt.Unix() != 1700003600 {
+		t.Errorf("unexpected snooze_refresh_at %+v", result.SnoozeRefreshAt)
+	}
+}
+
+func TestClient_SnoozeNextAd_UnixTimestamps(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"data":[{"snooze_count":1,"snooze_refresh_at":1700003600,"next_ad_at":1700000900}]}`))
+	})
+	defer server.Close()
+
+	result, err := client.SnoozeNextAd(context.Background(), "12345")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.NextAdAt.Unix() != 1700000900 || result.SnoozeRefreshAt.Unix() != 1700003600 {
+		t.Errorf("unexpected times %+v", result)
+	}
+}
+
 func TestClient_GetAdSchedule_NoSchedule(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		resp := Response[AdSchedule]{

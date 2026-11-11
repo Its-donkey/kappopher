@@ -167,90 +167,135 @@ func TestClient_GetHypeTrainEvents_NoEvents(t *testing.T) {
 }
 
 func TestClient_GetHypeTrainStatus(t *testing.T) {
-	// Using official Twitch API response sample values from docs
-	startedAt, _ := time.Parse(time.RFC3339Nano, "2020-04-24T20:05:47.30473127Z")
-	expiresAt, _ := time.Parse(time.RFC3339Nano, "2020-04-24T20:12:21.003802269Z")
-	cooldownEndTime, _ := time.Parse(time.RFC3339Nano, "2020-04-24T20:13:21.003802269Z")
-
+	// Response body example from the Twitch docs (Get Hype Train Status).
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/hypetrain/status" {
 			t.Errorf("expected /hypetrain/status, got %s", r.URL.Path)
 		}
-
-		broadcasterID := r.URL.Query().Get("broadcaster_id")
-		if broadcasterID != "270954519" {
-			t.Errorf("expected broadcaster_id=270954519, got %s", broadcasterID)
+		if got := r.URL.Query().Get("broadcaster_id"); got != "1337" {
+			t.Errorf("expected broadcaster_id=1337, got %s", got)
 		}
-
-		resp := Response[HypeTrainStatus]{
-			Data: []HypeTrainStatus{
-				{
-					ID:            "70f0c7d8-ff60-4c50-b138-f3a352833b50",
-					BroadcasterID: "270954519",
-					Level:         2,
-					Total:         600,
-					Goal:          1800,
-					TopContributions: []HypeTrainContribution{
-						{Total: 600, Type: "BITS", User: "134247450"},
-					},
-					LastContribution: HypeTrainContribution{
-						Total: 200,
-						Type:  "BITS",
-						User:  "134247454",
-					},
-					StartedAt:       startedAt,
-					ExpiresAt:       expiresAt,
-					CooldownEndTime: cooldownEndTime,
-				},
-			},
-		}
-		_ = json.NewEncoder(w).Encode(resp)
+		_, _ = w.Write([]byte(`{
+		  "data": [
+		    {
+		      "current": {
+		        "id": "1b0AsbInCHZW2SQFQkCzqN07Ib2",
+		        "broadcaster_user_id": "1337",
+		        "broadcaster_user_login": "cool_user",
+		        "broadcaster_user_name": "Cool_User",
+		        "level": 2,
+		        "total": 700,
+		        "progress": 200,
+		        "goal": 1000,
+		        "top_contributions": [
+		          {
+		            "user_id": "123",
+		            "user_login": "pogchamp",
+		            "user_name": "PogChamp",
+		            "type": "bits",
+		            "total": 50
+		          },
+		          {
+		            "user_id": "456",
+		            "user_login": "kappa",
+		            "user_name": "Kappa",
+		            "type": "subscription",
+		            "total": 45
+		          }
+		        ],
+		        "shared_train_participants": [
+		          {
+		            "broadcaster_user_id": "456",
+		            "broadcaster_user_login": "pogchamp",
+		            "broadcaster_user_name": "PogChamp"
+		          },
+		          {
+		            "broadcaster_user_id": "321",
+		            "broadcaster_user_login": "pogchamp",
+		            "broadcaster_user_name": "PogChamp"
+		          }
+		        ],
+		        "started_at": "2020-07-15T17:16:03.17106713Z",
+		        "expires_at": "2020-07-15T17:16:11.17106713Z",
+		        "type": "golden_kappa",
+		        "is_shared_train": true
+		      },
+		      "all_time_high": {
+		        "level": 6,
+		        "total": 2850,
+		        "achieved_at": "2020-04-24T20:12:21.003802269Z"
+		      },
+		      "shared_all_time_high": {
+		        "level": 16,
+		        "total": 23850,
+		        "achieved_at": "2020-04-27T20:12:21.003802269Z"
+		      }
+		    }
+		  ]
+		}`))
 	})
 	defer server.Close()
 
-	resp, err := client.GetHypeTrainStatus(context.Background(), "270954519")
+	resp, err := client.GetHypeTrainStatus(context.Background(), "1337")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp == nil || resp.Current == nil {
+		t.Fatal("expected a current hype train")
+	}
 
+	cur := resp.Current
+	if cur.ID != "1b0AsbInCHZW2SQFQkCzqN07Ib2" {
+		t.Errorf("unexpected id %s", cur.ID)
+	}
+	if cur.BroadcasterUserID != "1337" || cur.BroadcasterUserLogin != "cool_user" || cur.BroadcasterUserName != "Cool_User" {
+		t.Errorf("unexpected broadcaster %+v", cur.EventSubBroadcaster)
+	}
+	if cur.Level != 2 || cur.Total != 700 || cur.Progress != 200 || cur.Goal != 1000 {
+		t.Errorf("unexpected level/total/progress/goal %d/%d/%d/%d", cur.Level, cur.Total, cur.Progress, cur.Goal)
+	}
+	if len(cur.TopContributions) != 2 {
+		t.Fatalf("expected 2 top contributions, got %d", len(cur.TopContributions))
+	}
+	if c := cur.TopContributions[0]; c.UserID != "123" || c.UserLogin != "pogchamp" || c.UserName != "PogChamp" || c.Type != "bits" || c.Total != 50 {
+		t.Errorf("unexpected top contribution %+v", c)
+	}
+	if len(cur.SharedTrainParticipants) != 2 || cur.SharedTrainParticipants[1].BroadcasterID != "321" {
+		t.Errorf("unexpected shared participants %+v", cur.SharedTrainParticipants)
+	}
+	wantStart, _ := time.Parse(time.RFC3339Nano, "2020-07-15T17:16:03.17106713Z")
+	wantExpire, _ := time.Parse(time.RFC3339Nano, "2020-07-15T17:16:11.17106713Z")
+	if !cur.StartedAt.Equal(wantStart) || !cur.ExpiresAt.Equal(wantExpire) {
+		t.Errorf("unexpected times %v / %v", cur.StartedAt, cur.ExpiresAt)
+	}
+	if cur.Type != HypeTrainTypeGoldenKappa || !cur.IsSharedTrain {
+		t.Errorf("unexpected type %q shared %v", cur.Type, cur.IsSharedTrain)
+	}
+
+	if resp.AllTimeHigh == nil || resp.AllTimeHigh.Level != 6 || resp.AllTimeHigh.Total != 2850 {
+		t.Errorf("unexpected all_time_high %+v", resp.AllTimeHigh)
+	}
+	wantAchieved, _ := time.Parse(time.RFC3339Nano, "2020-04-27T20:12:21.003802269Z")
+	if resp.SharedAllTimeHigh == nil || resp.SharedAllTimeHigh.Level != 16 || !resp.SharedAllTimeHigh.AchievedAt.Equal(wantAchieved) {
+		t.Errorf("unexpected shared_all_time_high %+v", resp.SharedAllTimeHigh)
+	}
+}
+
+func TestClient_GetHypeTrainStatus_NoTrainOrRecords(t *testing.T) {
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"data":[{"current":null,"all_time_high":null,"shared_all_time_high":null}]}`))
+	})
+	defer server.Close()
+
+	resp, err := client.GetHypeTrainStatus(context.Background(), "1337")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if resp == nil {
-		t.Fatal("expected status, got nil")
+		t.Fatal("expected a status")
 	}
-	if resp.ID != "70f0c7d8-ff60-4c50-b138-f3a352833b50" {
-		t.Errorf("expected id 70f0c7d8-ff60-4c50-b138-f3a352833b50, got %s", resp.ID)
-	}
-	if resp.BroadcasterID != "270954519" {
-		t.Errorf("expected broadcaster_id 270954519, got %s", resp.BroadcasterID)
-	}
-	if resp.Level != 2 {
-		t.Errorf("expected level 2, got %d", resp.Level)
-	}
-	if resp.Total != 600 {
-		t.Errorf("expected total 600, got %d", resp.Total)
-	}
-	if resp.Goal != 1800 {
-		t.Errorf("expected goal 1800, got %d", resp.Goal)
-	}
-	if len(resp.TopContributions) != 1 {
-		t.Fatalf("expected 1 top contribution, got %d", len(resp.TopContributions))
-	}
-	if resp.TopContributions[0].Total != 600 {
-		t.Errorf("expected top_contributions[0].total 600, got %d", resp.TopContributions[0].Total)
-	}
-	if resp.TopContributions[0].Type != "BITS" {
-		t.Errorf("expected top_contributions[0].type BITS, got %s", resp.TopContributions[0].Type)
-	}
-	if resp.TopContributions[0].User != "134247450" {
-		t.Errorf("expected top_contributions[0].user 134247450, got %s", resp.TopContributions[0].User)
-	}
-	if resp.LastContribution.Total != 200 {
-		t.Errorf("expected last_contribution.total 200, got %d", resp.LastContribution.Total)
-	}
-	if resp.LastContribution.Type != "BITS" {
-		t.Errorf("expected last_contribution.type BITS, got %s", resp.LastContribution.Type)
-	}
-	if resp.LastContribution.User != "134247454" {
-		t.Errorf("expected last_contribution.user 134247454, got %s", resp.LastContribution.User)
+	if resp.Current != nil || resp.AllTimeHigh != nil || resp.SharedAllTimeHigh != nil {
+		t.Errorf("expected nil current and records, got %+v", resp)
 	}
 }
 

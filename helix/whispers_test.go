@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -50,15 +51,15 @@ func TestClient_SendWhisper(t *testing.T) {
 }
 
 func TestClient_SendWhisper_LongMessage(t *testing.T) {
-	longMessage := ""
+	var longMessage strings.Builder
 	for range 100 {
-		longMessage += "This is a long message. "
+		longMessage.WriteString("This is a long message. ")
 	}
 
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		var params SendWhisperParams
 		_ = json.NewDecoder(r.Body).Decode(&params)
-		if params.Message != longMessage {
+		if params.Message != longMessage.String() {
 			t.Errorf("message mismatch")
 		}
 
@@ -69,7 +70,7 @@ func TestClient_SendWhisper_LongMessage(t *testing.T) {
 	err := client.SendWhisper(context.Background(), &SendWhisperParams{
 		FromUserID: "12345",
 		ToUserID:   "67890",
-		Message:    longMessage,
+		Message:    longMessage.String(),
 	})
 
 	if err != nil {

@@ -391,6 +391,29 @@ func TestChatBotClient_handleUserNotice_Sub(t *testing.T) {
 	}
 }
 
+func TestChatBotClient_handleUserNotice_SharedChatRoutesBySourceType(t *testing.T) {
+	client := NewChatBotClient("justinfan12345", nil)
+
+	var raid, sub *UserNotice
+	client.OnRaid(func(notice *UserNotice) { raid = notice })
+	client.OnSub(func(notice *UserNotice) { sub = notice })
+
+	client.handleUserNotice(&UserNotice{
+		Type:         UserNoticeTypeSharedChatNotice,
+		SourceMsgID:  UserNoticeTypeRaid,
+		Channel:      "dallas",
+		SourceRoomID: "12345",
+	})
+	if raid == nil || raid.SourceRoomID != "12345" {
+		t.Error("expected a shared chat raid to reach the raid handler")
+	}
+
+	client.handleUserNotice(&UserNotice{Type: UserNoticeTypeSharedChatNotice})
+	if sub != nil {
+		t.Error("a shared chat notice without a source type should reach no handler")
+	}
+}
+
 func TestChatBotClient_handleUserNotice_Resub(t *testing.T) {
 	client := NewChatBotClient("justinfan12345", nil)
 

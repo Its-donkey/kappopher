@@ -2,6 +2,7 @@ package helix
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/url"
 	"time"
@@ -18,13 +19,13 @@ type Schedule struct {
 
 // ScheduleSegment represents a segment in a schedule.
 type ScheduleSegment struct {
-	ID            string     `json:"id"`
-	StartTime     time.Time  `json:"start_time"`
-	EndTime       time.Time  `json:"end_time"`
-	Title         string     `json:"title"`
-	CanceledUntil *time.Time `json:"canceled_until,omitempty"`
-	Category      *Category  `json:"category,omitempty"`
-	IsRecurring   bool       `json:"is_recurring"`
+	ID            string       `json:"id"`
+	StartTime     time.Time    `json:"start_time"`
+	EndTime       NullableTime `json:"end_time"` // unset for a segment with no end
+	Title         string       `json:"title"`
+	CanceledUntil *time.Time   `json:"canceled_until,omitempty"`
+	Category      *Category    `json:"category,omitempty"`
+	IsRecurring   bool         `json:"is_recurring"`
 }
 
 // Category represents a category/game.
@@ -44,7 +45,8 @@ type GetChannelStreamScheduleParams struct {
 	BroadcasterID string
 	IDs           []string // Segment IDs
 	StartTime     time.Time
-	UTCOffset     string // e.g., "-04:00"
+	// Deprecated: Twitch documents utc_offset as not supported.
+	UTCOffset string
 	*PaginationParams
 }
 
@@ -92,6 +94,14 @@ func (c *Client) GetChannelICalendar(ctx context.Context, broadcasterID string) 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		apiErr := &APIError{StatusCode: resp.StatusCode, Body: body}
+		var er ErrorResponse
+		if json.Unmarshal(body, &er) == nil {
+			apiErr.ErrorType, apiErr.Message = er.Error, er.Message
+		}
+		return "", apiErr
 	}
 	return string(body), nil
 }

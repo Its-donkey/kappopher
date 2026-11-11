@@ -2,6 +2,7 @@ package helix
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 )
 
@@ -145,9 +146,20 @@ type UpdateConduitShardsResponse struct {
 	} `json:"errors,omitempty"`
 }
 
+// MaxConduitShardsPerUpdate is the most shards Twitch accepts in one
+// UpdateConduitShards request.
+const MaxConduitShardsPerUpdate = 100
+
 // UpdateConduitShards updates shards for a conduit.
 // Requires: App access token.
+//
+// Twitch accepts at most MaxConduitShardsPerUpdate (100) shards per request;
+// UpdateConduitShards returns an error without sending the request when
+// params.Shards holds more. Split larger updates into several calls.
 func (c *Client) UpdateConduitShards(ctx context.Context, params *UpdateConduitShardsParams) (*UpdateConduitShardsResponse, error) {
+	if params != nil && len(params.Shards) > MaxConduitShardsPerUpdate {
+		return nil, fmt.Errorf("update conduit shards: %d shards exceeds the maximum of %d per request", len(params.Shards), MaxConduitShardsPerUpdate)
+	}
 	var resp UpdateConduitShardsResponse
 	if err := c.patch(ctx, "/eventsub/conduits/shards", nil, params, &resp); err != nil {
 		return nil, err

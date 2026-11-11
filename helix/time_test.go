@@ -17,7 +17,10 @@ func TestNullableTime_Unmarshal(t *testing.T) {
 		{name: "RFC3339", input: `"2022-03-15T02:00:28Z"`, wantValid: true, wantTime: time.Date(2022, 3, 15, 2, 0, 28, 0, time.UTC)},
 		{name: "empty string", input: `""`, wantValid: false},
 		{name: "null", input: `null`, wantValid: false},
+		{name: "unix seconds", input: `1700000000`, wantValid: true, wantTime: time.Unix(1700000000, 0)},
+		{name: "unix zero", input: `0`, wantValid: false},
 		{name: "invalid", input: `"not-a-time"`, wantErr: true},
+		{name: "invalid number", input: `1.5`, wantErr: true},
 	}
 
 	for _, tt := range tests {

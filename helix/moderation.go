@@ -27,7 +27,8 @@ type GetBannedUsersParams struct {
 }
 
 // GetBannedUsers gets the list of banned users for a channel.
-// Requires: moderation:read scope.
+// Requires: moderation:read or moderator:manage:banned_users scope.
+// Or an app access token, if the broadcaster has authorized the app with one of those scopes.
 func (c *Client) GetBannedUsers(ctx context.Context, params *GetBannedUsersParams) (*Response[BannedUser], error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
@@ -68,6 +69,7 @@ type BanUserResponse struct {
 
 // BanUser bans a user from a channel.
 // Requires: moderator:manage:banned_users scope.
+// Or an app access token, if the moderator has authorized the app with that scope and user:bot.
 func (c *Client) BanUser(ctx context.Context, params *BanUserParams) (*BanUserResponse, error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
@@ -85,6 +87,7 @@ func (c *Client) BanUser(ctx context.Context, params *BanUserParams) (*BanUserRe
 
 // UnbanUser unbans a user from a channel.
 // Requires: moderator:manage:banned_users scope.
+// Or an app access token, if the moderator has authorized the app with that scope and user:bot.
 func (c *Client) UnbanUser(ctx context.Context, broadcasterID, moderatorID, userID string) error {
 	q := url.Values{}
 	q.Set("broadcaster_id", broadcasterID)
@@ -109,7 +112,7 @@ type GetModeratorsParams struct {
 }
 
 // GetModerators gets the list of moderators for a channel.
-// Requires: moderation:read scope.
+// Requires: moderation:read or channel:manage:moderators scope.
 func (c *Client) GetModerators(ctx context.Context, params *GetModeratorsParams) (*Response[Moderator], error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
@@ -154,6 +157,7 @@ type DeleteChatMessagesParams struct {
 
 // DeleteChatMessages deletes chat messages.
 // Requires: moderator:manage:chat_messages scope.
+// Or an app access token, if the moderator has authorized the app with that scope.
 func (c *Client) DeleteChatMessages(ctx context.Context, params *DeleteChatMessagesParams) error {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
@@ -184,7 +188,8 @@ type GetBlockedTermsParams struct {
 }
 
 // GetBlockedTerms gets the list of blocked terms for a channel.
-// Requires: moderator:read:blocked_terms scope.
+// Requires: moderator:read:blocked_terms or moderator:manage:blocked_terms scope.
+// Or an app access token, if the moderator has authorized the app with one of those scopes.
 func (c *Client) GetBlockedTerms(ctx context.Context, params *GetBlockedTermsParams) (*Response[BlockedTerm], error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
@@ -207,6 +212,7 @@ type AddBlockedTermParams struct {
 
 // AddBlockedTerm adds a blocked term.
 // Requires: moderator:manage:blocked_terms scope.
+// Or an app access token, if the moderator has authorized the app with that scope.
 func (c *Client) AddBlockedTerm(ctx context.Context, params *AddBlockedTermParams) (*BlockedTerm, error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
@@ -224,6 +230,7 @@ func (c *Client) AddBlockedTerm(ctx context.Context, params *AddBlockedTermParam
 
 // RemoveBlockedTerm removes a blocked term.
 // Requires: moderator:manage:blocked_terms scope.
+// Or an app access token, if the moderator has authorized the app with that scope.
 func (c *Client) RemoveBlockedTerm(ctx context.Context, broadcasterID, moderatorID, termID string) error {
 	q := url.Values{}
 	q.Set("broadcaster_id", broadcasterID)
@@ -235,15 +242,16 @@ func (c *Client) RemoveBlockedTerm(ctx context.Context, broadcasterID, moderator
 
 // ShieldModeStatus represents shield mode status.
 type ShieldModeStatus struct {
-	IsActive        bool      `json:"is_active"`
-	ModeratorID     string    `json:"moderator_id"`
-	ModeratorLogin  string    `json:"moderator_login"`
-	ModeratorName   string    `json:"moderator_name"`
-	LastActivatedAt time.Time `json:"last_activated_at"`
+	IsActive        bool         `json:"is_active"`
+	ModeratorID     string       `json:"moderator_id"`
+	ModeratorLogin  string       `json:"moderator_login"`
+	ModeratorName   string       `json:"moderator_name"`
+	LastActivatedAt NullableTime `json:"last_activated_at"` // unset if Shield Mode was never activated
 }
 
 // GetShieldModeStatus gets the shield mode status for a channel.
-// Requires: moderator:read:shield_mode scope.
+// Requires: moderator:read:shield_mode or moderator:manage:shield_mode scope.
+// Or an app access token, if the moderator has authorized the app with one of those scopes.
 func (c *Client) GetShieldModeStatus(ctx context.Context, broadcasterID, moderatorID string) (*ShieldModeStatus, error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", broadcasterID)
@@ -268,6 +276,7 @@ type UpdateShieldModeStatusParams struct {
 
 // UpdateShieldModeStatus updates the shield mode status for a channel.
 // Requires: moderator:manage:shield_mode scope.
+// Or an app access token, if the moderator has authorized the app with that scope.
 func (c *Client) UpdateShieldModeStatus(ctx context.Context, params *UpdateShieldModeStatusParams) (*ShieldModeStatus, error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
@@ -298,6 +307,7 @@ type WarnChatUserData struct {
 
 // WarnChatUser warns a user in chat.
 // Requires: moderator:manage:warnings scope.
+// Or an app access token, if the moderator has authorized the app with that scope.
 func (c *Client) WarnChatUser(ctx context.Context, params *WarnChatUserParams) error {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
@@ -326,6 +336,7 @@ type AutoModStatusMessage struct {
 
 // CheckAutoModStatus checks if messages meet AutoMod requirements.
 // Requires: moderation:read scope.
+// Or an app access token, if the broadcaster has authorized the app with that scope.
 func (c *Client) CheckAutoModStatus(ctx context.Context, params *CheckAutoModStatusParams) (*Response[AutoModStatus], error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
@@ -346,6 +357,7 @@ type ManageHeldAutoModMessageParams struct {
 
 // ManageHeldAutoModMessages approves or denies a held AutoMod message.
 // Requires: moderator:manage:automod scope.
+// Or an app access token, if the moderator has authorized the app with that scope.
 func (c *Client) ManageHeldAutoModMessages(ctx context.Context, params *ManageHeldAutoModMessageParams) error {
 	return c.post(ctx, "/moderation/automod/message", nil, params, nil)
 }
@@ -366,7 +378,8 @@ type AutoModSettings struct {
 }
 
 // GetAutoModSettings gets the AutoMod settings for a channel.
-// Requires: moderator:read:automod_settings scope.
+// Requires: moderator:read:automod_settings or moderator:manage:automod_settings scope.
+// Or an app access token, if the moderator has authorized the app with one of those scopes.
 func (c *Client) GetAutoModSettings(ctx context.Context, broadcasterID, moderatorID string) (*AutoModSettings, error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", broadcasterID)
@@ -399,6 +412,7 @@ type UpdateAutoModSettingsParams struct {
 
 // UpdateAutoModSettings updates the AutoMod settings for a channel.
 // Requires: moderator:manage:automod_settings scope.
+// Or an app access token, if the moderator has authorized the app with that scope.
 func (c *Client) UpdateAutoModSettings(ctx context.Context, params *UpdateAutoModSettingsParams) (*AutoModSettings, error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
@@ -437,20 +451,18 @@ type UnbanRequest struct {
 type GetUnbanRequestsParams struct {
 	BroadcasterID string
 	ModeratorID   string
-	Status        string // pending, approved, denied, acknowledged, canceled
+	Status        string // Required: pending, approved, denied, acknowledged, canceled
 	UserID        string // Filter by user
 	*PaginationParams
 }
 
 // GetUnbanRequests gets unban requests for a channel.
-// Requires: moderator:read:unban_requests scope.
+// Requires: moderator:read:unban_requests or moderator:manage:unban_requests scope.
 func (c *Client) GetUnbanRequests(ctx context.Context, params *GetUnbanRequestsParams) (*Response[UnbanRequest], error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
 	q.Set("moderator_id", params.ModeratorID)
-	if params.Status != "" {
-		q.Set("status", params.Status)
-	}
+	q.Set("status", params.Status)
 	if params.UserID != "" {
 		q.Set("user_id", params.UserID)
 	}
@@ -509,6 +521,7 @@ type GetModeratedChannelsParams struct {
 
 // GetModeratedChannels gets channels where the user is a moderator.
 // Requires: user:read:moderated_channels scope.
+// Or an app access token, if the user has authorized the app with that scope.
 func (c *Client) GetModeratedChannels(ctx context.Context, params *GetModeratedChannelsParams) (*Response[ModeratedChannel], error) {
 	q := url.Values{}
 	q.Set("user_id", params.UserID)
@@ -541,6 +554,7 @@ const (
 	SuspiciousUserTypeDetectedBanEvader     SuspiciousUserType = "DETECTED_BAN_EVADER"
 	SuspiciousUserTypeDetectedSusChatter    SuspiciousUserType = "DETECTED_SUS_CHATTER"
 	SuspiciousUserTypeBannedInSharedChannel SuspiciousUserType = "BANNED_IN_SHARED_CHANNEL"
+	SuspiciousUserTypeUnknown               SuspiciousUserType = "UNKNOWN_TYPE"
 )
 
 // SuspiciousUserAction describes a user's suspicious status after it is applied
@@ -566,6 +580,7 @@ type AddSuspiciousStatusToChatUserParams struct {
 // status must be SuspiciousUserStatusActiveMonitoring or
 // SuspiciousUserStatusRestricted, and the applied status is returned.
 // Requires: moderator:manage:suspicious_users scope.
+// Or an app access token, if the moderator has authorized the app with that scope.
 func (c *Client) AddSuspiciousStatusToChatUser(ctx context.Context, params *AddSuspiciousStatusToChatUserParams) (*SuspiciousUserAction, error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
@@ -591,6 +606,7 @@ type RemoveSuspiciousStatusFromChatUserParams struct {
 // RemoveSuspiciousStatusFromChatUser removes a suspicious status from a chat
 // user. The resulting status (NO_TREATMENT) is returned.
 // Requires: moderator:manage:suspicious_users scope.
+// Or an app access token, if the moderator has authorized the app with that scope.
 func (c *Client) RemoveSuspiciousStatusFromChatUser(ctx context.Context, params *RemoveSuspiciousStatusFromChatUserParams) (*SuspiciousUserAction, error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
