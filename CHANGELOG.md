@@ -8,12 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `HypeTrainCurrent` and `HypeTrainRecord` types for the Get Hype Train Status response
+- `HypeTrainTypeTreasure` (`treasure`) Hype Train type
+- `AutomodMessageUpdateEvent` v2 fields `HeldAt`, `Reason`, `Automod` and `BlockedTerm`, and v1 fields `Level` and `Category`
+- `BlockedTermFound.OwnerBroadcasterUser{ID,Login,Name}`: Twitch sends the term's owner on each term found
+- Tests that decode the Twitch docs' own example payloads (Get Hype Train Status, automod message hold/update v2, charity campaign start/progress/stop)
 
 ### Changed
 - CI: added a stable `Test Pass` aggregate job (gates on the `Test` matrix) so branch protection can require a version-independent status check. This prevents the required check from going stale whenever the Go version matrix changes (as happened when `Test (1.24)` was retired for `Test (1.26)`).
 - Applied `go fix`: rewrote an in-loop string concatenation in `whispers_test.go` to use `strings.Builder` (Go 1.26 fixer). Test-only; no library behavior change.
+- **BREAKING:** `HypeTrainStatus` now matches the Get Hype Train Status response: `Current` (*HypeTrainCurrent, nil when no train is active), `AllTimeHigh` and `SharedAllTimeHigh` (*HypeTrainRecord). The previous flat shape (`ID`, `BroadcasterID`, `LastContribution`, `CooldownEndTime`, ...) never matched what Twitch sends, so every field decoded to its zero value
+- **BREAKING:** `AutomodMessageUpdateEvent.Message` is now `AutomodHeldMessage` (`text` and `fragments`) instead of `string`; Twitch sends an object, which failed to decode
+- `NullableTime` also decodes Unix timestamps in seconds, with `0` as unset. Twitch sends Get Ad Schedule's `next_ad_at`, `last_ad_at` and `snooze_refresh_at`, and Snooze Next Ad's `snooze_refresh_at` and `next_ad_at`, this way
+- Deprecated `HypeTrainTypeShared`: Twitch's types are `regular`, `golden_kappa` and `treasure`; a shared train is flagged by `IsSharedTrain`
+- Deprecated `BlockedTermInfo.OwnerBroadcasterUser{ID,Login,Name}`: Twitch sends these on each `BlockedTermFound`
 
 ### Fixed
+- `GetAdSchedule` and `SnoozeNextAd` failed to decode Twitch's Unix-second timestamps
+- `ChannelCharityCampaignStartEvent`, `ChannelCharityCampaignProgressEvent` and `ChannelCharityCampaignStopEvent` left the broadcaster empty: these events name it `broadcaster_id`, `broadcaster_login` and `broadcaster_name`, which now fill the embedded `EventSubBroadcaster`
+- `EventSubConflictError.ExistingSubscriptionID` was empty: Twitch puts the existing subscription's id in the 409 body's `message` field, which is now read (an `id` field is still honoured)
+- `UpdateChannelGuestStarSettings` sent `PUT`; the endpoint is `PATCH`
+- `GuestStarGuest.AudioSettings` and `VideoSettings` never decoded: Twitch's fields are `audio` and `video`, not `audio_settings` and `video_settings`
 
 ## [1.4.0] - 2026-06-13 ([#94](https://github.com/Its-donkey/kappopher/pull/94))
 

@@ -43,8 +43,8 @@ func TestClient_GetChannelGuestStarSettings(t *testing.T) {
 
 func TestClient_UpdateChannelGuestStarSettings(t *testing.T) {
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPut {
-			t.Errorf("expected PUT, got %s", r.Method)
+		if r.Method != http.MethodPatch {
+			t.Errorf("expected PATCH, got %s", r.Method)
 		}
 
 		var body UpdateChannelGuestStarSettingsParams

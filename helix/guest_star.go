@@ -49,7 +49,7 @@ func (c *Client) UpdateChannelGuestStarSettings(ctx context.Context, params *Upd
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
 
-	return c.put(ctx, "/guest_star/channel_settings", q, params, nil)
+	return c.patch(ctx, "/guest_star/channel_settings", q, params, nil)
 }
 
 // GuestStarSession represents a Guest Star session.
@@ -67,8 +67,8 @@ type GuestStarGuest struct {
 	UserLogin       string                 `json:"user_login"`
 	Volume          int                    `json:"volume"`
 	AssignedAt      string                 `json:"assigned_at"`
-	AudioSettings   GuestStarAudioSettings `json:"audio_settings"`
-	VideoSettings   GuestStarVideoSettings `json:"video_settings"`
+	AudioSettings   GuestStarAudioSettings `json:"audio"`
+	VideoSettings   GuestStarVideoSettings `json:"video"`
 }
 
 // GuestStarAudioSettings represents audio settings for a guest.

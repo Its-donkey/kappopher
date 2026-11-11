@@ -762,6 +762,53 @@ func TestClient_DeleteEventSubSubscription_Error(t *testing.T) {
 	}
 }
 
+func TestExistingSubscriptionID(t *testing.T) {
+	const id = "26b1c993-bfcf-44d9-b876-379dacafe75a"
+	tests := []struct {
+		name string
+		er   ErrorResponse
+		want string
+	}{
+		{name: "id in message", er: ErrorResponse{Message: id}, want: id},
+		{name: "id within message", er: ErrorResponse{Message: "subscription already exists: " + id}, want: id},
+		{name: "id field", er: ErrorResponse{Message: "subscription already exists", ID: id}, want: id},
+		{name: "no id", er: ErrorResponse{Message: "subscription already exists"}, want: ""},
+		{name: "empty", er: ErrorResponse{}, want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := existingSubscriptionID(tt.er); got != tt.want {
+				t.Errorf("existingSubscriptionID() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClient_CreateEventSubSubscription_ConflictIDInMessage(t *testing.T) {
+	// The Twitch docs: "The message field in the error response contains the
+	// existing subscription's ID."
+	const existingID = "26b1c993-bfcf-44d9-b876-379dacafe75a"
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte(`{"error":"Conflict","status":409,"message":"` + existingID + `"}`))
+	})
+	defer server.Close()
+
+	_, err := client.CreateEventSubSubscription(context.Background(), &CreateEventSubSubscriptionParams{
+		Type:      "stream.online",
+		Version:   "1",
+		Condition: map[string]string{"broadcaster_user_id": "12345"},
+		Transport: CreateEventSubTransport{Method: "websocket", SessionID: "session123"},
+	})
+	var conflict *EventSubConflictError
+	if !errors.As(err, &conflict) {
+		t.Fatalf("expected *EventSubConflictError, got %T: %v", err, err)
+	}
+	if conflict.ExistingSubscriptionID != existingID {
+		t.Errorf("ExistingSubscriptionID = %q, want %q", conflict.ExistingSubscriptionID, existingID)
+	}
+}
+
 func TestClient_CreateEventSubSubscription_Conflict(t *testing.T) {
 	const existingID = "26b1c993-bfcf-44d9-b876-379dacafe75a"
 	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {

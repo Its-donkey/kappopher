@@ -339,7 +339,10 @@ type HypeTrainType string
 const (
 	HypeTrainTypeRegular     HypeTrainType = "regular"
 	HypeTrainTypeGoldenKappa HypeTrainType = "golden_kappa"
-	HypeTrainTypeShared      HypeTrainType = "shared"
+	HypeTrainTypeTreasure    HypeTrainType = "treasure"
+	// Deprecated: Twitch does not send "shared" as a type; a shared train has
+	// IsSharedTrain set and keeps its own type.
+	HypeTrainTypeShared HypeTrainType = "shared"
 )
 
 // HypeTrainParticipant represents a participant in a shared hype train (v2 only).
@@ -605,9 +608,9 @@ type AutomodMessageHoldEvent struct {
 	Message   AutomodHeldMessage `json:"message"`
 	HeldAt    time.Time          `json:"held_at"`
 	// V2 fields
-	Reason      string               `json:"reason,omitempty"` // "automod" or "blocked_term"
+	Reason      string               `json:"reason,omitempty"` // "automod", "blocked_term" or "blocked_link"
 	Automod     *AutomodCategoryInfo `json:"automod,omitempty"`
-	BlockedTerm *BlockedTermInfo     `json:"blocked_term,omitempty"`
+	BlockedTerm *BlockedTermInfo     `json:"blocked_term,omitempty"` // set for blocked_term and blocked_link
 	// V1 fields (deprecated in v2)
 	Level     int               `json:"level,omitempty"`
 	Category  string            `json:"category,omitempty"`
@@ -635,16 +638,24 @@ type AutomodBoundary struct {
 
 // BlockedTermInfo contains blocked term information (v2).
 type BlockedTermInfo struct {
-	TermsFound                []BlockedTermFound `json:"terms_found"`
-	OwnerBroadcasterUserID    string             `json:"owner_broadcaster_user_id"`
-	OwnerBroadcasterUserLogin string             `json:"owner_broadcaster_user_login"`
-	OwnerBroadcasterUserName  string             `json:"owner_broadcaster_user_name"`
+	TermsFound []BlockedTermFound `json:"terms_found"`
+	// Deprecated: Twitch sends the owner on each term found; use
+	// BlockedTermFound's OwnerBroadcasterUser* fields. These stay empty.
+	OwnerBroadcasterUserID string `json:"owner_broadcaster_user_id,omitempty"`
+	// Deprecated: see OwnerBroadcasterUserID.
+	OwnerBroadcasterUserLogin string `json:"owner_broadcaster_user_login,omitempty"`
+	// Deprecated: see OwnerBroadcasterUserID.
+	OwnerBroadcasterUserName string `json:"owner_broadcaster_user_name,omitempty"`
 }
 
 // BlockedTermFound represents a found blocked term.
 type BlockedTermFound struct {
 	TermID   string          `json:"term_id"`
 	Boundary AutomodBoundary `json:"boundary"`
+	// The broadcaster that owns the blocked term.
+	OwnerBroadcasterUserID    string `json:"owner_broadcaster_user_id"`
+	OwnerBroadcasterUserLogin string `json:"owner_broadcaster_user_login"`
+	OwnerBroadcasterUserName  string `json:"owner_broadcaster_user_name"`
 }
 
 // AutomodFragment represents a fragment in an automod message.
@@ -668,13 +679,24 @@ type AutomodTopic struct {
 }
 
 // AutomodMessageUpdateEvent is sent when a held message's status is updated.
+// V2 adds held_at, reason, automod, and blocked_term fields.
 type AutomodMessageUpdateEvent struct {
 	EventSubBroadcaster
 	EventSubUser
 	EventSubModerator
-	MessageID string `json:"message_id"`
-	Message   string `json:"message"`
-	Status    string `json:"status"` // approved, denied, expired
+	MessageID string             `json:"message_id"`
+	Message   AutomodHeldMessage `json:"message"`
+	// Status is Approved, Denied or Expired; the docs' examples use lower
+	// case, so compare with strings.EqualFold.
+	Status string `json:"status"`
+	// V2 fields
+	HeldAt      NullableTime         `json:"held_at"`
+	Reason      string               `json:"reason,omitempty"` // "automod", "blocked_term" or "blocked_link"
+	Automod     *AutomodCategoryInfo `json:"automod,omitempty"`
+	BlockedTerm *BlockedTermInfo     `json:"blocked_term,omitempty"` // set for blocked_term and blocked_link
+	// V1 fields (deprecated in v2)
+	Level    int    `json:"level,omitempty"`
+	Category string `json:"category,omitempty"`
 }
 
 // AutomodSettingsUpdateEvent is sent when automod settings are updated.
@@ -980,6 +1002,10 @@ type ChannelCharityDonationEvent struct {
 }
 
 // ChannelCharityCampaignStartEvent is sent when a charity campaign starts.
+//
+// Twitch names the broadcaster broadcaster_id, broadcaster_login and
+// broadcaster_name in the campaign start, progress and stop events (unlike
+// the donate event); they are decoded into the embedded EventSubBroadcaster.
 type ChannelCharityCampaignStartEvent struct {
 	ID string `json:"id"`
 	EventSubBroadcaster
@@ -1006,6 +1032,57 @@ type ChannelCharityCampaignStopEvent struct {
 	CurrentAmount      CharityAmount `json:"current_amount"`
 	TargetAmount       CharityAmount `json:"target_amount"`
 	StoppedAt          time.Time     `json:"stopped_at"`
+}
+
+// charityCampaignBroadcaster is how the charity campaign start, progress and
+// stop events name the broadcaster.
+type charityCampaignBroadcaster struct {
+	BroadcasterID    string `json:"broadcaster_id"`
+	BroadcasterLogin string `json:"broadcaster_login"`
+	BroadcasterName  string `json:"broadcaster_name"`
+}
+
+// fill sets b from the campaign event's fields where b is empty.
+func (c charityCampaignBroadcaster) fill(b *EventSubBroadcaster) {
+	if b.BroadcasterUserID == "" {
+		b.BroadcasterUserID = c.BroadcasterID
+	}
+	if b.BroadcasterUserLogin == "" {
+		b.BroadcasterUserLogin = c.BroadcasterLogin
+	}
+	if b.BroadcasterUserName == "" {
+		b.BroadcasterUserName = c.BroadcasterName
+	}
+}
+
+// UnmarshalJSON decodes the event, taking the broadcaster from
+// broadcaster_id/login/name.
+func (e *ChannelCharityCampaignStartEvent) UnmarshalJSON(data []byte) error {
+	type Alias ChannelCharityCampaignStartEvent
+	if err := json.Unmarshal(data, (*Alias)(e)); err != nil {
+		return err
+	}
+	var c charityCampaignBroadcaster
+	if err := json.Unmarshal(data, &c); err != nil {
+		return err
+	}
+	c.fill(&e.EventSubBroadcaster)
+	return nil
+}
+
+// UnmarshalJSON decodes the event, taking the broadcaster from
+// broadcaster_id/login/name.
+func (e *ChannelCharityCampaignStopEvent) UnmarshalJSON(data []byte) error {
+	type Alias ChannelCharityCampaignStopEvent
+	if err := json.Unmarshal(data, (*Alias)(e)); err != nil {
+		return err
+	}
+	var c charityCampaignBroadcaster
+	if err := json.Unmarshal(data, &c); err != nil {
+		return err
+	}
+	c.fill(&e.EventSubBroadcaster)
+	return nil
 }
 
 // Goal Events

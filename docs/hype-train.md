@@ -104,79 +104,115 @@ if resp.Pagination != nil && resp.Pagination.Cursor != "" {
 
 ## GetHypeTrainStatus
 
-Get the current hype train status for a broadcaster's channel. Returns `nil` if no hype train is active.
+Get the Hype Train status for a broadcaster's channel: the train in progress (if any) and the channel's record trains. `Current` is `nil` when no train is active.
 
-**Requires:** `channel:read:hype_train` scope
+**Requires:** user access token with the `channel:read:hype_train` scope, for the broadcaster
 
 ```go
-status, err := client.GetHypeTrainStatus(ctx, "270954519")
+status, err := client.GetHypeTrainStatus(ctx, "1337")
 if err != nil {
     log.Fatal(err)
 }
-if status == nil {
+if status == nil || status.Current == nil {
     fmt.Println("No active hype train")
     return
 }
 
-fmt.Printf("Hype Train Level: %d\n", status.Level)
-fmt.Printf("Progress: %d / %d\n", status.Total, status.Goal)
-fmt.Printf("Started: %s, Expires: %s\n", status.StartedAt, status.ExpiresAt)
-fmt.Printf("Last contribution: %s (%d %s)\n",
-    status.LastContribution.User,
-    status.LastContribution.Total,
-    status.LastContribution.Type)
+cur := status.Current
+fmt.Printf("Hype Train (%s) level %d: %d / %d at this level, %d total\n",
+    cur.Type, cur.Level, cur.Progress, cur.Goal, cur.Total)
+fmt.Printf("Started: %s, Expires: %s\n", cur.StartedAt, cur.ExpiresAt)
 
 fmt.Println("Top Contributors:")
-for _, contrib := range status.TopContributions {
-    fmt.Printf("  %s: %d (%s)\n", contrib.User, contrib.Total, contrib.Type)
+for _, contrib := range cur.TopContributions {
+    fmt.Printf("  %s: %d (%s)\n", contrib.UserName, contrib.Total, contrib.Type)
+}
+if status.AllTimeHigh != nil {
+    fmt.Printf("Record: level %d, %d points\n", status.AllTimeHigh.Level, status.AllTimeHigh.Total)
 }
 ```
 
 **Parameters:**
 - `broadcasterID` (string): The ID of the broadcaster
 
-**Response Fields:**
-- `ID` (string): Hype train ID
-- `BroadcasterID` (string): Broadcaster's user ID
-- `Level` (int): Current level of the hype train
-- `Total` (int): Total points contributed to the hype train
+**Response Fields (`HypeTrainStatus`):**
+- `Current` (*HypeTrainCurrent): The Hype Train in progress; `nil` if none is active
+- `AllTimeHigh` (*HypeTrainRecord): The channel's record Hype Train; `nil` if it has never had one
+- `SharedAllTimeHigh` (*HypeTrainRecord): The channel's record shared Hype Train; `nil` if it has never taken part in one
+
+**HypeTrainCurrent Fields:**
+- `ID` (string): Hype Train ID
+- `BroadcasterUserID`, `BroadcasterUserLogin`, `BroadcasterUserName` (string): The broadcaster
+- `Level` (int): Current level
+- `Total` (int): Total points contributed
+- `Progress` (int): Points contributed at the current level
 - `Goal` (int): Points needed to reach the next level
-- `TopContributions` ([]HypeTrainContribution): List of top contributors
-- `LastContribution` (HypeTrainContribution): Most recent contribution
-- `StartedAt` (time.Time): When the hype train started
-- `ExpiresAt` (time.Time): When the hype train expires
-- `CooldownEndTime` (time.Time): When a new hype train can start
+- `TopContributions` ([]EventSubContribution): Top contributors (`UserID`, `UserLogin`, `UserName`, `Type` of `bits`/`subscription`/`other`, `Total`)
+- `SharedTrainParticipants` ([]HypeTrainParticipant): Broadcasters in a shared train; `nil` if not shared
+- `StartedAt`, `ExpiresAt` (time.Time): When the train started and when it expires (extended on each new level)
+- `Type` (HypeTrainType): `regular`, `golden_kappa` or `treasure`
+- `IsSharedTrain` (bool): Whether the train is shared
 
-**HypeTrainContribution Fields:**
-- `Total` (int): Contribution amount
-- `Type` (string): Contribution type (`BITS`, `SUBS`, `OTHER`)
-- `User` (string): User ID of the contributor
+**HypeTrainRecord Fields:**
+- `Level` (int), `Total` (int), `AchievedAt` (time.Time)
 
-**Sample Response (based on Twitch docs):**
+**Sample Response (from the Twitch docs):**
 ```json
 {
   "data": [
     {
-      "id": "70f0c7d8-ff60-4c50-b138-f3a352833b50",
-      "broadcaster_id": "270954519",
-      "level": 2,
-      "total": 600,
-      "goal": 1800,
-      "top_contributions": [
-        {
-          "total": 600,
-          "type": "BITS",
-          "user": "134247450"
-        }
-      ],
-      "last_contribution": {
-        "total": 200,
-        "type": "BITS",
-        "user": "134247454"
+      "current": {
+        "id": "1b0AsbInCHZW2SQFQkCzqN07Ib2",
+        "broadcaster_user_id": "1337",
+        "broadcaster_user_login": "cool_user",
+        "broadcaster_user_name": "Cool_User",
+        "level": 2,
+        "total": 700,
+        "progress": 200,
+        "goal": 1000,
+        "top_contributions": [
+          {
+            "user_id": "123",
+            "user_login": "pogchamp",
+            "user_name": "PogChamp",
+            "type": "bits",
+            "total": 50
+          },
+          {
+            "user_id": "456",
+            "user_login": "kappa",
+            "user_name": "Kappa",
+            "type": "subscription",
+            "total": 45
+          }
+        ],
+        "shared_train_participants": [
+          {
+            "broadcaster_user_id": "456",
+            "broadcaster_user_login": "pogchamp",
+            "broadcaster_user_name": "PogChamp"
+          },
+          {
+            "broadcaster_user_id": "321",
+            "broadcaster_user_login": "pogchamp",
+            "broadcaster_user_name": "PogChamp"
+          }
+        ],
+        "started_at": "2020-07-15T17:16:03.17106713Z",
+        "expires_at": "2020-07-15T17:16:11.17106713Z",
+        "type": "golden_kappa",
+        "is_shared_train": true
       },
-      "started_at": "2020-04-24T20:05:47.30473127Z",
-      "expires_at": "2020-04-24T20:12:21.003802269Z",
-      "cooldown_end_time": "2020-04-24T20:13:21.003802269Z"
+      "all_time_high": {
+        "level": 6,
+        "total": 2850,
+        "achieved_at": "2020-04-24T20:12:21.003802269Z"
+      },
+      "shared_all_time_high": {
+        "level": 16,
+        "total": 23850,
+        "achieved_at": "2020-04-27T20:12:21.003802269Z"
+      }
     }
   ]
 }

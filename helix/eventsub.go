@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -102,7 +104,7 @@ type CreateEventSubTransport struct {
 // EventSubConflictError is returned by CreateEventSubSubscription when a
 // subscription already exists for the requested type and condition combination
 // (HTTP 409). ExistingSubscriptionID is the id of the conflicting subscription,
-// which Twitch includes in the 409 response body. The underlying *APIError is
+// which Twitch includes in the 409 response body's message field. The underlying *APIError is
 // wrapped, so errors.As and the StatusCode/Body fields remain accessible.
 type EventSubConflictError struct {
 	ExistingSubscriptionID string
@@ -133,7 +135,7 @@ func (c *Client) CreateEventSubSubscription(ctx context.Context, params *CreateE
 			conflict := &EventSubConflictError{APIError: apiErr}
 			var er ErrorResponse
 			if json.Unmarshal(apiErr.Body, &er) == nil {
-				conflict.ExistingSubscriptionID = er.ID
+				conflict.ExistingSubscriptionID = existingSubscriptionID(er)
 			}
 			return nil, conflict
 		}
@@ -143,6 +145,24 @@ func (c *Client) CreateEventSubSubscription(ctx context.Context, params *CreateE
 		return nil, nil
 	}
 	return &resp.Data[0], nil
+}
+
+// subscriptionIDPattern matches an EventSub subscription id (a UUID).
+var subscriptionIDPattern = regexp.MustCompile(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}`)
+
+// existingSubscriptionID finds the conflicting subscription's id in a 409 body.
+// Twitch documents it in the message field; an id field is also honoured.
+func existingSubscriptionID(er ErrorResponse) string {
+	if er.ID != "" {
+		return er.ID
+	}
+	if id := subscriptionIDPattern.FindString(er.Message); id != "" {
+		return id
+	}
+	if msg := strings.TrimSpace(er.Message); msg != "" && !strings.ContainsAny(msg, " \t\n") {
+		return msg
+	}
+	return ""
 }
 
 // DeleteEventSubSubscription deletes an EventSub subscription.

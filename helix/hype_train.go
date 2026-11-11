@@ -72,22 +72,48 @@ func (c *Client) GetHypeTrainEvents(ctx context.Context, params *GetHypeTrainEve
 	return &resp, nil
 }
 
-// HypeTrainStatus represents the current hype train status.
+// HypeTrainStatus is a channel's Hype Train status: the train in progress, if
+// any, and the channel's records.
 type HypeTrainStatus struct {
-	ID               string                  `json:"id"`
-	BroadcasterID    string                  `json:"broadcaster_id"`
-	Level            int                     `json:"level"`
-	Total            int                     `json:"total"`
-	Goal             int                     `json:"goal"`
-	TopContributions []HypeTrainContribution `json:"top_contributions"`
-	LastContribution HypeTrainContribution   `json:"last_contribution"`
-	StartedAt        time.Time               `json:"started_at"`
-	ExpiresAt        time.Time               `json:"expires_at"`
-	CooldownEndTime  time.Time               `json:"cooldown_end_time"`
+	// Current is the Hype Train in progress; nil when none is active.
+	Current *HypeTrainCurrent `json:"current"`
+	// AllTimeHigh is the channel's record Hype Train; nil if it has never had one.
+	AllTimeHigh *HypeTrainRecord `json:"all_time_high"`
+	// SharedAllTimeHigh is the channel's record shared Hype Train; nil if it has
+	// never taken part in one.
+	SharedAllTimeHigh *HypeTrainRecord `json:"shared_all_time_high"`
 }
 
-// GetHypeTrainStatus gets the current hype train status for a channel.
-// Requires: channel:read:hype_train scope.
+// HypeTrainCurrent is a Hype Train in progress.
+type HypeTrainCurrent struct {
+	ID string `json:"id"`
+	EventSubBroadcaster
+	Level            int                    `json:"level"`
+	Total            int                    `json:"total"`
+	Progress         int                    `json:"progress"` // points at the current level
+	Goal             int                    `json:"goal"`     // points needed for the next level
+	TopContributions []EventSubContribution `json:"top_contributions"`
+	// SharedTrainParticipants lists the broadcasters in a shared train; nil
+	// when it is not shared.
+	SharedTrainParticipants []HypeTrainParticipant `json:"shared_train_participants"`
+	StartedAt               time.Time              `json:"started_at"`
+	ExpiresAt               time.Time              `json:"expires_at"`
+	Type                    HypeTrainType          `json:"type"`
+	IsSharedTrain           bool                   `json:"is_shared_train"`
+}
+
+// HypeTrainRecord is a channel's record Hype Train.
+type HypeTrainRecord struct {
+	Level      int       `json:"level"`
+	Total      int       `json:"total"`
+	AchievedAt time.Time `json:"achieved_at"`
+}
+
+// GetHypeTrainStatus gets the Hype Train status for a channel. It returns nil
+// when Twitch sends no data; a status with a nil Current means no train is
+// active.
+// Requires: user access token with channel:read:hype_train scope, for the
+// broadcaster.
 func (c *Client) GetHypeTrainStatus(ctx context.Context, broadcasterID string) (*HypeTrainStatus, error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", broadcasterID)

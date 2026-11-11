@@ -31,7 +31,9 @@ func (c *Client) StartCommercial(ctx context.Context, params *StartCommercialPar
 	return &resp.Data[0], nil
 }
 
-// AdSchedule represents the ad schedule for a channel.
+// AdSchedule represents the ad schedule for a channel. Twitch sends the
+// timestamps as Unix seconds, 0 when unset; they decode to an unset
+// NullableTime.
 type AdSchedule struct {
 	NextAdAt        NullableTime `json:"next_ad_at"`
 	LastAdAt        NullableTime `json:"last_ad_at"`
