@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"sync"
 	"time"
 )
@@ -295,8 +296,7 @@ func (c *Client) doWithMiddleware(ctx context.Context, req *Request, result any)
 	}
 
 	// Wrap chain with middleware in reverse order
-	for i := len(c.middleware) - 1; i >= 0; i-- {
-		mw := c.middleware[i]
+	for _, mw := range slices.Backward(c.middleware) {
 		next := chain
 		chain = func(ctx context.Context, req *Request) (*MiddlewareResponse, error) {
 			return mw(ctx, req, next)

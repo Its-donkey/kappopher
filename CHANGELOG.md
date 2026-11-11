@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `NullableTime` also decodes Unix timestamps in seconds, with `0` as unset. Twitch sends Get Ad Schedule's `next_ad_at`, `last_ad_at` and `snooze_refresh_at`, and Snooze Next Ad's `snooze_refresh_at` and `next_ad_at`, this way
 - Deprecated `HypeTrainTypeShared`: Twitch's types are `regular`, `golden_kappa` and `treasure`; a shared train is flagged by `IsSharedTrain`
 - Deprecated `BlockedTermInfo.OwnerBroadcasterUser{ID,Login,Name}`: Twitch sends these on each `BlockedTermFound`
+- CI: test matrix runs Go 1.26 and 1.27; lint, build, coverage and release run on Go 1.27. `go.mod` stays at `go 1.26` so the library doesn't force consumers onto 1.27
+- CI: bumped `actions/checkout` to v7 and `golangci/golangci-lint-action` to v9
+- Applied Go 1.27 `go fix`: `slices.Backward` for the reverse middleware loop in `client.go`; `atomic.Int64`/`atomic.Int32` types in `auth_test.go` and `batch_test.go`. No behavior change
+- Changelog monitor reads Twitch's changelog RSS feed (`https://dev.twitch.tv/docs/rss/change-log.xml`) instead of scraping the HTML page, whose layout changed on 2026-11-09 (Twitch recommends the feed for monitoring). New entries are tracked by guid in `state/twitch-changelog` (`.github/twitch-changelog-seen.txt`) and posted as rendered Markdown; on first run only entries from the last 14 days are reported. Logic lives in `.github/scripts/twitch_changelog.py` (Python standard library only)
 
 ### Fixed
 - `GetAdSchedule` and `SnoozeNextAd` failed to decode Twitch's Unix-second timestamps
