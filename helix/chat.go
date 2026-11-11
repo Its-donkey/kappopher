@@ -23,6 +23,7 @@ type GetChattersParams struct {
 
 // GetChatters gets the list of users in a channel's chat.
 // Requires: moderator:read:chatters scope.
+// Or an app access token, if the moderator has authorized the app with that scope.
 func (c *Client) GetChatters(ctx context.Context, params *GetChattersParams) (*Response[Chatter], error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
@@ -44,6 +45,7 @@ type Emote struct {
 	Tier       string      `json:"tier,omitempty"`
 	EmoteType  string      `json:"emote_type,omitempty"`
 	EmoteSetID string      `json:"emote_set_id,omitempty"`
+	OwnerID    string      `json:"owner_id,omitempty"` // Get Emote Sets: the broadcaster who owns the emote
 	Format     []string    `json:"format"`
 	Scale      []string    `json:"scale"`
 	ThemeMode  []string    `json:"theme_mode"`
@@ -176,6 +178,7 @@ type UpdateChatSettingsParams struct {
 
 // UpdateChatSettings updates the chat settings for a channel.
 // Requires: moderator:manage:chat_settings scope.
+// Or an app access token, if the moderator has authorized the app with that scope.
 func (c *Client) UpdateChatSettings(ctx context.Context, params *UpdateChatSettingsParams) (*Response[ChatSettings], error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
@@ -201,6 +204,7 @@ type SendChatAnnouncementParams struct {
 
 // SendChatAnnouncement sends an announcement to a channel's chat.
 // Requires: moderator:manage:announcements scope.
+// Or an app access token, if the moderator has authorized the app with that scope and user:bot.
 func (c *Client) SendChatAnnouncement(ctx context.Context, params *SendChatAnnouncementParams) error {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
@@ -218,6 +222,8 @@ type SendShoutoutParams struct {
 
 // SendShoutout sends a shoutout to another channel.
 // Requires: moderator:manage:shoutouts scope.
+// Or an app access token, if the moderator has authorized the app with that scope and
+// user:bot, and the sending broadcaster with channel:bot.
 func (c *Client) SendShoutout(ctx context.Context, params *SendShoutoutParams) error {
 	q := url.Values{}
 	q.Set("from_broadcaster_id", params.FromBroadcasterID)
@@ -286,6 +292,8 @@ type SendChatMessageResponse struct {
 
 // SendChatMessage sends a chat message to a channel.
 // Requires: user:write:chat scope.
+// Or an app access token, if the sender has authorized the app with user:write:chat
+// and user:bot, and the broadcaster with channel:bot (unless the sender is a moderator).
 func (c *Client) SendChatMessage(ctx context.Context, params *SendChatMessageParams) (*SendChatMessageResponse, error) {
 	var resp Response[SendChatMessageResponse]
 	if err := c.post(ctx, "/chat/messages", nil, params, &resp); err != nil {
@@ -315,6 +323,8 @@ type PinnedChatMessage struct {
 
 // GetPinnedChatMessage gets the currently pinned message for a channel's chat room.
 // Requires: moderator:read:chat_messages or moderator:manage:chat_messages scope.
+// Or an app access token, if the moderator has authorized the app with one of those
+// scopes and user:bot, and the broadcaster with channel:bot.
 func (c *Client) GetPinnedChatMessage(ctx context.Context, broadcasterID, moderatorID string) (*Response[PinnedChatMessage], error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", broadcasterID)
@@ -339,6 +349,7 @@ type PinChatMessageParams struct {
 // one moderator-pinned message can be active per channel; an existing one is
 // replaced.
 // Requires: moderator:manage:chat_messages scope.
+// Or an app access token, if the moderator has authorized the app with that scope and user:bot.
 func (c *Client) PinChatMessage(ctx context.Context, params *PinChatMessageParams) error {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
@@ -361,6 +372,7 @@ type UpdatePinnedChatMessageParams struct {
 
 // UpdatePinnedChatMessage updates the duration of an existing pinned chat message.
 // Requires: moderator:manage:chat_messages scope.
+// Or an app access token, if the moderator has authorized the app with that scope and user:bot.
 func (c *Client) UpdatePinnedChatMessage(ctx context.Context, params *UpdatePinnedChatMessageParams) error {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
@@ -375,6 +387,7 @@ func (c *Client) UpdatePinnedChatMessage(ctx context.Context, params *UpdatePinn
 
 // UnpinChatMessage unpins a pinned chat message from a channel's chat room.
 // Requires: moderator:manage:chat_messages scope.
+// Or an app access token, if the moderator has authorized the app with that scope and user:bot.
 func (c *Client) UnpinChatMessage(ctx context.Context, broadcasterID, moderatorID, messageID string) error {
 	q := url.Values{}
 	q.Set("broadcaster_id", broadcasterID)
@@ -399,7 +412,7 @@ type SharedChatParticipant struct {
 }
 
 // GetSharedChatSession gets the active shared chat session for a channel.
-// Requires: No authentication required.
+// Requires: user access token.
 func (c *Client) GetSharedChatSession(ctx context.Context, broadcasterID string) (*SharedChatSession, error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", broadcasterID)

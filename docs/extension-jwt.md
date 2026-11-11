@@ -12,37 +12,73 @@ description: Certain Twitch Extension API endpoints require a special **Extensio
 
 ## Creating an Extension JWT
 
+`ExtensionJWT` signs tokens with your extension's secret. Pass the secret exactly as the Developer Console shows it (base64); it is decoded before signing.
+
 ```go
-import (
-    "time"
-    "github.com/golang-jwt/jwt/v5"
+jwt, err := helix.NewExtensionJWT(
+    "your-extension-id",
+    "base64-encoded-secret",
+    "extension-owner-user-id",
 )
+if err != nil {
+    log.Fatal(err)
+}
 
-func CreateExtensionJWT(extensionSecret, userID, channelID string) (string, error) {
-    claims := jwt.MapClaims{
-        "exp":        time.Now().Add(time.Minute * 3).Unix(),
-        "user_id":    userID,      // Your extension's owner user ID
-        "role":       "external",  // "external" for EBS calls
-        "channel_id": channelID,   // Target channel (if applicable)
-        "pubsub_perms": map[string][]string{
-            "send": {"broadcast", "global"},
-        },
-    }
+// EBS token scoped to a channel, allowed to send to its broadcast target
+token, err := jwt.CreateExternalToken("67890", &helix.ExtensionPubSubPerms{
+    Send: []string{helix.ExtensionPubSubTargetBroadcast},
+}, 3*time.Minute)
 
-    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-    return token.SignedString([]byte(extensionSecret))
+// Shorthand for the same thing
+token, err = jwt.CreatePubSubToken("67890", nil, []string{helix.ExtensionPubSubTargetBroadcast}, 3*time.Minute)
+
+// A global message: channel "all", send target "global"
+token, err = jwt.CreatePubSubToken(helix.ExtensionChannelAll, nil, []string{helix.ExtensionPubSubTargetGlobal}, 3*time.Minute)
+
+// Whisper one viewer
+token, err = jwt.CreatePubSubToken("67890", nil, []string{helix.ExtensionPubSubWhisperTarget("U12345")}, 3*time.Minute)
+```
+
+Use a token for one request with `helix.WithToken`, or have the client sign its own with `helix.NewExtensionClient` / `SetExtensionJWT` (see the [examples](examples/extension-jwt.md)):
+
+```go
+ctx = helix.WithToken(ctx, &helix.Token{AccessToken: token})
+err = client.SendExtensionPubSubMessage(ctx, &helix.SendExtensionPubSubMessageParams{
+    BroadcasterID: "67890",
+    Message:       `{"event":"update"}`,
+    Target:        []string{helix.ExtensionPubSubTargetBroadcast},
+})
+```
+
+## Verifying Frontend JWTs
+
+The extension frontend sends a JWT signed with the same secret to your EBS. Verify it and read the viewer's claims:
+
+```go
+claims, err := jwt.ParseAuthorizationHeader(r.Header.Get("Authorization"))
+if err != nil {
+    http.Error(w, "unauthorized", http.StatusUnauthorized)
+    return
+}
+fmt.Println(claims.ChannelID, claims.Role, claims.OpaqueUserID, claims.UserID)
+if claims.PubsubPerms != nil {
+    fmt.Println(claims.PubsubPerms.Listen, claims.PubsubPerms.Send)
 }
 ```
 
+`jwt.ParseToken(token)` takes the bare token; `helix.ParseExtensionJWT(token, base64Secret)` works without an `ExtensionJWT`.
+
 ## JWT Claims
 
-| Claim | Description |
-|-------|-------------|
-| `exp` | Expiration time (Unix timestamp). Max 3 minutes from now. |
-| `user_id` | The user ID making the request (typically extension owner). |
-| `role` | Set to `"external"` for EBS calls. |
-| `channel_id` | The target channel ID (required for channel-specific operations). |
-| `pubsub_perms` | PubSub permissions object (required for PubSub messages). |
+| Claim | Field | Description |
+|-------|-------|-------------|
+| `exp` | `Exp` | Expiration time (Unix timestamp, seconds). |
+| `user_id` | `UserID` | The user ID making the request (the extension owner for EBS tokens). |
+| `role` | `Role` | `external` for EBS calls; `broadcaster`, `moderator` or `viewer` in frontend tokens. |
+| `channel_id` | `ChannelID` | The target channel ID; `all` for global PubSub messages. |
+| `opaque_user_id` | `OpaqueUserID` | The viewer's opaque ID (frontend tokens). |
+| `is_unlinked` | `IsUnlinked` | Whether the viewer has not shared their identity (frontend tokens). |
+| `pubsub_perms` | `PubsubPerms` | PubSub targets the token may `listen` to and `send` to (required for PubSub messages). |
 
 ## Auth Type Comparison
 

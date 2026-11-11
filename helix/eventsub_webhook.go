@@ -45,6 +45,10 @@ type EventSubWebhookMessage struct {
 	Subscription        EventSubSubscription
 	Challenge           string
 	Event               json.RawMessage
+	// Events holds the "events" array of a batched notification
+	// (drop.entitlement.grant), which has no Event. Decode it with
+	// ParseEventSubEvents.
+	Events json.RawMessage
 }
 
 // EventSubWebhookPayload represents the JSON payload from EventSub.
@@ -52,6 +56,9 @@ type EventSubWebhookPayload struct {
 	Subscription EventSubSubscription `json:"subscription"`
 	Challenge    string               `json:"challenge,omitempty"`
 	Event        json.RawMessage      `json:"event,omitempty"`
+	// Events is the "events" array of a batched notification
+	// (drop.entitlement.grant).
+	Events json.RawMessage `json:"events,omitempty"`
 }
 
 // EventSubWebhookHandler handles EventSub webhook requests.
@@ -217,6 +224,7 @@ func (h *EventSubWebhookHandler) parseMessage(headers http.Header, body []byte) 
 		Subscription:        payload.Subscription,
 		Challenge:           payload.Challenge,
 		Event:               payload.Event,
+		Events:              payload.Events,
 	}, nil
 }
 
@@ -266,12 +274,30 @@ func VerifyEventSubSignature(secret, messageID, timestamp string, body []byte, s
 }
 
 // ParseEventSubEvent parses the event data from a webhook message into the provided type.
+// For batched notifications (drop.entitlement.grant) use ParseEventSubEvents
+// with msg.Events.
 func ParseEventSubEvent[T any](msg *EventSubWebhookMessage) (*T, error) {
 	var event T
 	if err := json.Unmarshal(msg.Event, &event); err != nil {
 		return nil, fmt.Errorf("parsing event: %w", err)
 	}
 	return &event, nil
+}
+
+// ParseEventSubEvents decodes the "events" array of a batched notification
+// (drop.entitlement.grant) into a slice of T, for example
+// ParseEventSubEvents[DropEntitlementGrantEvent](msg.Events). It works with
+// EventSubWebhookMessage.Events and with the raw JSON a WebSocket notification
+// handler receives for a batched type. An empty raw value yields no events.
+func ParseEventSubEvents[T any](raw json.RawMessage) ([]T, error) {
+	if len(bytes.TrimSpace(raw)) == 0 {
+		return nil, nil
+	}
+	var events []T
+	if err := json.Unmarshal(raw, &events); err != nil {
+		return nil, fmt.Errorf("parsing events: %w", err)
+	}
+	return events, nil
 }
 
 // EventSubMiddleware returns middleware that verifies EventSub signatures.

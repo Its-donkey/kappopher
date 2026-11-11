@@ -2,6 +2,7 @@ package helix
 
 import (
 	"context"
+	"encoding/json"
 	"net/url"
 	"time"
 )
@@ -47,9 +48,23 @@ type ModifyChannelInformationParams struct {
 	BroadcasterLanguage         string                              `json:"broadcaster_language,omitempty"`
 	Title                       string                              `json:"title,omitempty"`
 	Delay                       *int                                `json:"delay,omitempty"`
-	Tags                        []string                            `json:"tags,omitempty"`
+	Tags                        []string                            `json:"tags,omitempty"` // nil leaves tags unchanged; an empty, non-nil slice removes them
 	ContentClassificationLabels []ContentClassificationLabelSetting `json:"content_classification_labels,omitempty"`
 	IsBrandedContent            *bool                               `json:"is_branded_content,omitempty"`
+}
+
+// MarshalJSON sends an empty, non-nil Tags as [] so the channel's tags are
+// removed; nil Tags are omitted and left unchanged.
+func (p ModifyChannelInformationParams) MarshalJSON() ([]byte, error) {
+	type alias ModifyChannelInformationParams
+	var tags *[]string
+	if p.Tags != nil {
+		tags = &p.Tags
+	}
+	return json.Marshal(struct {
+		alias
+		Tags *[]string `json:"tags,omitempty"`
+	}{alias(p), tags})
 }
 
 // ContentClassificationLabelSetting represents a content classification label setting for modifying a channel.
@@ -59,7 +74,7 @@ type ContentClassificationLabelSetting struct {
 }
 
 // ModifyChannelInformation modifies channel information.
-// Requires: channel:manage:broadcast scope.
+// Requires: channel:manage:broadcast or user:edit:broadcast scope.
 func (c *Client) ModifyChannelInformation(ctx context.Context, params *ModifyChannelInformationParams) error {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
@@ -166,7 +181,7 @@ type GetVIPsParams struct {
 }
 
 // GetVIPs gets the list of VIPs for a channel.
-// Requires: channel:read:vips scope.
+// Requires: channel:read:vips or channel:manage:vips scope.
 func (c *Client) GetVIPs(ctx context.Context, params *GetVIPsParams) (*Response[VIP], error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)

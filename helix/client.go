@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"sync"
 	"time"
 )
@@ -173,6 +174,9 @@ type Response[T any] struct {
 	Total        *int        `json:"total,omitempty"`
 	TotalCost    *int        `json:"total_cost,omitempty"`
 	MaxTotalCost *int        `json:"max_total_cost,omitempty"`
+	// Template is the emote image URL template, returned by Get Channel
+	// Emotes, Get Global Emotes and Get Emote Sets.
+	Template string `json:"template,omitempty"`
 }
 
 // Pagination contains pagination information.
@@ -295,8 +299,7 @@ func (c *Client) doWithMiddleware(ctx context.Context, req *Request, result any)
 	}
 
 	// Wrap chain with middleware in reverse order
-	for i := len(c.middleware) - 1; i >= 0; i-- {
-		mw := c.middleware[i]
+	for _, mw := range slices.Backward(c.middleware) {
 		next := chain
 		chain = func(ctx context.Context, req *Request) (*MiddlewareResponse, error) {
 			return mw(ctx, req, next)

@@ -111,12 +111,17 @@ Use IRC if you're building a chat bot that needs to send messages quickly. Use E
 
 ### How do I parse emotes from chat messages?
 
-Emote positions are in the `emotes` tag of IRC messages:
+`ChatMessage.Emotes` holds each emote's ID and its zero-based start and end positions in the message, parsed from the `emotes` tag:
 
 ```go
-emotes := msg.Tags["emotes"]
-// Format: "emote_id:start-end,start-end/emote_id:start-end"
+helix.WithMessageHandler(func(msg *helix.ChatMessage) {
+    for _, e := range msg.Emotes {
+        fmt.Printf("emote %s at %d-%d\n", e.ID, e.Start, e.End)
+    }
+})
 ```
+
+GIFs are parsed from the `gifs` tag into `ChatMessage.Gifs` in the same way.
 
 ---
 

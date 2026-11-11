@@ -44,6 +44,7 @@ This document lists all Twitch API endpoints and indicates whether they are supp
 | Yes | Bits | Get Bits Leaderboard | GET | `/helix/bits/leaderboard` | 2025-12-10 | |
 | Yes | Bits | Get Cheermotes | GET | `/helix/bits/cheermotes` | 2025-12-10 | |
 | Yes | Bits | Get Extension Transactions | GET | `/helix/extensions/transactions` | 2025-12-10 | |
+| Yes | Bits | Get Custom Power-up | GET | `/helix/bits/custom_power_ups` | 2026-11-11 | NEW |
 
 ## Channel Points
 
@@ -84,12 +85,16 @@ This document lists all Twitch API endpoints and indicates whether they are supp
 | Yes | Chat | Get Channel Chat Badges | GET | `/helix/chat/badges` | 2025-12-10 | |
 | Yes | Chat | Get Global Chat Badges | GET | `/helix/chat/badges/global` | 2025-12-10 | |
 | Yes | Chat | Get Chat Settings | GET | `/helix/chat/settings` | 2025-12-10 | |
-| Yes | Chat | Get Shared Chat Session | GET | `/helix/chat/shared_chat/sessions` | 2025-12-10 | NEW |
-| Yes | Chat | Get User Emotes | GET | `/helix/chat/user/emotes` | 2025-12-10 | NEW |
+| Yes | Chat | Get Shared Chat Session | GET | `/helix/shared_chat/session` | 2026-11-11 | NEW |
+| Yes | Chat | Get User Emotes | GET | `/helix/chat/emotes/user` | 2026-11-11 | NEW |
 | Yes | Chat | Update Chat Settings | PATCH | `/helix/chat/settings` | 2025-12-10 | |
 | Yes | Chat | Send Chat Announcement | POST | `/helix/chat/announcements` | 2025-12-10 | |
 | Yes | Chat | Send a Shoutout | POST | `/helix/chat/shoutouts` | 2025-12-10 | |
 | Yes | Chat | Send Chat Message | POST | `/helix/chat/messages` | 2025-12-10 | NEW |
+| Yes | Chat | Get Pinned Chat Message | GET | `/helix/chat/pins` | 2026-11-11 | NEW |
+| Yes | Chat | Pin Chat Message | PUT | `/helix/chat/pins` | 2026-11-11 | NEW |
+| Yes | Chat | Update Pinned Chat Message | PATCH | `/helix/chat/pins` | 2026-11-11 | NEW |
+| Yes | Chat | Unpin Chat Message | DELETE | `/helix/chat/pins` | 2026-11-11 | NEW |
 | Yes | Chat | Get User Chat Color | GET | `/helix/chat/color` | 2025-12-10 | |
 | Yes | Chat | Update User Chat Color | PUT | `/helix/chat/color` | 2025-12-10 | |
 
@@ -100,7 +105,7 @@ This document lists all Twitch API endpoints and indicates whether they are supp
 | Yes | Clips | Create Clip | POST | `/helix/clips` | 2025-12-10 | |
 | Yes | Clips | Create Clip From VOD | POST | `/helix/videos/clips` | 2026-01-13 | |
 | Yes | Clips | Get Clips | GET | `/helix/clips` | 2025-12-10 | |
-| Yes | Clips | Get Clips Download | GET | `/helix/clips/download` | 2025-12-10 | NEW |
+| Yes | Clips | Get Clips Download | GET | `/helix/clips/downloads` | 2026-11-11 | NEW |
 
 ## Conduits
 
@@ -168,8 +173,8 @@ This document lists all Twitch API endpoints and indicates whether they are supp
 
 | Supported | Category | Endpoint Name | Method | Path | Last Updated | Twitch Note |
 |:---------:|----------|---------------|--------|------|--------------|-------------|
-| Yes | Guest Star | Get Channel Guest Star Settings | GET | `/helix/channels/guest_star_settings` | 2025-12-10 | BETA |
-| Yes | Guest Star | Update Channel Guest Star Settings | PUT | `/helix/channels/guest_star_settings` | 2025-12-10 | BETA |
+| Yes | Guest Star | Get Channel Guest Star Settings | GET | `/helix/guest_star/channel_settings` | 2026-11-11 | BETA |
+| Yes | Guest Star | Update Channel Guest Star Settings | PATCH | `/helix/guest_star/channel_settings` | 2026-11-11 | BETA |
 | Yes | Guest Star | Get Guest Star Session | GET | `/helix/guest_star/session` | 2025-12-10 | BETA |
 | Yes | Guest Star | Create Guest Star Session | POST | `/helix/guest_star/session` | 2025-12-10 | BETA |
 | Yes | Guest Star | End Guest Star Session | DELETE | `/helix/guest_star/session` | 2025-12-10 | BETA |
@@ -185,7 +190,7 @@ This document lists all Twitch API endpoints and indicates whether they are supp
 
 | Supported | Category | Endpoint Name | Method | Path | Last Updated | Twitch Note |
 |:---------:|----------|---------------|--------|------|--------------|-------------|
-| Yes | Hype Train | Get Hype Train Events | GET | `/helix/hypetrain/events` | 2025-12-10 | DEPRECATED |
+| Yes | Hype Train | Get Hype Train Events | GET | `/helix/hypetrain/events` | 2026-11-11 | REMOVED by Twitch (2026-02-05); deprecated here |
 | Yes | Hype Train | Get Hype Train Status | GET | `/helix/hypetrain/status` | 2025-12-10 | |
 
 ## Moderation
@@ -215,6 +220,8 @@ This document lists all Twitch API endpoints and indicates whether they are supp
 | Yes | Moderation | Update Shield Mode Status | PUT | `/helix/moderation/shield_mode` | 2025-12-10 | |
 | Yes | Moderation | Get Shield Mode Status | GET | `/helix/moderation/shield_mode` | 2025-12-10 | |
 | Yes | Moderation | Warn Chat User | POST | `/helix/moderation/warnings` | 2025-12-10 | |
+| Yes | Moderation | Add Suspicious Status to Chat User | POST | `/helix/moderation/suspicious_users` | 2026-11-11 | NEW |
+| Yes | Moderation | Remove Suspicious Status From Chat User | DELETE | `/helix/moderation/suspicious_users` | 2026-11-11 | NEW |
 
 ## Polls
 
@@ -294,9 +301,9 @@ This document lists all Twitch API endpoints and indicates whether they are supp
 |:---------:|----------|---------------|--------|------|--------------|-------------|
 | Yes | Users | Get Users | GET | `/helix/users` | 2025-12-10 | |
 | Yes | Users | Update User | PUT | `/helix/users` | 2025-12-10 | |
-| Yes | Users | Get Authorization By User | GET | `/helix/users/authorization` | 2025-12-11 | NEW |
+| Yes | Users | Get Authorization By User | GET | `/helix/authorization/users` | 2026-11-11 | NEW |
 | Yes | Users | Get User Block List | GET | `/helix/users/blocks` | 2025-12-10 | |
-| Yes | Users | Block User | POST | `/helix/users/blocks` | 2025-12-10 | |
+| Yes | Users | Block User | PUT | `/helix/users/blocks` | 2026-11-11 | |
 | Yes | Users | Unblock User | DELETE | `/helix/users/blocks` | 2025-12-10 | |
 | Yes | Users | Get User Extensions | GET | `/helix/users/extensions/list` | 2025-12-10 | |
 | Yes | Users | Get User Active Extensions | GET | `/helix/users/extensions` | 2025-12-10 | |
@@ -327,9 +334,9 @@ This document lists all Twitch API endpoints and indicates whether they are supp
 
 | Status | Count |
 |--------|-------|
-| Supported | 148 |
+| Supported | 157 |
 | Not Yet Supported | 2 |
-| **Total Endpoints** | **150** |
+| **Total Endpoints** | **159** |
 
 ### Support by Category
 
@@ -338,11 +345,11 @@ This document lists all Twitch API endpoints and indicates whether they are supp
 | Authentication | 8 | 8 |
 | Ads | 3 | 3 |
 | Analytics | 2 | 2 |
-| Bits | 3 | 3 |
+| Bits | 4 | 4 |
 | Channel Points | 6 | 6 |
 | Channels | 5 | 5 |
 | Charity | 2 | 2 |
-| Chat | 15 | 15 |
+| Chat | 19 | 19 |
 | Clips | 4 | 4 |
 | Conduits | 6 | 6 |
 | Content Classification | 1 | 1 |
@@ -354,7 +361,7 @@ This document lists all Twitch API endpoints and indicates whether they are supp
 | Guest Star | 12 | 12 |
 | Hype Train | 2 | 2 |
 | Ingest | 1 | 1 |
-| Moderation | 22 | 22 |
+| Moderation | 25 | 25 |
 | Polls | 3 | 3 |
 | Predictions | 3 | 3 |
 | Raids | 2 | 2 |

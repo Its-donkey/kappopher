@@ -88,12 +88,12 @@ if err != nil {
           "user_login": "guestuser",
           "volume": 100,
           "assigned_at": "2024-01-15T10:30:00Z",
-          "audio_settings": {
+          "audio": {
             "is_host_enabled": true,
             "is_guest_enabled": false,
             "is_available": true
           },
-          "video_settings": {
+          "video": {
             "is_host_enabled": true,
             "is_guest_enabled": false,
             "is_available": true
@@ -107,12 +107,12 @@ if err != nil {
           "user_login": "anotherguest",
           "volume": 75,
           "assigned_at": "2024-01-15T10:35:00Z",
-          "audio_settings": {
+          "audio": {
             "is_host_enabled": true,
             "is_guest_enabled": true,
             "is_available": true
           },
-          "video_settings": {
+          "video": {
             "is_host_enabled": false,
             "is_guest_enabled": false,
             "is_available": true

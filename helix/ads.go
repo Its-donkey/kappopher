@@ -20,6 +20,7 @@ type StartCommercialParams struct {
 
 // StartCommercial starts a commercial on a channel.
 // Requires: channel:edit:commercial scope.
+// Or an app access token, if the broadcaster has authorized the app with that scope.
 func (c *Client) StartCommercial(ctx context.Context, params *StartCommercialParams) (*Commercial, error) {
 	var resp Response[Commercial]
 	if err := c.post(ctx, "/channels/commercial", nil, params, &resp); err != nil {
@@ -31,7 +32,9 @@ func (c *Client) StartCommercial(ctx context.Context, params *StartCommercialPar
 	return &resp.Data[0], nil
 }
 
-// AdSchedule represents the ad schedule for a channel.
+// AdSchedule represents the ad schedule for a channel. Twitch sends the
+// timestamps as Unix seconds, 0 when unset; they decode to an unset
+// NullableTime.
 type AdSchedule struct {
 	NextAdAt        NullableTime `json:"next_ad_at"`
 	LastAdAt        NullableTime `json:"last_ad_at"`
@@ -43,6 +46,7 @@ type AdSchedule struct {
 
 // GetAdSchedule gets the ad schedule for a channel.
 // Requires: channel:read:ads scope.
+// Or an app access token, if the broadcaster has authorized the app with that scope.
 func (c *Client) GetAdSchedule(ctx context.Context, broadcasterID string) (*AdSchedule, error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", broadcasterID)
@@ -66,6 +70,7 @@ type SnoozeNextAdResponse struct {
 
 // SnoozeNextAd snoozes the next scheduled ad.
 // Requires: channel:manage:ads scope.
+// Or an app access token, if the broadcaster has authorized the app with that scope.
 func (c *Client) SnoozeNextAd(ctx context.Context, broadcasterID string) (*SnoozeNextAdResponse, error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", broadcasterID)

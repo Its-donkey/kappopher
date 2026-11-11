@@ -8,20 +8,22 @@ import (
 
 // Poll represents a channel poll.
 type Poll struct {
-	ID                         string       `json:"id"`
-	BroadcasterID              string       `json:"broadcaster_id"`
-	BroadcasterName            string       `json:"broadcaster_name"`
-	BroadcasterLogin           string       `json:"broadcaster_login"`
-	Title                      string       `json:"title"`
-	Choices                    []PollChoice `json:"choices"`
-	BitsVotingEnabled          bool         `json:"bits_voting_enabled"`
+	ID               string       `json:"id"`
+	BroadcasterID    string       `json:"broadcaster_id"`
+	BroadcasterName  string       `json:"broadcaster_name"`
+	BroadcasterLogin string       `json:"broadcaster_login"`
+	Title            string       `json:"title"`
+	Choices          []PollChoice `json:"choices"`
+	// Deprecated: Twitch removed Bits voting; always false.
+	BitsVotingEnabled bool `json:"bits_voting_enabled"`
+	// Deprecated: Twitch removed Bits voting; always 0.
 	BitsPerVote                int          `json:"bits_per_vote"`
 	ChannelPointsVotingEnabled bool         `json:"channel_points_voting_enabled"`
 	ChannelPointsPerVote       int          `json:"channel_points_per_vote"`
-	Status                     string       `json:"status"` // ACTIVE, COMPLETED, TERMINATED, ARCHIVED, MODERATED, INVALID
+	Status                     string       `json:"status"` // ACTIVE, COMPLETED, TERMINATED, ARCHIVED, INVALID
 	Duration                   int          `json:"duration"`
 	StartedAt                  time.Time    `json:"started_at"`
-	EndedAt                    NullableTime `json:"ended_at"`
+	EndedAt                    NullableTime `json:"ended_at"` // unset while the poll is active
 }
 
 // PollChoice represents a choice in a poll.
@@ -30,7 +32,8 @@ type PollChoice struct {
 	Title              string `json:"title"`
 	Votes              int    `json:"votes"`
 	ChannelPointsVotes int    `json:"channel_points_votes"`
-	BitsVotes          int    `json:"bits_votes"`
+	// Deprecated: Twitch removed Bits voting; always 0.
+	BitsVotes int `json:"bits_votes"`
 }
 
 // GetPollsParams contains parameters for GetPolls.

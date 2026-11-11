@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -363,5 +364,35 @@ func TestClient_UpdateConduitShards_Error(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestClient_UpdateConduitShards_TooManyShards(t *testing.T) {
+	called := false
+	client, server := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		_, _ = w.Write([]byte(`{"data":[]}`))
+	})
+	defer server.Close()
+
+	shards := make([]UpdateConduitShardParams, MaxConduitShardsPerUpdate+1)
+	_, err := client.UpdateConduitShards(context.Background(), &UpdateConduitShardsParams{
+		ConduitID: "conduit123",
+		Shards:    shards,
+	})
+	if err == nil || !strings.Contains(err.Error(), "101") {
+		t.Fatalf("expected a too-many-shards error, got %v", err)
+	}
+	if called {
+		t.Error("request was sent")
+	}
+
+	// Exactly the maximum is allowed.
+	_, err = client.UpdateConduitShards(context.Background(), &UpdateConduitShardsParams{
+		ConduitID: "conduit123",
+		Shards:    shards[:MaxConduitShardsPerUpdate],
+	})
+	if err != nil || !called {
+		t.Errorf("expected request with %d shards, err %v", MaxConduitShardsPerUpdate, err)
 	}
 }

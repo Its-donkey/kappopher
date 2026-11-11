@@ -1809,9 +1809,9 @@ func TestAuthClient_GetJWKS_InvalidJSON(t *testing.T) {
 }
 
 func TestAuthClient_AutoRefresh_ImmediateRefresh(t *testing.T) {
-	var refreshCount int64
+	var refreshCount atomic.Int64
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt64(&refreshCount, 1)
+		refreshCount.Add(1)
 		resp := Token{
 			AccessToken:  "new-access-token",
 			RefreshToken: "new-refresh-token",
@@ -1845,7 +1845,7 @@ func TestAuthClient_AutoRefresh_ImmediateRefresh(t *testing.T) {
 	// Wait for refresh to happen
 	time.Sleep(500 * time.Millisecond)
 
-	if atomic.LoadInt64(&refreshCount) == 0 {
+	if refreshCount.Load() == 0 {
 		t.Error("expected at least one refresh call")
 	}
 }
@@ -2474,9 +2474,9 @@ func TestAuthClient_AutoRefresh_ZeroExpiresAt(t *testing.T) {
 }
 
 func TestAuthClient_AutoRefresh_ScheduledRefresh(t *testing.T) {
-	var refreshCount int64
+	var refreshCount atomic.Int64
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt64(&refreshCount, 1)
+		refreshCount.Add(1)
 		resp := Token{
 			AccessToken:  "new-access-token",
 			RefreshToken: "new-refresh-token",
@@ -2509,7 +2509,7 @@ func TestAuthClient_AutoRefresh_ScheduledRefresh(t *testing.T) {
 
 	time.Sleep(300 * time.Millisecond)
 
-	if atomic.LoadInt64(&refreshCount) == 0 {
+	if refreshCount.Load() == 0 {
 		t.Error("expected refresh to be triggered for token expiring soon")
 	}
 }
@@ -3118,9 +3118,9 @@ func TestAuthClient_AutoRefresh_ContextCancelDuringScheduledRefreshError(t *test
 }
 
 func TestAuthClient_AutoRefresh_SuccessfulRefreshAfterWait(t *testing.T) {
-	var refreshCount int64
+	var refreshCount atomic.Int64
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt64(&refreshCount, 1)
+		refreshCount.Add(1)
 		resp := Token{
 			AccessToken:  "new-access-token",
 			RefreshToken: "new-refresh-token",
@@ -3154,7 +3154,7 @@ func TestAuthClient_AutoRefresh_SuccessfulRefreshAfterWait(t *testing.T) {
 	// Wait for refresh to happen
 	time.Sleep(300 * time.Millisecond)
 
-	if atomic.LoadInt64(&refreshCount) == 0 {
+	if refreshCount.Load() == 0 {
 		t.Error("expected at least one refresh call")
 	}
 }

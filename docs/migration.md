@@ -84,13 +84,9 @@ client.Connect()
 
 **Kappopher:**
 ```go
-irc := helix.NewIRCClient(
-    helix.WithIRCNick("username"),
-    helix.WithIRCToken("oauth:token"),
-    helix.WithIRCMessageHandler(func(msg *helix.IRCMessage) {
-        if msg.Command == "PRIVMSG" {
-            fmt.Println(msg.Text)
-        }
+irc := helix.NewIRCClient("username", "oauth:token",
+    helix.WithMessageHandler(func(msg *helix.ChatMessage) {
+        fmt.Println(msg.Message)
     }),
 )
 irc.Connect(ctx)
@@ -103,18 +99,20 @@ irc.Join("channel")
 ```go
 message.User.DisplayName
 message.User.ID
+message.User.Name
 message.Message
 message.Channel
-message.Tags["emotes"]
+message.Emotes
 ```
 
 **Kappopher:**
 ```go
-msg.Tags["display-name"]
-msg.Tags["user-id"]
-msg.Text
+msg.DisplayName
+msg.UserID
+msg.User
+msg.Message
 msg.Channel
-msg.Tags["emotes"]
+msg.Emotes
 ```
 
 ### Sending Messages
@@ -135,13 +133,17 @@ irc.Reply("channel", "parent-msg-id", "Reply text")
 
 | go-twitch-irc | Kappopher |
 |---------------|-----------|
-| `OnPrivateMessage` | Check `msg.Command == "PRIVMSG"` |
-| `OnUserNoticeMessage` | Check `msg.Command == "USERNOTICE"` |
-| `OnClearChatMessage` | Check `msg.Command == "CLEARCHAT"` |
-| `OnClearMessage` | Check `msg.Command == "CLEARMSG"` |
-| `OnRoomStateMessage` | Check `msg.Command == "ROOMSTATE"` |
-| `OnConnect` | `WithIRCConnectHandler` |
-| `OnReconnect` | `WithIRCReconnectHandler` |
+| `OnPrivateMessage` | `WithMessageHandler` (`*ChatMessage`) |
+| `OnUserNoticeMessage` | `WithUserNoticeHandler` (`*UserNotice`) |
+| `OnClearChatMessage` | `WithClearChatHandler` (`*ClearChat`) |
+| `OnClearMessage` | `WithClearMessageHandler` (`*ClearMessage`) |
+| `OnRoomStateMessage` | `WithRoomStateHandler` (`*RoomState`) |
+| `OnNoticeMessage` | `WithNoticeHandler` (`*Notice`) |
+| `OnWhisperMessage` | `WithWhisperHandler` (`*Whisper`) |
+| `OnUserStateMessage` | `WithUserStateHandler` (`*UserState`) |
+| `OnGlobalUserStateMessage` | `WithGlobalUserStateHandler` (`*GlobalUserState`) |
+| `OnConnect` | `WithConnectHandler` |
+| `OnReconnect` | `WithReconnectHandler` |
 
 ---
 

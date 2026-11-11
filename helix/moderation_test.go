@@ -484,7 +484,7 @@ func TestClient_GetShieldModeStatus(t *testing.T) {
 					ModeratorID:     twitchShieldModeModeratorID,
 					ModeratorLogin:  twitchShieldModeModeratorLogin,
 					ModeratorName:   twitchShieldModeModeratorName,
-					LastActivatedAt: mustParseTime("2022-07-26T17:16:03.123Z"),
+					LastActivatedAt: NewNullableTime(mustParseTime("2022-07-26T17:16:03.123Z")),
 				},
 			},
 		}
@@ -530,7 +530,7 @@ func TestClient_UpdateShieldModeStatus(t *testing.T) {
 					ModeratorID:     twitchShieldModeModeratorID,
 					ModeratorLogin:  twitchShieldModeModeratorLogin,
 					ModeratorName:   twitchShieldModeModeratorName,
-					LastActivatedAt: mustParseTime("2022-07-26T17:16:03.123Z"),
+					LastActivatedAt: NewNullableTime(mustParseTime("2022-07-26T17:16:03.123Z")),
 				},
 			},
 		}

@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -20,6 +22,9 @@ type EventSubSubscription struct {
 	CreatedAt time.Time         `json:"created_at"`
 	Transport EventSubTransport `json:"transport"`
 	Cost      int               `json:"cost"`
+	// IsBatchingEnabled reports whether Twitch batches this subscription's
+	// notifications (drop.entitlement.grant).
+	IsBatchingEnabled bool `json:"is_batching_enabled,omitempty"`
 }
 
 // EventSubTransport represents the transport for an EventSub subscription.
@@ -53,7 +58,8 @@ type EventSubResponse struct {
 }
 
 // GetEventSubSubscriptions gets EventSub subscriptions.
-// Requires: App access token.
+// Requires: app access token for webhook and conduit subscriptions, or a user access
+// token for the WebSocket subscriptions that user created.
 func (c *Client) GetEventSubSubscriptions(ctx context.Context, params *GetEventSubSubscriptionsParams) (*EventSubResponse, error) {
 	q := url.Values{}
 	if params != nil {
@@ -88,6 +94,9 @@ type CreateEventSubSubscriptionParams struct {
 	Version   string                  `json:"version"`
 	Condition map[string]string       `json:"condition"`
 	Transport CreateEventSubTransport `json:"transport"`
+	// IsBatchingEnabled batches notifications; drop.entitlement.grant requires
+	// it to be true.
+	IsBatchingEnabled bool `json:"is_batching_enabled,omitempty"`
 }
 
 // CreateEventSubTransport represents the transport when creating a subscription.
@@ -102,7 +111,7 @@ type CreateEventSubTransport struct {
 // EventSubConflictError is returned by CreateEventSubSubscription when a
 // subscription already exists for the requested type and condition combination
 // (HTTP 409). ExistingSubscriptionID is the id of the conflicting subscription,
-// which Twitch includes in the 409 response body. The underlying *APIError is
+// which Twitch includes in the 409 response body's message field. The underlying *APIError is
 // wrapped, so errors.As and the StatusCode/Body fields remain accessible.
 type EventSubConflictError struct {
 	ExistingSubscriptionID string
@@ -133,7 +142,7 @@ func (c *Client) CreateEventSubSubscription(ctx context.Context, params *CreateE
 			conflict := &EventSubConflictError{APIError: apiErr}
 			var er ErrorResponse
 			if json.Unmarshal(apiErr.Body, &er) == nil {
-				conflict.ExistingSubscriptionID = er.ID
+				conflict.ExistingSubscriptionID = existingSubscriptionID(er)
 			}
 			return nil, conflict
 		}
@@ -145,8 +154,27 @@ func (c *Client) CreateEventSubSubscription(ctx context.Context, params *CreateE
 	return &resp.Data[0], nil
 }
 
+// subscriptionIDPattern matches an EventSub subscription id (a UUID).
+var subscriptionIDPattern = regexp.MustCompile(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}`)
+
+// existingSubscriptionID finds the conflicting subscription's id in a 409 body.
+// Twitch documents it in the message field; an id field is also honoured.
+func existingSubscriptionID(er ErrorResponse) string {
+	if er.ID != "" {
+		return er.ID
+	}
+	if id := subscriptionIDPattern.FindString(er.Message); id != "" {
+		return id
+	}
+	if msg := strings.TrimSpace(er.Message); msg != "" && !strings.ContainsAny(msg, " \t\n") {
+		return msg
+	}
+	return ""
+}
+
 // DeleteEventSubSubscription deletes an EventSub subscription.
-// Requires: App access token.
+// Requires: app access token for webhook and conduit subscriptions, or a user access
+// token for a WebSocket subscription that user created.
 func (c *Client) DeleteEventSubSubscription(ctx context.Context, subscriptionID string) error {
 	q := url.Values{}
 	q.Set("id", subscriptionID)
@@ -482,14 +510,62 @@ func FromToBroadcasterCondition(fromBroadcasterID, toBroadcasterID string) map[s
 	return cond
 }
 
-// ClientCondition returns a condition with client_id for extension events.
+// BroadcasterUserCondition returns a condition with broadcaster_user_id and
+// user_id, as used by the chat types (channel.chat.message,
+// channel.chat.notification, channel.chat.user_message_hold, ...).
+func BroadcasterUserCondition(broadcasterID, userID string) map[string]string {
+	return map[string]string{
+		"broadcaster_user_id": broadcasterID,
+		"user_id":             userID,
+	}
+}
+
+// ClientCondition returns a condition with client_id, as used by
+// user.authorization.grant and user.authorization.revoke. For
+// extension.bits_transaction.create use ExtensionClientCondition; for
+// conduit.shard.disabled use ConduitShardDisabledCondition.
 func ClientCondition(clientID string) map[string]string {
 	return map[string]string{"client_id": clientID}
 }
 
+// ExtensionClientCondition returns a condition with extension_client_id for
+// extension.bits_transaction.create.
+func ExtensionClientCondition(extensionClientID string) map[string]string {
+	return map[string]string{"extension_client_id": extensionClientID}
+}
+
 // ConduitCondition returns a condition with conduit_id.
+//
+// Deprecated: conduit.shard.disabled requires client_id, so this condition
+// alone is rejected by Twitch. Use ConduitShardDisabledCondition.
 func ConduitCondition(conduitID string) map[string]string {
 	return map[string]string{"conduit_id": conduitID}
+}
+
+// ConduitShardDisabledCondition returns a condition for conduit.shard.disabled.
+// clientID (the client that owns the conduits) is required; conduitID is
+// optional and, when set, limits the subscription to that conduit.
+func ConduitShardDisabledCondition(clientID, conduitID string) map[string]string {
+	cond := map[string]string{"client_id": clientID}
+	if conduitID != "" {
+		cond["conduit_id"] = conduitID
+	}
+	return cond
+}
+
+// DropCondition returns a condition for drop.entitlement.grant.
+// organizationID is required; categoryID and campaignID are optional filters
+// and are left out when empty. Subscriptions to this type must also set
+// IsBatchingEnabled.
+func DropCondition(organizationID, categoryID, campaignID string) map[string]string {
+	cond := map[string]string{"organization_id": organizationID}
+	if categoryID != "" {
+		cond["category_id"] = categoryID
+	}
+	if campaignID != "" {
+		cond["campaign_id"] = campaignID
+	}
+	return cond
 }
 
 // RewardCondition returns a condition for channel points reward events.

@@ -8,12 +8,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `HypeTrainCurrent` and `HypeTrainRecord` types for the Get Hype Train Status response
+- `HypeTrainTypeTreasure` (`treasure`) Hype Train type
+- `AutomodMessageUpdateEvent` v2 fields `HeldAt`, `Reason`, `Automod` and `BlockedTerm`, and v1 fields `Level` and `Category`
+- `BlockedTermFound.OwnerBroadcasterUser{ID,Login,Name}`: Twitch sends the term's owner on each term found
+- Tests that decode the Twitch docs' own example payloads (Get Hype Train Status, automod message hold/update v2, charity campaign start/progress/stop)
+- Extension JWT: `ExtensionPubSubPerms` and `ExtensionJWTClaims.PubsubPerms` (Twitch's nested `pubsub_perms` claim); `ExtensionJWT.CreateExternalToken`, `ParseToken` and `ParseAuthorizationHeader` (verify frontend JWTs); `ExtensionPubSubTarget{Broadcast,Global,All}`, `ExtensionChannelAll` and `ExtensionPubSubWhisperTarget`
+- `CreateEventSubSubscriptionParams.IsBatchingEnabled` and `EventSubSubscription.IsBatchingEnabled` (`drop.entitlement.grant` requires batching)
+- Batched EventSub notifications: `Events` on `EventSubWebhookPayload`, `EventSubWebhookMessage` and `WebSocketNotificationPayload`, and `ParseEventSubEvents[T]`; WebSocket handlers receive the `events` array when a notification has no `event`
+- Condition helpers `BroadcasterUserCondition`, `ExtensionClientCondition` (`extension_client_id`), `ConduitShardDisabledCondition` and `DropCondition`
+- EventSub fields: `StreamOfflineEvent.ID`; `ChannelPredictionLockEvent.LockedAt`; automatic reward v2 `ChannelPoints`, `Emote` and message `Fragments`; chat `gif` fragments (`ChatEventFragment.Gif`, also accepting `gif_id`); `Mention`/`Gif` on user message hold fragments; `GiftedDropsSummary` and `SharedChatGiftedDropsSummary` on chat notifications; `ChatNoticeType*`, `BitsUseType*`, `PowerUpType*` and `AutomaticRewardType*` constants
+- `EventSubSharedChatParticipant` for `channel.shared_chat.begin`/`update`, which name participants `broadcaster_user_*`
+- `MaxConduitShardsPerUpdate` (100); `UpdateConduitShards` returns an error before sending more
+- IRC: `ChatMessage` room, user type, turbo, client nonce, reply thread, shared chat source and `Gifs` fields; `UserNotice` ID, room, mod/subscriber/turbo/user type and shared chat source fields; `ClearMessage.RoomID`, `Notice.TargetUserID`, `UserState.ID`; `UserNoticeType{ViewerMilestone,Modiversary,SharedChatNotice,RewardGift,AnonGiftPaidUpgrade}`; the documented NOTICE msg-ids missing before
+- Helix fields and params: `Response.Template` (emote endpoints), `Emote.OwnerID`, `UserAuthorization.HasAuthorized`, `StreamMarker.URL`, `ExtensionViews.Config`/`LiveConfig` and component sizing fields, `ExtensionTransactionProductData.Domain`/`Broadcast`, `CreateClipParams.Title`/`Duration`, `GetUserBlockListParams.UserIDs`, `GetDropsEntitlementsParams.IDs`, `DeleteGuestStarSlotWithParams` (`should_reinvite_guest`), `SuspiciousUserTypeUnknown`
+- `ModifyChannelInformationParams` sends an empty, non-nil `Tags` as `[]`, removing the channel's tags
 
 ### Changed
 - CI: added a stable `Test Pass` aggregate job (gates on the `Test` matrix) so branch protection can require a version-independent status check. This prevents the required check from going stale whenever the Go version matrix changes (as happened when `Test (1.24)` was retired for `Test (1.26)`).
 - Applied `go fix`: rewrote an in-loop string concatenation in `whispers_test.go` to use `strings.Builder` (Go 1.26 fixer). Test-only; no library behavior change.
+- **BREAKING:** `HypeTrainStatus` now matches the Get Hype Train Status response: `Current` (*HypeTrainCurrent, nil when no train is active), `AllTimeHigh` and `SharedAllTimeHigh` (*HypeTrainRecord). The previous flat shape (`ID`, `BroadcasterID`, `LastContribution`, `CooldownEndTime`, ...) never matched what Twitch sends, so every field decoded to its zero value
+- **BREAKING:** `AutomodMessageUpdateEvent.Message` is now `AutomodHeldMessage` (`text` and `fragments`) instead of `string`; Twitch sends an object, which failed to decode
+- `NullableTime` also decodes Unix timestamps in seconds, with `0` as unset. Twitch sends Get Ad Schedule's `next_ad_at`, `last_ad_at` and `snooze_refresh_at`, and Snooze Next Ad's `snooze_refresh_at` and `next_ad_at`, this way
+- Deprecated `HypeTrainTypeShared`: Twitch's types are `regular`, `golden_kappa` and `treasure`; a shared train is flagged by `IsSharedTrain`
+- Deprecated `BlockedTermInfo.OwnerBroadcasterUser{ID,Login,Name}`: Twitch sends these on each `BlockedTermFound`
+- CI: test matrix runs Go 1.26 and 1.27; lint, build, coverage and release run on Go 1.27. `go.mod` stays at `go 1.26` so the library doesn't force consumers onto 1.27
+- CI: bumped `actions/checkout` to v7 and `golangci/golangci-lint-action` to v9
+- Applied Go 1.27 `go fix`: `slices.Backward` for the reverse middleware loop in `client.go`; `atomic.Int64`/`atomic.Int32` types in `auth_test.go` and `batch_test.go`. No behavior change
+- Changelog monitor reads Twitch's changelog RSS feed (`https://dev.twitch.tv/docs/rss/change-log.xml`) instead of scraping the HTML page, whose layout changed on 2026-11-09 (Twitch recommends the feed for monitoring). New entries are tracked by guid in `state/twitch-changelog` (`.github/twitch-changelog-seen.txt`) and posted as rendered Markdown; on first run only entries from the last 14 days are reported. Logic lives in `.github/scripts/twitch_changelog.py` (Python standard library only)
+- **BREAKING:** `ChannelSubscriptionGiftEvent.CumulativeTotal`, `ChannelSubscriptionMessageEvent.StreakMonths`, `ChatNotificationResub.StreakMonths` and `ChannelChatSettingsUpdateEvent.SlowModeWaitTimeSeconds` are `*int`: Twitch sends null (an anonymous gift, an unshared streak, slow mode off), which is not 0
+- **BREAKING:** `ChannelBitsUseEvent.PowerUp` and `CustomPowerUp` are typed (`*BitsUsePowerUp`, `*BitsUseCustomPowerUp`) instead of `*json.RawMessage`
+- **BREAKING:** `DropEntitlementGrantEvent.Data` is a single `DropEntitlement`; Twitch batches grants as `events: [{id, data}]`
+- **BREAKING:** `ChannelSharedChatBeginEvent.Participants` is `[]EventSubSharedChatParticipant` (its deprecated `BroadcasterID` is still filled); `ChannelPredictionLockEvent` is its own type embedding `ChannelPredictionBeginEvent`
+- **BREAKING:** `DateRange` (bits leaderboard, extension analytics), `ShieldModeStatus.LastActivatedAt` and `ScheduleSegment.EndTime` are `NullableTime`: Twitch sends empty strings for them
+- `ExtensionJWTClaims.PubsubPermsListen`/`PubsubPermsSend` are deprecated and no longer signed as flat claims; `CreateToken` signs them into `pubsub_perms`, and parsing fills them from it
+- `UserActiveExtensions` always encodes `x` and `y` for an active component, so a position of 0 is sent
+- Deprecated: `ConduitCondition` (use `ConduitShardDisabledCondition`), `HypeTrain*.LastContribution` (v1 only), automatic reward v1 fields, poll Bits voting fields, `GetChannelStreamScheduleParams.UTCOffset`, `CreateClipParams.HasDelay`, `UpdateGuestStarSlotSettingsParams.Volume`, `GuestStarGuest.UserLogin`/`UserDisplayName`, `GetDropsEntitlementsParams.ID`, IRC user notice and NOTICE ids Twitch no longer documents
+- Doc comments list the token each endpoint accepts, including the app access tokens Twitch now accepts (with prior authorization) for chat, moderation, ads, clips and subscription endpoints
+- `ChatBotClient` routes `sharedchatnotice` user notices by their source type
+- Docs: extension JWT docs and examples use kappopher's signer instead of a third-party library; IRC docs and examples use the real client API; `ENDPOINTS.md` paths and methods corrected, missing endpoints listed
 
 ### Fixed
+- `GetAdSchedule` and `SnoozeNextAd` failed to decode Twitch's Unix-second timestamps
+- `ChannelCharityCampaignStartEvent`, `ChannelCharityCampaignProgressEvent` and `ChannelCharityCampaignStopEvent` left the broadcaster empty: these events name it `broadcaster_id`, `broadcaster_login` and `broadcaster_name`, which now fill the embedded `EventSubBroadcaster`
+- `EventSubConflictError.ExistingSubscriptionID` was empty: Twitch puts the existing subscription's id in the 409 body's `message` field, which is now read (an `id` field is still honoured)
+- `UpdateChannelGuestStarSettings` sent `PUT`; the endpoint is `PATCH`
+- `GuestStarGuest.AudioSettings` and `VideoSettings` never decoded: Twitch's fields are `audio` and `video`, not `audio_settings` and `video_settings`
+- `GetBitsLeaderboard` failed to decode when `started_at` was not sent (empty `date_range`), and sent `count` as a character instead of a number
+- Get/Update Shield Mode Status failed to decode when Shield Mode had never been activated
+- `DropsEntitlement.LastUpdated` never decoded (tag `updated_at`; Twitch sends `last_updated`)
+- `drop.entitlement.grant` notifications never decoded
+- `UpdateGuestStarSlotSettings` sent its settings in the body; they are query parameters. `UpdateGuestStarSlot` always sends `destination_slot_id`
+- `SendExtensionChatMessage` now sends `broadcaster_id` as the required query parameter; `SendExtensionPubSubMessage` omits `broadcaster_id` for global messages
+- `GetUnbanRequests` always sends the required `status`
+- `GetChannelICalendar` returned error pages as calendar text; it now returns an `*APIError` for non-2xx responses
+- Extension JWTs signed for PubSub used flat `pubsub_perms_listen`/`pubsub_perms_send` claims, which Twitch ignores
+- Automatic reward v2 redemptions decoded with no cost or emote; shared chat participant IDs were empty; the prediction lock time was lost
+- `ClientCondition` documented for `extension.bits_transaction.create`, which needs `extension_client_id` (use `ExtensionClientCondition`)
+- IRC `ChatMessage.User` was always empty (PRIVMSG has no `login` tag); it now comes from the prefix
+
 
 ## [1.4.0] - 2026-06-13 ([#94](https://github.com/Its-donkey/kappopher/pull/94))
 

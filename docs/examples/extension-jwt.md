@@ -155,15 +155,26 @@ broadcasterToken, _ := jwt.CreateBroadcasterToken("channel-id", time.Hour)
 For advanced use cases where you need fine-grained control over token permissions, including PubSub listen/send permissions and custom roles.
 
 ```go
-token, _ := jwt.CreateToken(helix.ExtensionJWTClaims{
-    UserID:    "user-id",
+token, _ := jwt.CreateToken(&helix.ExtensionJWTClaims{
+    Exp:       time.Now().Add(3 * time.Minute).Unix(),
+    UserID:    "extension-owner-user-id",
     ChannelID: "channel-id",
-    Role:      "broadcaster",
-    Pubsub: &helix.PubsubClaims{
-        Listen: []string{"broadcast"},
-        Send:   []string{"broadcast"},
+    Role:      helix.ExtensionRoleExternal,
+    PubsubPerms: &helix.ExtensionPubSubPerms{
+        Listen: []string{helix.ExtensionPubSubTargetBroadcast},
+        Send:   []string{helix.ExtensionPubSubTargetBroadcast},
     },
-}, time.Hour)
+})
+```
+
+### Verifying Frontend Tokens
+
+```go
+claims, err := jwt.ParseAuthorizationHeader(r.Header.Get("Authorization"))
+if err != nil {
+    // reject the request
+}
+// claims.ChannelID, claims.Role, claims.OpaqueUserID, claims.PubsubPerms
 ```
 
 ## Extension API Endpoints

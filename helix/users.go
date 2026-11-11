@@ -2,6 +2,7 @@ package helix
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"time"
@@ -93,14 +94,18 @@ type BlockedUser struct {
 // GetUserBlockListParams contains parameters for GetUserBlockList.
 type GetUserBlockListParams struct {
 	BroadcasterID string
+	UserIDs       []string // Optional: check whether these users are blocked
 	*PaginationParams
 }
 
 // GetUserBlockList gets the authenticated user's block list.
-// Requires: user:read:blocked_users scope.
+// Requires: user:read:blocked_users or user:manage:blocked_users scope.
 func (c *Client) GetUserBlockList(ctx context.Context, params *GetUserBlockListParams) (*Response[BlockedUser], error) {
 	q := url.Values{}
 	q.Set("broadcaster_id", params.BroadcasterID)
+	for _, id := range params.UserIDs {
+		q.Add("user_id", id)
+	}
 	addPaginationParams(q, params.PaginationParams)
 
 	var resp Response[BlockedUser]
@@ -151,7 +156,7 @@ type UserExtension struct {
 }
 
 // GetUserExtensions gets extensions installed by the authenticated user.
-// Requires: user:read:broadcast scope.
+// Requires: user:read:broadcast, user:edit:broadcast or channel:manage:extensions scope.
 func (c *Client) GetUserExtensions(ctx context.Context) (*Response[UserExtension], error) {
 	var resp Response[UserExtension]
 	if err := c.get(ctx, "/users/extensions/list", nil, &resp); err != nil {
@@ -167,18 +172,47 @@ type UserActiveExtensions struct {
 	Component map[string]ActiveExtension `json:"component"`
 }
 
+// MarshalJSON encodes the slots, always writing x and y for an active
+// component: its position on the video, where 0 is a real coordinate.
+func (u UserActiveExtensions) MarshalJSON() ([]byte, error) {
+	type componentSlot struct {
+		Active  bool   `json:"active"`
+		ID      string `json:"id,omitempty"`
+		Version string `json:"version,omitempty"`
+		Name    string `json:"name,omitempty"`
+		X       *int   `json:"x,omitempty"`
+		Y       *int   `json:"y,omitempty"`
+	}
+	var component map[string]componentSlot
+	if u.Component != nil {
+		component = make(map[string]componentSlot, len(u.Component))
+		for k, ext := range u.Component {
+			slot := componentSlot{Active: ext.Active, ID: ext.ID, Version: ext.Version, Name: ext.Name}
+			if ext.Active {
+				slot.X, slot.Y = &ext.X, &ext.Y
+			}
+			component[k] = slot
+		}
+	}
+	return json.Marshal(struct {
+		Panel     map[string]ActiveExtension `json:"panel"`
+		Overlay   map[string]ActiveExtension `json:"overlay"`
+		Component map[string]componentSlot   `json:"component"`
+	}{u.Panel, u.Overlay, component})
+}
+
 // ActiveExtension represents an active extension in a slot.
 type ActiveExtension struct {
 	Active  bool   `json:"active"`
 	ID      string `json:"id,omitempty"`
 	Version string `json:"version,omitempty"`
 	Name    string `json:"name,omitempty"`
-	X       int    `json:"x,omitempty"`
-	Y       int    `json:"y,omitempty"`
+	X       int    `json:"x,omitempty"` // component only; always sent for an active component
+	Y       int    `json:"y,omitempty"` // component only; always sent for an active component
 }
 
 // GetUserActiveExtensions gets the active extensions for a user.
-// Requires: user:read:broadcast or user:edit:broadcast scope.
+// Requires: user or app access token; no scope. With an app token, pass the user ID.
 func (c *Client) GetUserActiveExtensions(ctx context.Context, userID string) (*UserActiveExtensions, error) {
 	q := url.Values{}
 	if userID != "" {
@@ -200,7 +234,7 @@ type UpdateUserExtensionsParams struct {
 }
 
 // UpdateUserExtensions updates the active extensions for the authenticated user.
-// Requires: user:edit:broadcast scope.
+// Requires: user:edit:broadcast or channel:manage:extensions scope.
 func (c *Client) UpdateUserExtensions(ctx context.Context, params *UpdateUserExtensionsParams) (*UserActiveExtensions, error) {
 	var resp struct {
 		Data UserActiveExtensions `json:"data"`
@@ -213,10 +247,11 @@ func (c *Client) UpdateUserExtensions(ctx context.Context, params *UpdateUserExt
 
 // UserAuthorization represents the scopes a user has granted the application.
 type UserAuthorization struct {
-	UserID    string   `json:"user_id"`
-	UserName  string   `json:"user_name"`
-	UserLogin string   `json:"user_login"`
-	Scopes    []string `json:"scopes"`
+	UserID        string   `json:"user_id"`
+	UserName      string   `json:"user_name"`
+	UserLogin     string   `json:"user_login"`
+	Scopes        []string `json:"scopes"`
+	HasAuthorized bool     `json:"has_authorized"`
 }
 
 // GetAuthorizationByUserParams contains parameters for GetAuthorizationByUser.
