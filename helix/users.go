@@ -2,6 +2,7 @@ package helix
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"time"
@@ -167,14 +168,43 @@ type UserActiveExtensions struct {
 	Component map[string]ActiveExtension `json:"component"`
 }
 
+// MarshalJSON encodes the slots, always writing x and y for an active
+// component: its position on the video, where 0 is a real coordinate.
+func (u UserActiveExtensions) MarshalJSON() ([]byte, error) {
+	type componentSlot struct {
+		Active  bool   `json:"active"`
+		ID      string `json:"id,omitempty"`
+		Version string `json:"version,omitempty"`
+		Name    string `json:"name,omitempty"`
+		X       *int   `json:"x,omitempty"`
+		Y       *int   `json:"y,omitempty"`
+	}
+	var component map[string]componentSlot
+	if u.Component != nil {
+		component = make(map[string]componentSlot, len(u.Component))
+		for k, ext := range u.Component {
+			slot := componentSlot{Active: ext.Active, ID: ext.ID, Version: ext.Version, Name: ext.Name}
+			if ext.Active {
+				slot.X, slot.Y = &ext.X, &ext.Y
+			}
+			component[k] = slot
+		}
+	}
+	return json.Marshal(struct {
+		Panel     map[string]ActiveExtension `json:"panel"`
+		Overlay   map[string]ActiveExtension `json:"overlay"`
+		Component map[string]componentSlot   `json:"component"`
+	}{u.Panel, u.Overlay, component})
+}
+
 // ActiveExtension represents an active extension in a slot.
 type ActiveExtension struct {
 	Active  bool   `json:"active"`
 	ID      string `json:"id,omitempty"`
 	Version string `json:"version,omitempty"`
 	Name    string `json:"name,omitempty"`
-	X       int    `json:"x,omitempty"`
-	Y       int    `json:"y,omitempty"`
+	X       int    `json:"x,omitempty"` // component only; always sent for an active component
+	Y       int    `json:"y,omitempty"` // component only; always sent for an active component
 }
 
 // GetUserActiveExtensions gets the active extensions for a user.

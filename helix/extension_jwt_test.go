@@ -3,6 +3,7 @@ package helix
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -485,5 +486,144 @@ func TestParseExtensionJWT_InvalidSignatureBase64(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "decoding signature") {
 		t.Errorf("expected 'decoding signature' error, got: %v", err)
+	}
+}
+
+// claimsOf decodes a token's claims segment without verifying it.
+func claimsOf(t *testing.T, token string) map[string]any {
+	t.Helper()
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		t.Fatalf("token has %d parts", len(parts))
+	}
+	raw, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		t.Fatalf("decoding claims: %v", err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(raw, &m); err != nil {
+		t.Fatalf("parsing claims: %v", err)
+	}
+	return m
+}
+
+func TestExtensionJWT_PubSubPermsAreNested(t *testing.T) {
+	secret := base64.StdEncoding.EncodeToString([]byte("test-secret-key-1234567890"))
+	jwt, _ := NewExtensionJWT("ext123", secret, "owner456")
+
+	token, err := jwt.CreatePubSubToken("channel789", nil, []string{ExtensionPubSubTargetBroadcast}, time.Minute)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	m := claimsOf(t, token)
+	perms, ok := m["pubsub_perms"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected a pubsub_perms object, got claims %v", m)
+	}
+	send, _ := perms["send"].([]any)
+	if len(send) != 1 || send[0] != "broadcast" {
+		t.Errorf("unexpected pubsub_perms.send %v", perms["send"])
+	}
+	if _, ok := perms["listen"]; ok {
+		t.Errorf("empty listen should be omitted, got %v", perms["listen"])
+	}
+	if _, ok := m["pubsub_perms_send"]; ok {
+		t.Error("flat pubsub_perms_send must not be signed")
+	}
+	if m["role"] != "external" || m["user_id"] != "owner456" || m["channel_id"] != "channel789" {
+		t.Errorf("unexpected claims %v", m)
+	}
+}
+
+func TestExtensionJWT_DeprecatedFlatPermsAreSignedNested(t *testing.T) {
+	secret := base64.StdEncoding.EncodeToString([]byte("test-secret-key-1234567890"))
+	jwt, _ := NewExtensionJWT("ext123", secret, "owner456")
+
+	claims := &ExtensionJWTClaims{
+		UserID:            "owner456",
+		Role:              ExtensionRoleExternal,
+		ChannelID:         ExtensionChannelAll,
+		PubsubPermsListen: []string{"broadcast"},
+		PubsubPermsSend:   []string{ExtensionPubSubTargetGlobal},
+	}
+	token, err := jwt.CreateToken(claims)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if claims.PubsubPerms != nil {
+		t.Error("CreateToken must not modify the caller's PubsubPerms")
+	}
+
+	perms, ok := claimsOf(t, token)["pubsub_perms"].(map[string]any)
+	if !ok {
+		t.Fatal("expected flat perms to be signed as a pubsub_perms object")
+	}
+	if send, _ := perms["send"].([]any); len(send) != 1 || send[0] != "global" {
+		t.Errorf("unexpected pubsub_perms.send %v", perms["send"])
+	}
+}
+
+func TestExtensionJWT_ParseViewerToken(t *testing.T) {
+	// A viewer token as the Twitch extension frontend sends it to the EBS.
+	secretBytes := []byte("test-secret-key-1234567890")
+	secret := base64.StdEncoding.EncodeToString(secretBytes)
+	jwt, _ := NewExtensionJWT("ext123", secret, "owner456")
+
+	payload := fmt.Sprintf(`{"exp":%d,"opaque_user_id":"UG12X345T6J78","user_id":"123454321","channel_id":"98765","role":"viewer","is_unlinked":false,"pubsub_perms":{"listen":["broadcast","whisper-UG12X345T6J78","global"],"send":["broadcast","whisper-*"]}}`,
+		time.Now().Add(time.Minute).Unix())
+	message := base64URLEncode([]byte(`{"alg":"HS256","typ":"JWT"}`)) + "." + base64URLEncode([]byte(payload))
+	token := message + "." + base64URLEncode(jwt.sign([]byte(message)))
+
+	claims, err := jwt.ParseAuthorizationHeader("Bearer " + token)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if claims.Role != ExtensionRoleViewer || claims.ChannelID != "98765" || claims.OpaqueUserID != "UG12X345T6J78" {
+		t.Errorf("unexpected claims %+v", claims)
+	}
+	if claims.PubsubPerms == nil || len(claims.PubsubPerms.Listen) != 3 || claims.PubsubPerms.Send[1] != "whisper-*" {
+		t.Fatalf("unexpected pubsub_perms %+v", claims.PubsubPerms)
+	}
+	if claims.PubsubPerms.Listen[1] != ExtensionPubSubWhisperTarget("UG12X345T6J78") {
+		t.Errorf("unexpected whisper target %q", claims.PubsubPerms.Listen[1])
+	}
+	if len(claims.PubsubPermsListen) != 3 || len(claims.PubsubPermsSend) != 2 {
+		t.Error("deprecated flat fields should be filled from pubsub_perms")
+	}
+
+	other, _ := NewExtensionJWT("ext123", base64.StdEncoding.EncodeToString([]byte("another-secret")), "owner456")
+	if _, err := other.ParseToken(token); err == nil {
+		t.Error("expected a token signed with another secret to be refused")
+	}
+}
+
+func TestExtensionJWT_ParseAuthorizationHeader_Invalid(t *testing.T) {
+	jwt, _ := NewExtensionJWT("ext123", base64.StdEncoding.EncodeToString([]byte("secret")), "owner456")
+	for _, h := range []string{"", "Bearer", "Bearer   ", "Basic abc.def.ghi", "abc.def.ghi"} {
+		if _, err := jwt.ParseAuthorizationHeader(h); err == nil {
+			t.Errorf("expected an error for header %q", h)
+		}
+	}
+}
+
+func TestExtensionJWT_CreateExternalToken(t *testing.T) {
+	secret := base64.StdEncoding.EncodeToString([]byte("test-secret-key-1234567890"))
+	jwt, _ := NewExtensionJWT("ext123", secret, "owner456")
+
+	token, err := jwt.CreateExternalToken("channel789", nil, time.Minute)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	m := claimsOf(t, token)
+	if m["role"] != "external" || m["channel_id"] != "channel789" {
+		t.Errorf("unexpected claims %v", m)
+	}
+	if _, ok := m["pubsub_perms"]; ok {
+		t.Error("nil perms should be omitted")
+	}
+	exp, _ := m["exp"].(float64)
+	if d := time.Until(time.Unix(int64(exp), 0)); d <= 0 || d > time.Minute {
+		t.Errorf("exp should be seconds within a minute, got %v", d)
 	}
 }
