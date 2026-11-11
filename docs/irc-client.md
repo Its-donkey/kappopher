@@ -11,7 +11,7 @@ Create a new IRC client for connecting to Twitch chat.
 ```go
 client := helix.NewIRCClient("bot_username", "oauth:your-token",
     helix.WithMessageHandler(func(msg *helix.ChatMessage) {
-        fmt.Printf("[%s] %s: %s\n", msg.Channel, msg.User, msg.Text)
+        fmt.Printf("[%s] %s: %s\n", msg.Channel, msg.User, msg.Message)
     }),
 )
 ```
@@ -125,7 +125,7 @@ Handle incoming chat messages.
 
 ```go
 helix.WithMessageHandler(func(msg *helix.ChatMessage) {
-    fmt.Printf("%s: %s\n", msg.User, msg.Text)
+    fmt.Printf("%s: %s\n", msg.User, msg.Message)
 })
 ```
 
@@ -135,9 +135,35 @@ Handle user notices (subscriptions, raids, etc.).
 
 ```go
 helix.WithUserNoticeHandler(func(notice *helix.UserNotice) {
-    fmt.Printf("User notice: %s\n", notice.MsgID)
+    switch notice.Type {
+    case helix.UserNoticeTypeSub, helix.UserNoticeTypeResub:
+        fmt.Printf("%s subscribed (%s months)\n", notice.DisplayName, notice.MsgParams["cumulative-months"])
+    case helix.UserNoticeTypeViewerMilestone:
+        fmt.Printf("%s watch streak: %s\n", notice.DisplayName, notice.MsgParams["value"])
+    default:
+        fmt.Printf("User notice: %s\n", notice.SystemMessage)
+    }
 })
 ```
+
+`notice.Type` holds the `msg-id` tag. `MsgParams` holds the `msg-param-*` tags with the prefix removed (for example `MsgParams["sub-plan"]`). Documented types: `sub`, `resub`, `subgift`, `submysterygift`, `giftpaidupgrade`, `rewardgift`, `anongiftpaidupgrade`, `raid`, `unraid`, `bitsbadgetier`, `sharedchatnotice`, `modiversary`, `viewermilestone`. `UserNoticeTypeAnnouncement` is no longer listed by Twitch but may still be received. `UserNoticeTypeAnonSubGift`, `UserNoticeTypePrimePaidUpgrade`, `UserNoticeTypeRitual`, `UserNoticeTypeCommunityPayForward` and `UserNoticeTypeStandardPayForward` are deprecated.
+
+### WithNoticeHandler
+
+Handle server notices, such as the outcome of a command or why a message was not sent.
+
+```go
+helix.WithNoticeHandler(func(notice *helix.Notice) {
+    switch notice.MsgID {
+    case helix.NoticeMsgIDMsgRequiresVerifiedPhoneNumber:
+        log.Println("bot account needs a verified phone number")
+    case helix.NoticeMsgIDMsgTimedOut, helix.NoticeMsgIDMsgBanned:
+        log.Printf("cannot chat in %s: %s", notice.Channel, notice.Message)
+    }
+})
+```
+
+Compare `MsgID` against the `NoticeMsgID*` constants rather than the message text, which may change. `NoticeMsgIDHostOn`/`HostOff` (hosting was removed), `NoticeMsgIDR9KOn`/`R9KOff` and `NoticeMsgIDNoPermission` are deprecated.
 
 ### WithRoomStateHandler
 
@@ -175,7 +201,27 @@ Handle whisper (private) messages.
 
 ```go
 helix.WithWhisperHandler(func(whisper *helix.Whisper) {
-    fmt.Printf("Whisper from %s: %s\n", whisper.User, whisper.Text)
+    fmt.Printf("Whisper from %s: %s\n", whisper.From, whisper.Message)
+})
+```
+
+### WithGlobalUserStateHandler
+
+Handle the bot's global user state, sent after authenticating.
+
+```go
+helix.WithGlobalUserStateHandler(func(state *helix.GlobalUserState) {
+    fmt.Printf("Logged in as %s (%s)\n", state.DisplayName, state.UserID)
+})
+```
+
+### WithUserStateHandler
+
+Handle the bot's user state in a channel, sent after joining and after each message the bot sends. After a send, `state.ID` is the ID of the message that was sent.
+
+```go
+helix.WithUserStateHandler(func(state *helix.UserState) {
+    fmt.Printf("In %s: mod=%v\n", state.Channel, state.IsMod)
 })
 ```
 
@@ -249,6 +295,38 @@ helix.WithRawMessageHandler(func(raw string) {
     fmt.Printf("Raw: %s\n", raw)
 })
 ```
+
+## Message Fields
+
+The parsed message types expose the tags documented in the [Twitch IRC tag reference](https://dev.twitch.tv/docs/chat/irc/#irc-tag-reference):
+
+| Type | Notable fields |
+|------|----------------|
+| `ChatMessage` (PRIVMSG) | `User` (login, from the message prefix), `UserID`, `RoomID`, `UserType`, `IsMod`, `IsVIP`, `IsSubscriber`, `IsBroadcaster`, `Turbo`, `Bits`, `Emotes`, `Gifs`, `ClientNonce`, `ReplyParent*`, `ReplyThreadParentMsgID`, `ReplyThreadParentUserLogin`, `Source*` |
+| `UserNotice` (USERNOTICE) | `ID`, `Type`, `RoomID`, `User`, `UserID`, `UserType`, `IsMod`, `IsSubscriber`, `Turbo`, `MsgParams`, `SystemMessage`, `Source*` |
+| `ClearChat` (CLEARCHAT) | `User`, `TargetUserID`, `BanDuration`, `RoomID` |
+| `ClearMessage` (CLEARMSG) | `User`, `TargetMsgID`, `RoomID` |
+| `Notice` (NOTICE) | `MsgID`, `TargetUserID` |
+| `GlobalUserState` / `UserState` | `UserType`, `Turbo`, badges, emote sets; `UserState.ID` after a send |
+
+`IsVIP` is true when the `vip` tag is present or the user shows the `vip` badge. `Gifs` holds each GIF's ID, position and URL; render the URL exactly as given.
+
+### Shared Chat
+
+During a [shared chat](https://dev.twitch.tv/docs/chat/irc/#shared-chat) session, a message sent in one channel is duplicated into every channel in the session, each copy with its own `ID` and `RoomID`. The `Source*` fields identify the original:
+
+```go
+helix.WithMessageHandler(func(msg *helix.ChatMessage) {
+    if msg.SourceRoomID != "" && msg.SourceRoomID != msg.RoomID {
+        // Copy of a message sent in another channel; msg.SourceID is the
+        // original message ID, msg.SourceBadges the sender's badges there.
+        return
+    }
+    fmt.Printf("%s: %s\n", msg.User, msg.Message)
+})
+```
+
+USERNOTICE events from another channel in the session arrive with `Type == helix.UserNoticeTypeSharedChatNotice`; `SourceMsgID` holds the original type (for example `sub`).
 
 ## See Also
 
