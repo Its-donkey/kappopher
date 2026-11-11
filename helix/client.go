@@ -630,7 +630,7 @@ func (c *Client) delete(ctx context.Context, endpoint string, query url.Values, 
 type PaginationParams struct {
 	First  int    // Maximum number of items to return (1-100)
 	After  string // Cursor for forward pagination
-	Before string // Cursor for backward pagination
+	Before string // Cursor for backward pagination; not every endpoint supports it
 }
 
 // addPaginationParams adds pagination parameters to a query.

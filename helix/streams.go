@@ -147,6 +147,7 @@ type VideoStreamMarkers struct {
 type GetStreamMarkersParams struct {
 	UserID  string // Either UserID or VideoID is required
 	VideoID string
+	// PaginationParams.Before is not supported by this endpoint; use After.
 	*PaginationParams
 }
 

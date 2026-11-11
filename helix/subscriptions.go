@@ -32,8 +32,8 @@ type GetBroadcasterSubscriptionsParams struct {
 type SubscriptionsResponse struct {
 	Data       []Subscription `json:"data"`
 	Pagination *Pagination    `json:"pagination,omitempty"`
-	Total      int            `json:"total"`
-	Points     int            `json:"points"` // Subscriber points (based on tiers)
+	Total      int            `json:"total"`  // omitted (0) when UserIDs is set
+	Points     int            `json:"points"` // Subscriber points (based on tiers); omitted (0) when UserIDs is set
 }
 
 // GetBroadcasterSubscriptions gets the list of subscribers for a channel.

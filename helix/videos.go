@@ -22,8 +22,8 @@ type Video struct {
 	Viewable      string         `json:"viewable"`
 	ViewCount     int            `json:"view_count"`
 	Language      string         `json:"language"`
-	Type          string         `json:"type"` // archive, highlight, upload
-	Duration      string         `json:"duration"`
+	Type          string         `json:"type"`     // archive, highlight, upload; past_premiere and premiere_upload only when requested by ID
+	Duration      string         `json:"duration"` // e.g. "1h2m3s"; leading zero units are left out ("3m21s")
 	MutedSegments []MutedSegment `json:"muted_segments,omitempty"`
 }
 

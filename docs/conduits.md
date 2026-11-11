@@ -173,7 +173,7 @@ for _, shard := range resp.Data {
 
 **Parameters:**
 - `ConduitID` (string): The ID of the conduit
-- `Status` (string, optional): Filter shards by status (e.g., `enabled`, `disabled`, `webhook_callback_verification_pending`, `webhook_callback_verification_failed`, `notification_failures_exceeded`, `websocket_disconnected`, `websocket_failed_ping_pong`, `websocket_received_inbound_traffic`, `websocket_connection_unused`, `websocket_internal_error`, `websocket_network_timeout`, `websocket_network_error`)
+- `Status` (string, optional): Filter shards by status (e.g., `enabled`, `webhook_callback_verification_pending`, `webhook_callback_verification_failed`, `notification_failures_exceeded`, `websocket_disconnected`, `websocket_failed_ping_pong`, `websocket_received_inbound_traffic`, `websocket_connection_unused`, `websocket_internal_error`, `websocket_network_timeout`, `websocket_network_error`, `websocket_failed_to_reconnect`)
 - `PaginationParams` (optional): Pagination parameters
 
 **Returns:**
