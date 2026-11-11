@@ -46,7 +46,7 @@ for _, poll := range resp.Data {
 - `Choices` - Array of poll choices
 - `BitsVotingEnabled` - Whether Bits voting is enabled
 - `ChannelPointsVotingEnabled` - Whether Channel Points voting is enabled
-- `Status` - Poll status: `ACTIVE`, `COMPLETED`, `TERMINATED`, `ARCHIVED`, `MODERATED`, `INVALID`
+- `Status` - Poll status: `ACTIVE`, `COMPLETED`, `TERMINATED`, `ARCHIVED`, `INVALID`
 - `Duration` - Poll duration in seconds
 - `StartedAt` - When the poll started
 - `EndedAt` - When the poll ended (if applicable)
@@ -66,33 +66,27 @@ for _, poll := range resp.Data {
           "id": "4c123012-1351-4f33-84b7-43856e7a0f47",
           "title": "Minecraft",
           "votes": 127,
-          "channel_points_votes": 85,
-          "bits_votes": 42
+          "channel_points_votes": 85
         },
         {
           "id": "d1ab80e5-1011-4882-8f4e-ce6d9e0d6f0f",
           "title": "Fortnite",
           "votes": 98,
-          "channel_points_votes": 63,
-          "bits_votes": 35
+          "channel_points_votes": 63
         },
         {
           "id": "a2e9e4bc-4b7e-4d0c-8c5f-3e2d1f0c6a8b",
           "title": "Among Us",
           "votes": 156,
-          "channel_points_votes": 120,
-          "bits_votes": 36
+          "channel_points_votes": 120
         },
         {
           "id": "f8d5c3e2-9b1a-4f2e-8d7c-6a5b4c3d2e1f",
           "title": "Valorant",
           "votes": 83,
-          "channel_points_votes": 55,
-          "bits_votes": 28
+          "channel_points_votes": 55
         }
       ],
-      "bits_voting_enabled": true,
-      "bits_per_vote": 10,
       "channel_points_voting_enabled": true,
       "channel_points_per_vote": 100,
       "status": "ACTIVE",
@@ -154,33 +148,27 @@ fmt.Printf("Status: %s, Ends at: %s\n", resp.Data[0].Status, resp.Data[0].Starte
           "id": "4c123012-1351-4f33-84b7-43856e7a0f47",
           "title": "Minecraft",
           "votes": 0,
-          "channel_points_votes": 0,
-          "bits_votes": 0
+          "channel_points_votes": 0
         },
         {
           "id": "d1ab80e5-1011-4882-8f4e-ce6d9e0d6f0f",
           "title": "Fortnite",
           "votes": 0,
-          "channel_points_votes": 0,
-          "bits_votes": 0
+          "channel_points_votes": 0
         },
         {
           "id": "a2e9e4bc-4b7e-4d0c-8c5f-3e2d1f0c6a8b",
           "title": "Among Us",
           "votes": 0,
-          "channel_points_votes": 0,
-          "bits_votes": 0
+          "channel_points_votes": 0
         },
         {
           "id": "f8d5c3e2-9b1a-4f2e-8d7c-6a5b4c3d2e1f",
           "title": "Valorant",
           "votes": 0,
-          "channel_points_votes": 0,
-          "bits_votes": 0
+          "channel_points_votes": 0
         }
       ],
-      "bits_voting_enabled": false,
-      "bits_per_vote": 0,
       "channel_points_voting_enabled": true,
       "channel_points_per_vote": 100,
       "status": "ACTIVE",
@@ -235,33 +223,27 @@ fmt.Printf("Ended poll: %s with status %s\n", resp.Data[0].Title, resp.Data[0].S
           "id": "4c123012-1351-4f33-84b7-43856e7a0f47",
           "title": "Minecraft",
           "votes": 127,
-          "channel_points_votes": 85,
-          "bits_votes": 42
+          "channel_points_votes": 85
         },
         {
           "id": "d1ab80e5-1011-4882-8f4e-ce6d9e0d6f0f",
           "title": "Fortnite",
           "votes": 98,
-          "channel_points_votes": 63,
-          "bits_votes": 35
+          "channel_points_votes": 63
         },
         {
           "id": "a2e9e4bc-4b7e-4d0c-8c5f-3e2d1f0c6a8b",
           "title": "Among Us",
           "votes": 156,
-          "channel_points_votes": 120,
-          "bits_votes": 36
+          "channel_points_votes": 120
         },
         {
           "id": "f8d5c3e2-9b1a-4f2e-8d7c-6a5b4c3d2e1f",
           "title": "Valorant",
           "votes": 83,
-          "channel_points_votes": 55,
-          "bits_votes": 28
+          "channel_points_votes": 55
         }
       ],
-      "bits_voting_enabled": true,
-      "bits_per_vote": 10,
       "channel_points_voting_enabled": true,
       "channel_points_per_vote": 100,
       "status": "TERMINATED",

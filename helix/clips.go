@@ -76,6 +76,7 @@ type GetClipsParams struct {
 	StartedAt     time.Time
 	EndedAt       time.Time
 	IsFeatured    *bool
+	// PaginationParams.Before is not supported by this endpoint; use After.
 	*PaginationParams
 }
 

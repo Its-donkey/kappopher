@@ -28,7 +28,7 @@ if err != nil {
       "is_moderator_send_live_enabled": true,
       "slot_count": 6,
       "is_browser_source_audio_enabled": true,
-      "group_layout": "TILED_LAYOUT",
+      "group_layout": "TILED",
       "browser_source_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
     }
   ]
@@ -47,7 +47,7 @@ err := client.UpdateChannelGuestStarSettings(ctx, &helix.UpdateChannelGuestStarS
     IsModeratorSendLiveEnabled:   true,
     SlotCount:                    6,
     IsBrowserSourceAudioEnabled:  true,
-    GroupLayout:                  "TILED_LAYOUT", // Options: TILED_LAYOUT, SCREENSHARE_LAYOUT, HORIZONTAL_LAYOUT, VERTICAL_LAYOUT
+    GroupLayout:                  "TILED", // Options: TILED, SCREENSHARE
     RegenerateBrowserSources:     false,
 })
 if err != nil {

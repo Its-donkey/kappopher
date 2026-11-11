@@ -11,7 +11,7 @@ type GuestStarSettings struct {
 	IsModeratorSendLiveEnabled  bool   `json:"is_moderator_send_live_enabled"`
 	SlotCount                   int    `json:"slot_count"`
 	IsBrowserSourceAudioEnabled bool   `json:"is_browser_source_audio_enabled"`
-	GroupLayout                 string `json:"group_layout"` // TILED_LAYOUT, SCREENSHARE_LAYOUT, HORIZONTAL_LAYOUT, VERTICAL_LAYOUT
+	GroupLayout                 string `json:"group_layout"` // TILED or SCREENSHARE; other layouts are reported as TILED
 	BrowserSourceToken          string `json:"browser_source_token,omitempty"`
 }
 

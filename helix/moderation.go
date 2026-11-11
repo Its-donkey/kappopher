@@ -23,6 +23,7 @@ type BannedUser struct {
 type GetBannedUsersParams struct {
 	BroadcasterID string
 	UserIDs       []string // Filter by user IDs (max 100)
+	// PaginationParams.Before is not supported by this endpoint; use After.
 	*PaginationParams
 }
 
