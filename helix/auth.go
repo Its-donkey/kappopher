@@ -51,15 +51,16 @@ const (
 
 // Auth errors
 var (
-	ErrInvalidToken         = errors.New("invalid access token")
-	ErrTokenExpired         = errors.New("token has expired")
-	ErrAuthorizationPending = errors.New("authorization pending")
-	ErrInvalidDeviceCode    = errors.New("invalid device code")
-	ErrInvalidRefreshToken  = errors.New("invalid refresh token")
-	ErrMissingClientID      = errors.New("client ID is required")
-	ErrMissingClientSecret  = errors.New("client secret is required")
-	ErrMissingRedirectURI   = errors.New("redirect URI is required")
-	ErrMissingCode          = errors.New("authorization code is required")
+	ErrPublicClientFlowNotSupported = errors.New("public clients can only use the Device Code Flow")
+	ErrInvalidToken                 = errors.New("invalid access token")
+	ErrTokenExpired                 = errors.New("token has expired")
+	ErrAuthorizationPending         = errors.New("authorization pending")
+	ErrInvalidDeviceCode            = errors.New("invalid device code")
+	ErrInvalidRefreshToken          = errors.New("invalid refresh token")
+	ErrMissingClientID              = errors.New("client ID is required")
+	ErrMissingClientSecret          = errors.New("client secret is required")
+	ErrMissingRedirectURI           = errors.New("redirect URI is required")
+	ErrMissingCode                  = errors.New("authorization code is required")
 )
 
 // Token represents an OAuth token from Twitch.
@@ -117,10 +118,23 @@ type AuthErrorResponse struct {
 	Error   string `json:"error,omitempty"`
 }
 
+// AuthClientType is the OAuth client type set on the app in the Twitch developer
+// console (RFC 6749 section 2.1: https://datatracker.ietf.org/doc/html/rfc6749#section-2.1).
+type AuthClientType int
+
+const (
+	// ConfidentialClient has a client secret and can use every flow. It is the default.
+	ConfidentialClient AuthClientType = iota
+	// PublicClient has no client secret and can only use the Device Code Flow.
+	// Its refresh tokens are single-use and expire after 30 days.
+	PublicClient
+)
+
 // AuthConfig holds the configuration for OAuth.
 type AuthConfig struct {
 	ClientID     string
 	ClientSecret string
+	ClientType   AuthClientType
 	RedirectURI  string
 	Scopes       []string
 	ForceVerify  bool
@@ -241,6 +255,9 @@ func (c *AuthClient) GetCodeAuthURL() (string, error) {
 
 // ExchangeCode exchanges an authorization code for an access token.
 func (c *AuthClient) ExchangeCode(ctx context.Context, code string) (*Token, error) {
+	if c.config.ClientType == PublicClient {
+		return nil, ErrPublicClientFlowNotSupported
+	}
 	if c.config.ClientID == "" {
 		return nil, ErrMissingClientID
 	}
@@ -264,6 +281,9 @@ func (c *AuthClient) ExchangeCode(ctx context.Context, code string) (*Token, err
 
 // GetAppAccessToken obtains an app access token using the Client Credentials flow.
 func (c *AuthClient) GetAppAccessToken(ctx context.Context) (*Token, error) {
+	if c.config.ClientType == PublicClient {
+		return nil, ErrPublicClientFlowNotSupported
+	}
 	if c.config.ClientID == "" {
 		return nil, ErrMissingClientID
 	}
@@ -337,7 +357,7 @@ func (c *AuthClient) PollDeviceToken(ctx context.Context, deviceCode string) (*T
 		"scopes":      {strings.Join(c.config.Scopes, " ")},
 	}
 
-	if c.config.ClientSecret != "" {
+	if c.config.ClientType == ConfidentialClient && c.config.ClientSecret != "" {
 		data.Set("client_secret", c.config.ClientSecret)
 	}
 
@@ -392,11 +412,13 @@ func (c *AuthClient) WaitForDeviceToken(ctx context.Context, deviceCode *DeviceC
 }
 
 // RefreshToken refreshes an access token using a refresh token.
+// A public client sends no client secret. Its refresh tokens are single-use, so
+// keep the RefreshToken from the returned token for the next refresh.
 func (c *AuthClient) RefreshToken(ctx context.Context, refreshToken string) (*Token, error) {
 	if c.config.ClientID == "" {
 		return nil, ErrMissingClientID
 	}
-	if c.config.ClientSecret == "" {
+	if c.config.ClientType == ConfidentialClient && c.config.ClientSecret == "" {
 		return nil, ErrMissingClientSecret
 	}
 	if refreshToken == "" {
@@ -405,9 +427,11 @@ func (c *AuthClient) RefreshToken(ctx context.Context, refreshToken string) (*To
 
 	data := url.Values{
 		"client_id":     {c.config.ClientID},
-		"client_secret": {c.config.ClientSecret},
 		"grant_type":    {"refresh_token"},
 		"refresh_token": {refreshToken},
+	}
+	if c.config.ClientType == ConfidentialClient {
+		data.Set("client_secret", c.config.ClientSecret)
 	}
 
 	token, err := c.requestToken(ctx, data)
@@ -812,6 +836,9 @@ func (c *AuthClient) GetOIDCAuthorizationURL(responseType OIDCResponseType, nonc
 
 // ExchangeCodeForOIDCToken exchanges an authorization code for an OIDC token.
 func (c *AuthClient) ExchangeCodeForOIDCToken(ctx context.Context, code string) (*OIDCToken, error) {
+	if c.config.ClientType == PublicClient {
+		return nil, ErrPublicClientFlowNotSupported
+	}
 	if c.config.ClientID == "" {
 		return nil, ErrMissingClientID
 	}
