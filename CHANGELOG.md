@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+## [1.5.1] - 2026-11-11
+
+### Added
 - `AuthClientType` with `ConfidentialClient` (the default) and `PublicClient`, set through the new `AuthConfig.ClientType`. Public clients have no client secret and can only use the Device Code Flow ([#100](https://github.com/Its-donkey/kappopher/issues/100))
 - `ErrPublicClientFlowNotSupported`, returned by `ExchangeCode`, `GetAppAccessToken` and `ExchangeCodeForOIDCToken` for a public client
 
