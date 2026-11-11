@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-## [1.5.2] - 2026-11-11
+## [1.5.2] - 2026-11-11 ([#107](https://github.com/Its-donkey/kappopher/pull/107))
 
 ### Added
 - EventSub status constants `EventSubStatusChatUserBanned` (`chat_user_banned`), `EventSubStatusGuestStarModeratorRemoved` (`guest_star_moderator_removed`) and `EventSubStatusConduitDeleted` (`conduit_deleted`), from Twitch's 2026-11-10 docs changelog
