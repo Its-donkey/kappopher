@@ -297,7 +297,14 @@ func (c *ChatBotClient) handleUserNotice(notice *UserNotice) {
 	onRaid := c.onRaid
 	c.mu.RUnlock()
 
-	switch notice.Type {
+	// In a shared chat session, notices from the other channels arrive as
+	// sharedchatnotice; SourceMsgID carries the original type.
+	noticeType := notice.Type
+	if noticeType == UserNoticeTypeSharedChatNotice && notice.SourceMsgID != "" {
+		noticeType = notice.SourceMsgID
+	}
+
+	switch noticeType {
 	case UserNoticeTypeSub:
 		if onSub != nil {
 			onSub(notice)
