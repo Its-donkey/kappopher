@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+## [1.5.0] - 2026-11-11
+
+### Added
 - `HypeTrainCurrent` and `HypeTrainRecord` types for the Get Hype Train Status response
 - `HypeTrainTypeTreasure` (`treasure`) Hype Train type
 - `AutomodMessageUpdateEvent` v2 fields `HeldAt`, `Reason`, `Automod` and `BlockedTerm`, and v1 fields `Level` and `Category`
