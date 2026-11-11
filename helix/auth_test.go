@@ -1178,7 +1178,8 @@ func TestAuthClient_RefreshToken_Success_PublicClient(t *testing.T) {
 
 	client := NewAuthClient(AuthConfig{
 		ClientID:     "wbmytr93xzw8zbg0p1izqyzzc5mbiz",
-		ClientType: PublicClient,
+		ClientSecret: "ignored", // a public client never sends it, even if one is set
+		ClientType:   PublicClient,
 	})
 	client.SetHTTPClient(server.Client())
 	client.SetEndpoints(server.URL, "", "", "", "", "", "")
@@ -1201,7 +1202,7 @@ func TestAuthClient_RefreshToken_InvalidRefresh_PublicClient(t *testing.T) {
 	defer server.Close()
 
 	client := NewAuthClient(AuthConfig{
-		ClientID:     "test-client",
+		ClientID:   "test-client",
 		ClientType: PublicClient,
 	})
 	client.SetHTTPClient(server.Client())
@@ -1232,7 +1233,7 @@ func TestAuthClient_RefreshCurrentToken_Success_PublicClient(t *testing.T) {
 	defer server.Close()
 
 	client := NewAuthClient(AuthConfig{
-		ClientID:     "wbmytr93xzw8zbg0p1izqyzzc5mbiz",
+		ClientID:   "wbmytr93xzw8zbg0p1izqyzzc5mbiz",
 		ClientType: PublicClient,
 	})
 	client.SetHTTPClient(server.Client())

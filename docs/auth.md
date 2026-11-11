@@ -174,7 +174,7 @@ fmt.Printf("Enter code: %s\n", deviceCode.UserCode)
   "expires_in": 1800,
   "interval": 5,
   "user_code": "ABCD-1234",
-  "verification_uri": "https://www.twitch.tv/activate?device-code=ABCD-1234"
+  "verification_uri": "https://www.twitch.tv/activate?public=true&device-code=ABCD-1234"
 }
 ```
 
@@ -270,6 +270,8 @@ fmt.Printf("New Access Token: %s\n", newToken.AccessToken)
   "scope": ["chat:read", "chat:edit"]
 }
 ```
+
+A public client refreshes without a client secret. Its refresh tokens are single-use and expire after 30 days, so save the `RefreshToken` from every refresh (`RefreshCurrentToken` stores it on the client for you); once it expires, the user has to go through the Device Code Flow again. A confidential client's refresh tokens don't expire. See Twitch's [refresh token docs](https://dev.twitch.tv/docs/authentication/refresh-tokens/).
 
 ### RefreshCurrentToken
 

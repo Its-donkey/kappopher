@@ -8,18 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- `AuthClientType` type in `auth.go` and constants `ConfidentialClient` and `PublicClient`, to differentiate the two types of OAuth clients allowed: confidential and public.
-- `ClientType` field in `AuthConfig`, to determinate which type of client is being used (defaults to `ConfidentialClient`).
-- Specific tests to cover the usage of a `PublicClient` when using the "Device Code Flow" for authentication: `TestAuthClient_PollDeviceToken_PublicClient`, `TestAuthClient_RefreshToken_PublicClient`, `TestAuthClient_RefreshToken_Success_PublicClient`, `TestAuthClient_RefreshToken_InvalidRefresh_PublicClient` and `TestAuthClient_RefreshCurrentToken_Success_PublicClient`.
-- `ErrPublicClientFlowNotSupported` error, returned by `ExchangeCode`, `GetAppAccessToken` and `ExchangeCodeForOIDCToken` when called with a public client.
+- `AuthClientType` with `ConfidentialClient` (the default) and `PublicClient`, set through the new `AuthConfig.ClientType`. Public clients have no client secret and can only use the Device Code Flow ([#100](https://github.com/Its-donkey/kappopher/issues/100))
+- `ErrPublicClientFlowNotSupported`, returned by `ExchangeCode`, `GetAppAccessToken` and `ExchangeCodeForOIDCToken` for a public client
 
 ### Changed
-- `RefreshToken` and `PollDeviceToken` methods to allow to refresh an access token received when finishing a "Device Code Flow" for authentication using a public client (only possible for confidential clients till now).
-- `TestNewAuthClient`, to add the newly added `ClientType` in `AuthConfig`.
-- `auth.md` documentation to cover usage of both types of clients, public and confidential, when following the "Device Code Flow" for authentication.
+- `RefreshToken` (and so `RefreshCurrentToken`) no longer requires a client secret for a public client and leaves `client_secret` out of the request; `PollDeviceToken` never sends one for a public client
+- `docs/auth.md` covers public and confidential clients for the Device Code Flow, including that a public client's refresh token is single-use and expires after 30 days
 
 ### Fixed
-
 
 ## [1.5.0] - 2026-11-11 ([#103](https://github.com/Its-donkey/kappopher/pull/103))
 

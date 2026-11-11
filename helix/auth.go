@@ -118,11 +118,15 @@ type AuthErrorResponse struct {
 	Error   string `json:"error,omitempty"`
 }
 
-// AuthClientType represents the type of an OAuth client.
+// AuthClientType is the OAuth client type set on the app in the Twitch developer
+// console (RFC 6749 section 2.1: https://datatracker.ietf.org/doc/html/rfc6749#section-2.1).
 type AuthClientType int
-// AuthClientType possible values, according to RFC 6749 (https://datatracker.ietf.org/doc/html/rfc6749#section-2.1).
+
 const (
+	// ConfidentialClient has a client secret and can use every flow. It is the default.
 	ConfidentialClient AuthClientType = iota
+	// PublicClient has no client secret and can only use the Device Code Flow.
+	// Its refresh tokens are single-use and expire after 30 days.
 	PublicClient
 )
 
@@ -408,6 +412,8 @@ func (c *AuthClient) WaitForDeviceToken(ctx context.Context, deviceCode *DeviceC
 }
 
 // RefreshToken refreshes an access token using a refresh token.
+// A public client sends no client secret. Its refresh tokens are single-use, so
+// keep the RefreshToken from the returned token for the next refresh.
 func (c *AuthClient) RefreshToken(ctx context.Context, refreshToken string) (*Token, error) {
 	if c.config.ClientID == "" {
 		return nil, ErrMissingClientID
@@ -421,13 +427,11 @@ func (c *AuthClient) RefreshToken(ctx context.Context, refreshToken string) (*To
 
 	data := url.Values{
 		"client_id":     {c.config.ClientID},
-		"client_secret": {c.config.ClientSecret},
 		"grant_type":    {"refresh_token"},
 		"refresh_token": {refreshToken},
 	}
-
-	if c.config.ClientType == PublicClient {
-		data.Del("client_secret")
+	if c.config.ClientType == ConfidentialClient {
+		data.Set("client_secret", c.config.ClientSecret)
 	}
 
 	token, err := c.requestToken(ctx, data)
