@@ -1194,3 +1194,29 @@ func TestChannelCustomPowerUpRedemptionAddEvent(t *testing.T) {
 		t.Error("redeemed_at should be parsed")
 	}
 }
+
+func TestHypeTrainEvents_MythicType(t *testing.T) {
+	// Twitch's 2026-11-24 docs changelog lists mythic as a Hype Train type.
+	begin := `{"id": "1", "broadcaster_user_id": "1337", "level": 1, "type": "mythic"}`
+	var b ChannelHypeTrainBeginEvent
+	if err := json.Unmarshal([]byte(begin), &b); err != nil {
+		t.Fatalf("failed to unmarshal begin: %v", err)
+	}
+	if b.Type != HypeTrainTypeMythic {
+		t.Errorf("begin: expected Type=mythic, got %s", b.Type)
+	}
+	if b.IsGoldenKappaTrain {
+		t.Error("begin: expected IsGoldenKappaTrain=false for a mythic train")
+	}
+
+	var e ChannelHypeTrainEndEvent
+	if err := json.Unmarshal([]byte(begin), &e); err != nil {
+		t.Fatalf("failed to unmarshal end: %v", err)
+	}
+	if e.Type != HypeTrainTypeMythic {
+		t.Errorf("end: expected Type=mythic, got %s", e.Type)
+	}
+	if e.IsGoldenKappaTrain {
+		t.Error("end: expected IsGoldenKappaTrain=false for a mythic train")
+	}
+}

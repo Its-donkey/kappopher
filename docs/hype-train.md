@@ -150,7 +150,7 @@ if status.AllTimeHigh != nil {
 - `TopContributions` ([]EventSubContribution): Top contributors (`UserID`, `UserLogin`, `UserName`, `Type` of `bits`/`subscription`/`other`, `Total`)
 - `SharedTrainParticipants` ([]HypeTrainParticipant): Broadcasters in a shared train; `nil` if not shared
 - `StartedAt`, `ExpiresAt` (time.Time): When the train started and when it expires (extended on each new level)
-- `Type` (HypeTrainType): `regular`, `golden_kappa` or `treasure`
+- `Type` (HypeTrainType): `regular`, `golden_kappa`, `treasure` or `mythic`
 - `IsSharedTrain` (bool): Whether the train is shared
 
 **HypeTrainRecord Fields:**
