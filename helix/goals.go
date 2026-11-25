@@ -8,15 +8,19 @@ import (
 
 // CreatorGoal represents a creator goal.
 type CreatorGoal struct {
-	ID               string    `json:"id"`
-	BroadcasterID    string    `json:"broadcaster_id"`
-	BroadcasterName  string    `json:"broadcaster_name"`
-	BroadcasterLogin string    `json:"broadcaster_login"`
-	Type             string    `json:"type"` // follower, subscription, subscription_count, new_subscription, new_subscription_count
-	Description      string    `json:"description"`
-	CurrentAmount    int       `json:"current_amount"`
-	TargetAmount     int       `json:"target_amount"`
-	CreatedAt        time.Time `json:"created_at"`
+	ID               string `json:"id"`
+	BroadcasterID    string `json:"broadcaster_id"`
+	BroadcasterName  string `json:"broadcaster_name"`
+	BroadcasterLogin string `json:"broadcaster_login"`
+	// Type is follower, subscription, subscription_count, new_subscription or
+	// new_subscription_count. For subscription and subscription_count,
+	// CurrentAmount is the broadcaster's total, not a net change since the
+	// goal started.
+	Type          string    `json:"type"`
+	Description   string    `json:"description"`
+	CurrentAmount int       `json:"current_amount"`
+	TargetAmount  int       `json:"target_amount"`
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 // GetCreatorGoals gets the creator goals for a channel.

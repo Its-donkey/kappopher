@@ -8,6 +8,8 @@ import (
 
 // GuestStarSettings represents channel Guest Star settings.
 type GuestStarSettings struct {
+	// IsModeratorSendLiveEnabled is whether Guest Star moderators can make a
+	// guest live.
 	IsModeratorSendLiveEnabled  bool   `json:"is_moderator_send_live_enabled"`
 	SlotCount                   int    `json:"slot_count"`
 	IsBrowserSourceAudioEnabled bool   `json:"is_browser_source_audio_enabled"`
@@ -35,7 +37,9 @@ func (c *Client) GetChannelGuestStarSettings(ctx context.Context, broadcasterID,
 
 // UpdateChannelGuestStarSettingsParams contains parameters for UpdateChannelGuestStarSettings.
 type UpdateChannelGuestStarSettingsParams struct {
-	BroadcasterID               string `json:"-"`
+	BroadcasterID string `json:"-"`
+	// IsModeratorSendLiveEnabled sets whether Guest Star moderators can make a
+	// guest live.
 	IsModeratorSendLiveEnabled  *bool  `json:"is_moderator_send_live_enabled,omitempty"`
 	SlotCount                   *int   `json:"slot_count,omitempty"`
 	IsBrowserSourceAudioEnabled *bool  `json:"is_browser_source_audio_enabled,omitempty"`
@@ -68,7 +72,7 @@ type GuestStarGuest struct {
 	UserDisplayName string `json:"user_display_name"`
 	// Deprecated: no longer in the Twitch docs for Guest Star sessions.
 	UserLogin     string                 `json:"user_login"`
-	Volume        int                    `json:"volume"`
+	Volume        int                    `json:"volume"` // 0 to 200
 	AssignedAt    string                 `json:"assigned_at"`
 	AudioSettings GuestStarAudioSettings `json:"audio"`
 	VideoSettings GuestStarVideoSettings `json:"video"`

@@ -277,7 +277,7 @@ resp, err := client.CreateEventSubSubscription(ctx, &helix.CreateEventSubSubscri
 ```
 
 **V2 Fields:**
-- `Type` - Hype train type: `regular`, `golden_kappa`, or `shared`
+- `Type` - Hype train type: `regular`, `golden_kappa`, `treasure` or `mythic` (a shared train sets `IsSharedTrain` and keeps its own type)
 - `IsSharedTrain` - Whether this is a shared hype train across multiple channels
 - `SharedTrainParticipants` - List of participating broadcasters (for shared trains)
 - `AllTimeHighLevel` - Channel's all-time highest hype train level
