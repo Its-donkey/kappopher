@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-## [1.6.0] - 2026-11-25
+## [1.6.0] - 2026-11-25 ([#110](https://github.com/Its-donkey/kappopher/pull/110))
 
 ### Added
 - `HypeTrainTypeMythic` (`mythic`) Hype Train type, from Twitch's 2026-11-24 docs changelog
