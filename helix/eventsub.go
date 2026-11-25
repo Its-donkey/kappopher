@@ -217,6 +217,10 @@ const (
 )
 
 // EventSub subscription types - Channel Chat
+//
+// When the condition's user_id isn't already in the chat room, a chat room
+// subscription counts toward that user's chat join limits
+// (https://dev.twitch.tv/docs/chat/#concurrent-join-limits).
 const (
 	EventSubTypeChannelChatClear             = "channel.chat.clear"
 	EventSubTypeChannelChatClearUserMessages = "channel.chat.clear_user_messages"

@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.6.0] - 2026-11-25 ([#110](https://github.com/Its-donkey/kappopher/pull/110))
+
+### Added
+- `HypeTrainTypeMythic` (`mythic`) Hype Train type, from Twitch's 2026-11-24 docs changelog
+
+### Changed
+- Doc comments brought in line with Twitch's 2026-11-24 docs changelog: Hype Train `top_contributions` holds at most one entry per type and its subscription `total` is points (500/1000/2500 per sub), not a count or a tier; AutoMod `level` runs 1 (most severe) to 4, with 0 for non-AutoMod holds; AutoMod `reason` can be `unknown`; AutoMod fragment types and Cheermote `tier`; private blocked terms don't send AutoMod Message Hold; AutoMod Message Update `status` is lower case; Ad Break Begin `requester_user_id` covers synced ad breaks; subscription gift/message `tier` values; Suspicious User `low_trust_status` values (`no_treatment` replaces `none` on update; message never sends it); Channel Unban fires when a timeout is lifted early; Chat Notification fragments never contain Cheermotes and `announcement.color` values; Prediction Begin outcomes carry only `id`, `title` and `color`; Guest Star `volume` is 0-200 and `is_moderator_send_live_enabled` is for Guest Star moderators; Creator Goals subscription types show totals; chat room subscriptions count toward chat join limits
+
+### Fixed
+- Stale `docs/` Hype Train type lists: add `treasure` and `mythic`; `shared` is not a type
+
 ## [1.5.2] - 2026-11-11 ([#107](https://github.com/Its-donkey/kappopher/pull/107))
 
 ### Added

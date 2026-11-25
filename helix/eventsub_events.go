@@ -68,7 +68,7 @@ type ChannelSubscriptionGiftEvent struct {
 	EventSubUser
 	EventSubBroadcaster
 	Total int    `json:"total"`
-	Tier  string `json:"tier"`
+	Tier  string `json:"tier"` // 1000, 2000, 3000
 	// CumulativeTotal is the number of subscriptions the user has gifted in
 	// the channel. It is nil when the gift is anonymous or the user chose not
 	// to share the count.
@@ -80,7 +80,7 @@ type ChannelSubscriptionGiftEvent struct {
 type ChannelSubscriptionMessageEvent struct {
 	EventSubUser
 	EventSubBroadcaster
-	Tier             string              `json:"tier"`
+	Tier             string              `json:"tier"` // 1000, 2000, 3000
 	Message          SubscriptionMessage `json:"message"`
 	CumulativeMonths int                 `json:"cumulative_months"`
 	// StreakMonths is the number of consecutive months the subscription has
@@ -135,7 +135,9 @@ type ChannelBanEvent struct {
 	IsPermanent bool       `json:"is_permanent"`
 }
 
-// ChannelUnbanEvent is sent when a user is unbanned from a channel.
+// ChannelUnbanEvent is sent when a user is unbanned from a channel. Twitch
+// also sends it when a moderator removes a timeout early, but not when a
+// timeout ends on its own.
 type ChannelUnbanEvent struct {
 	EventSubUser
 	EventSubBroadcaster
@@ -291,7 +293,9 @@ type ChannelPollEndEvent struct {
 
 // Prediction Events
 
-// ChannelPredictionBeginEvent is sent when a prediction begins.
+// ChannelPredictionBeginEvent is sent when a prediction begins. On the begin
+// event each outcome carries only ID, Title and Color; Users, ChannelPoints
+// and TopPredictors are filled on progress, lock and end.
 type ChannelPredictionBeginEvent struct {
 	ID string `json:"id"`
 	EventSubBroadcaster
@@ -353,6 +357,7 @@ const (
 	HypeTrainTypeRegular     HypeTrainType = "regular"
 	HypeTrainTypeGoldenKappa HypeTrainType = "golden_kappa"
 	HypeTrainTypeTreasure    HypeTrainType = "treasure"
+	HypeTrainTypeMythic      HypeTrainType = "mythic"
 	// Deprecated: Twitch does not send "shared" as a type; a shared train has
 	// IsSharedTrain set and keeps its own type.
 	HypeTrainTypeShared HypeTrainType = "shared"
@@ -392,10 +397,20 @@ type ChannelHypeTrainBeginEvent struct {
 }
 
 // EventSubContribution represents a Hype Train contribution.
+//
+// In TopContributions there is at most one entry per Type: the user who used
+// the most Bits and the user who contributed the most subscriptions, counted by
+// number of subscriptions regardless of tier. Anonymous contributors are never
+// listed.
 type EventSubContribution struct {
 	EventSubUser
-	Type  string `json:"type"` // bits, subscription, other
-	Total int    `json:"total"`
+	Type string `json:"type"` // bits, subscription (the deprecated v1 also sent other)
+	// Total is the user's points for this Type. For bits it is the number of
+	// Bits used. For subscription each subscription (or each month of a
+	// multi-month gift) counts 500, 1000 or 2500 points for Tier 1, 2 or 3, and
+	// Total is the sum, so five gifted Tier 1 subs give 2500. The tier of a
+	// contribution cannot be recovered from Total.
+	Total int `json:"total"`
 }
 
 // ChannelHypeTrainProgressEvent is sent when a Hype Train progresses.
@@ -598,7 +613,10 @@ func (g *ChatEventGif) UnmarshalJSON(data []byte) error {
 type ChatEventCheermote struct {
 	Prefix string `json:"prefix"`
 	Bits   int    `json:"bits"`
-	Tier   int    `json:"tier"`
+	// Tier is the minimum number of Bits for the Cheermote tier the cheer
+	// reached: with tiers at 1, 100, 1000, 5000 and 10000 Bits, cheer150 has a
+	// Tier of 100.
+	Tier int `json:"tier"`
 }
 
 // ChatEventEmote represents an emote in a message.
@@ -645,6 +663,9 @@ type ChatEventReply struct {
 
 // AutomodMessageHoldEvent is sent when AutoMod holds a message for review.
 // V2 adds reason, automod, and blocked_term fields.
+//
+// Messages that match any of the channel's private blocked terms or blocked
+// links don't trigger a notification, even if they also match public ones.
 type AutomodMessageHoldEvent struct {
 	EventSubBroadcaster
 	EventSubUser
@@ -652,10 +673,12 @@ type AutomodMessageHoldEvent struct {
 	Message   AutomodHeldMessage `json:"message"`
 	HeldAt    time.Time          `json:"held_at"`
 	// V2 fields
-	Reason      string               `json:"reason,omitempty"` // "automod", "blocked_term" or "blocked_link"
+	Reason      string               `json:"reason,omitempty"` // "automod", "blocked_term", "blocked_link" or "unknown"
 	Automod     *AutomodCategoryInfo `json:"automod,omitempty"`
 	BlockedTerm *BlockedTermInfo     `json:"blocked_term,omitempty"` // set for blocked_term and blocked_link
 	// V1 fields (deprecated in v2)
+	// Level is the severity from 1 to 4, where 1 is the most severe; 0 if the
+	// message was held for another reason, such as a blocked term.
 	Level     int               `json:"level,omitempty"`
 	Category  string            `json:"category,omitempty"`
 	Fragments []AutomodFragment `json:"fragments,omitempty"`
@@ -669,7 +692,10 @@ type AutomodHeldMessage struct {
 
 // AutomodCategoryInfo contains automod category information (v2).
 type AutomodCategoryInfo struct {
-	Category   string            `json:"category"`
+	Category string `json:"category"`
+	// Level is the severity from 1 to 4, where 1 is the most severe. AutoMod
+	// holds a message when its level is at or below the channel's AutoMod
+	// level for that category.
 	Level      int               `json:"level"`
 	Boundaries []AutomodBoundary `json:"boundaries"`
 }
@@ -704,6 +730,8 @@ type BlockedTermFound struct {
 
 // AutomodFragment represents a fragment in an automod message.
 type AutomodFragment struct {
+	// Type is text, emote or cheermote. Any part of the message that isn't an
+	// emote or a Cheermote, such as a mention or a link, is text.
 	Type      string              `json:"type"`
 	Text      string              `json:"text"`
 	Automod   *AutomodDetails     `json:"automod,omitempty"`
@@ -730,15 +758,17 @@ type AutomodMessageUpdateEvent struct {
 	EventSubModerator
 	MessageID string             `json:"message_id"`
 	Message   AutomodHeldMessage `json:"message"`
-	// Status is Approved, Denied or Expired; the docs' examples use lower
-	// case, so compare with strings.EqualFold.
+	// Status is approved or denied. Twitch documents it in lower case; older
+	// docs capitalised it, so compare with strings.EqualFold.
 	Status string `json:"status"`
 	// V2 fields
 	HeldAt      NullableTime         `json:"held_at"`
-	Reason      string               `json:"reason,omitempty"` // "automod", "blocked_term" or "blocked_link"
+	Reason      string               `json:"reason,omitempty"` // "automod", "blocked_term", "blocked_link" or "unknown"
 	Automod     *AutomodCategoryInfo `json:"automod,omitempty"`
 	BlockedTerm *BlockedTermInfo     `json:"blocked_term,omitempty"` // set for blocked_term and blocked_link
 	// V1 fields (deprecated in v2)
+	// Level is the severity from 1 to 4, where 1 is the most severe; 0 if the
+	// message was held for another reason, such as a blocked term.
 	Level    int    `json:"level,omitempty"`
 	Category string `json:"category,omitempty"`
 }
@@ -775,6 +805,8 @@ type ChannelAdBreakBeginEvent struct {
 	StartedAt       time.Time `json:"started_at"`
 	IsAutomatic     bool      `json:"is_automatic"`
 	EventSubBroadcaster
+	// RequesterUserID is the user that requested the ad; it is also set for
+	// ad breaks synchronized from another channel.
 	RequesterUserID    string `json:"requester_user_id"`
 	RequesterUserLogin string `json:"requester_user_login"`
 	RequesterUserName  string `json:"requester_user_name"`
@@ -1263,7 +1295,7 @@ type ChannelShoutoutReceiveEvent struct {
 type ChannelSuspiciousUserMessageEvent struct {
 	EventSubBroadcaster
 	EventSubUser
-	LowTrustStatus       string                `json:"low_trust_status"` // none, active_monitoring, restricted
+	LowTrustStatus       string                `json:"low_trust_status"` // active_monitoring, restricted
 	SharedBanChannelIDs  []string              `json:"shared_ban_channel_ids,omitempty"`
 	Types                []string              `json:"types"`                  // manually_added, ban_evader, banned_in_shared_channel
 	BanEvasionEvaluation string                `json:"ban_evasion_evaluation"` // unknown, possible, likely
@@ -1290,7 +1322,7 @@ type ChannelSuspiciousUserUpdateEvent struct {
 	EventSubBroadcaster
 	EventSubModerator
 	EventSubUser
-	LowTrustStatus string `json:"low_trust_status"`
+	LowTrustStatus string `json:"low_trust_status"` // no_treatment, active_monitoring, restricted
 }
 
 // Conduit Events
@@ -1410,7 +1442,9 @@ type ChannelChatNotificationEvent struct {
 	Badges             []ChatEventBadge `json:"badges"`
 	SystemMessage      string           `json:"system_message"`
 	MessageID          string           `json:"message_id"`
-	Message            ChatEventMessage `json:"message"`
+	// Message fragments are text, emote or mention; notification messages
+	// never contain Cheermotes.
+	Message ChatEventMessage `json:"message"`
 	// NoticeType says which notice object is set; see the ChatNoticeType
 	// constants.
 	NoticeType                   string                              `json:"notice_type"`
@@ -1600,6 +1634,9 @@ type ChatNotificationPayItForward struct {
 
 // ChatNotificationAnnouncement represents an announcement notification.
 type ChatNotificationAnnouncement struct {
+	// Color is PRIMARY (the default when Send Chat Announcement names no
+	// color), BLUE, GREEN, ORANGE or PURPLE; empty if the announcement was
+	// sent without a color.
 	Color string `json:"color"`
 }
 
@@ -1829,6 +1866,8 @@ type ChannelGuestStarGuestUpdateEvent struct {
 // ChannelGuestStarSettingsUpdateEvent is sent when guest star settings are updated.
 type ChannelGuestStarSettingsUpdateEvent struct {
 	EventSubBroadcaster
+	// IsModeratorSendLiveEnabled is whether Guest Star moderators can make a
+	// guest live.
 	IsModeratorSendLiveEnabled  bool   `json:"is_moderator_send_live_enabled"`
 	SlotCount                   int    `json:"slot_count"`
 	IsBrowserSourceAudioEnabled bool   `json:"is_browser_source_audio_enabled"`
