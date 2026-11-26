@@ -67,6 +67,68 @@ fmt.Printf("Expires In: %d seconds\n", token.ExpiresIn)
 }
 ```
 
+## PKCE Authorization Code Flow
+
+The [PKCE-enhanced Authorization Code Grant Flow](https://dev.twitch.tv/docs/authentication/getting-tokens-oauth/#pkce-enhanced-authorization-code-grant-flow) adds a [Proof Key for Code Exchange](https://datatracker.ietf.org/doc/html/rfc7636) to the Authorization Code Flow. It is meant for apps that can't keep a client secret safe (desktop, mobile and client-side apps), so a **public client** can use it. A confidential client can use it too, for extra protection against stolen authorization codes; it still sends its client secret.
+
+### NewPKCE
+
+Create a new code verifier and challenge for every authorization request. Keep the `PKCE` (or just its `Verifier`) until the user returns to your redirect URI.
+
+```go
+pkce, err := helix.NewPKCE()
+if err != nil {
+    log.Fatal(err)
+}
+```
+
+`helix.NewPKCEFromVerifier(verifier)` builds the pair from a verifier you generated yourself. The verifier must be 43-128 characters of `A-Z`, `a-z`, `0-9`, `-`, `.`, `_` or `~`; otherwise it returns `helix.ErrInvalidCodeVerifier`.
+
+### GetPKCEAuthURL
+
+Generate the authorization URL. It carries `pkce.Challenge` with `code_challenge_method=S256`; the verifier never leaves your app until the code exchange.
+
+```go
+auth := helix.NewAuthClient(helix.AuthConfig{
+    ClientID:    "your-client-id",
+    ClientType:  helix.PublicClient,
+    RedirectURI: "http://localhost:3000",
+    Scopes:      []string{helix.ScopeChannelManagePolls, helix.ScopeChannelReadPolls},
+    State:       "random-state-string",
+})
+
+authURL, err := auth.GetPKCEAuthURL(pkce)
+if err != nil {
+    log.Fatal(err)
+}
+// Redirect user to authURL
+```
+
+### ExchangeCodeWithPKCE
+
+Exchange the authorization code (from the callback) and the verifier for an access token. A public client never sends a client secret; a confidential client must have one set. The authorization code expires after 10 minutes.
+
+```go
+// After the user is redirected back with ?code=xxx (check state first)
+token, err := auth.ExchangeCodeWithPKCE(ctx, "authorization-code-from-callback", pkce.Verifier)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
+**Sample Response:**
+```json
+{
+  "access_token": "rfx2uswqe8l4g1mkagrvg5tv0ks3",
+  "expires_in": 14124,
+  "refresh_token": "5b93chm6hdve3mycz05zfzatkfdenfspp1h1ar2xxdalen01",
+  "scope": ["channel:moderate", "chat:edit", "chat:read"],
+  "token_type": "bearer"
+}
+```
+
+A public client's refresh tokens are single-use and expire after 30 days; see [RefreshToken](#refreshtoken).
+
 ## Implicit Grant Flow
 
 For client-side applications where the token is returned directly.
@@ -118,7 +180,7 @@ Device Code Flow (DCF) allows for public and confidential client types. The majo
 
 - Do not need to maintain a client secret.
 - Can refresh an access token without passing a client secret.
-- Are only limited to the usage of DCF to obtain OAuth tokens and cannot use any of the other flows.
+- Can only use DCF and the [PKCE Authorization Code Flow](#pkce-authorization-code-flow) to obtain OAuth tokens.
 
 ### Setup by client type
 
@@ -271,7 +333,7 @@ fmt.Printf("New Access Token: %s\n", newToken.AccessToken)
 }
 ```
 
-A public client refreshes without a client secret. Its refresh tokens are single-use and expire after 30 days, so save the `RefreshToken` from every refresh (`RefreshCurrentToken` stores it on the client for you); once it expires, the user has to go through the Device Code Flow again. A confidential client's refresh tokens don't expire. See Twitch's [refresh token docs](https://dev.twitch.tv/docs/authentication/refresh-tokens/).
+A public client refreshes without a client secret. Its refresh tokens are single-use and expire after 30 days, so save the `RefreshToken` from every refresh (`RefreshCurrentToken` stores it on the client for you); once it expires, the user has to authorize your app again. A confidential client's refresh tokens don't expire. See Twitch's [refresh token docs](https://dev.twitch.tv/docs/authentication/refresh-tokens/).
 
 ### RefreshCurrentToken
 
@@ -659,6 +721,9 @@ var (
     helix.ErrMissingClientSecret  // Client secret is required
     helix.ErrMissingRedirectURI   // Redirect URI is required
     helix.ErrMissingCode          // Authorization code is required
+    helix.ErrMissingCodeChallenge // PKCE flow: GetPKCEAuthURL needs a code challenge
+    helix.ErrInvalidCodeVerifier  // PKCE flow: verifier missing or not 43-128 allowed characters
+    helix.ErrPublicClientFlowNotSupported // Public clients can only use the Device Code and PKCE flows
 )
 ```
 

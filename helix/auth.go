@@ -3,6 +3,7 @@ package helix
 import (
 	"context"
 	"crypto"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base64"
@@ -51,7 +52,7 @@ const (
 
 // Auth errors
 var (
-	ErrPublicClientFlowNotSupported = errors.New("public clients can only use the Device Code Flow")
+	ErrPublicClientFlowNotSupported = errors.New("public clients can only use the Device Code Flow or the PKCE Authorization Code Flow")
 	ErrInvalidToken                 = errors.New("invalid access token")
 	ErrTokenExpired                 = errors.New("token has expired")
 	ErrAuthorizationPending         = errors.New("authorization pending")
@@ -61,6 +62,8 @@ var (
 	ErrMissingClientSecret          = errors.New("client secret is required")
 	ErrMissingRedirectURI           = errors.New("redirect URI is required")
 	ErrMissingCode                  = errors.New("authorization code is required")
+	ErrMissingCodeChallenge         = errors.New("PKCE code challenge is required")
+	ErrInvalidCodeVerifier          = errors.New("PKCE code verifier must be 43-128 characters of A-Z, a-z, 0-9, '-', '.', '_' or '~'")
 )
 
 // Token represents an OAuth token from Twitch.
@@ -125,8 +128,9 @@ type AuthClientType int
 const (
 	// ConfidentialClient has a client secret and can use every flow. It is the default.
 	ConfidentialClient AuthClientType = iota
-	// PublicClient has no client secret and can only use the Device Code Flow.
-	// Its refresh tokens are single-use and expire after 30 days.
+	// PublicClient has no client secret and can only use the Device Code Flow
+	// and the PKCE Authorization Code Flow. Its refresh tokens are single-use and
+	// expire after 30 days.
 	PublicClient
 )
 
@@ -219,11 +223,20 @@ func (c *AuthClient) GetToken() *Token {
 
 // GetAuthorizationURL returns the URL to redirect users to for authorization.
 func (c *AuthClient) GetAuthorizationURL(responseType string) (string, error) {
+	params, err := c.authorizationParams(responseType)
+	if err != nil {
+		return "", err
+	}
+	return AuthorizeEndpoint + "?" + params.Encode(), nil
+}
+
+// authorizationParams builds the /authorize query shared by the OAuth flows.
+func (c *AuthClient) authorizationParams(responseType string) (url.Values, error) {
 	if c.config.ClientID == "" {
-		return "", ErrMissingClientID
+		return nil, ErrMissingClientID
 	}
 	if c.config.RedirectURI == "" {
-		return "", ErrMissingRedirectURI
+		return nil, ErrMissingRedirectURI
 	}
 
 	params := url.Values{
@@ -240,7 +253,7 @@ func (c *AuthClient) GetAuthorizationURL(responseType string) (string, error) {
 		params.Set("force_verify", "true")
 	}
 
-	return AuthorizeEndpoint + "?" + params.Encode(), nil
+	return params, nil
 }
 
 // GetImplicitAuthURL returns the authorization URL for the Implicit Grant flow.
@@ -274,6 +287,112 @@ func (c *AuthClient) ExchangeCode(ctx context.Context, code string) (*Token, err
 		"code":          {code},
 		"grant_type":    {"authorization_code"},
 		"redirect_uri":  {c.config.RedirectURI},
+	}
+
+	return c.requestToken(ctx, data)
+}
+
+// PKCEChallengeMethodS256 is the code_challenge_method for an S256 challenge,
+// the only method Twitch accepts.
+const PKCEChallengeMethodS256 = "S256"
+
+// PKCE is a Proof Key for Code Exchange (RFC 7636) pair for the PKCE-enhanced
+// Authorization Code Grant Flow. Make a new one for every authorization request
+// and keep it until the user returns to your redirect URI: the challenge goes on
+// the authorization URL and the verifier goes with the code exchange.
+type PKCE struct {
+	// Verifier is the code_verifier sent to ExchangeCodeWithPKCE. Keep it secret.
+	Verifier string
+	// Challenge is the code_challenge sent on the authorization URL: the
+	// unpadded base64url SHA-256 of Verifier, always 43 characters.
+	Challenge string
+}
+
+// NewPKCE returns a PKCE pair with a fresh random 43-character verifier.
+func NewPKCE() (*PKCE, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return nil, fmt.Errorf("generating PKCE code verifier: %w", err)
+	}
+	return NewPKCEFromVerifier(base64.RawURLEncoding.EncodeToString(b))
+}
+
+// NewPKCEFromVerifier returns the PKCE pair for a verifier you generated
+// yourself. The verifier must be 43-128 characters of A-Z, a-z, 0-9, '-', '.',
+// '_' or '~'; otherwise it returns ErrInvalidCodeVerifier.
+func NewPKCEFromVerifier(verifier string) (*PKCE, error) {
+	if !validCodeVerifier(verifier) {
+		return nil, ErrInvalidCodeVerifier
+	}
+	sum := sha256.Sum256([]byte(verifier))
+	return &PKCE{
+		Verifier:  verifier,
+		Challenge: base64.RawURLEncoding.EncodeToString(sum[:]),
+	}, nil
+}
+
+// validCodeVerifier reports whether v meets RFC 7636 section 4.1.
+func validCodeVerifier(v string) bool {
+	if len(v) < 43 || len(v) > 128 {
+		return false
+	}
+	for i := 0; i < len(v); i++ {
+		switch ch := v[i]; {
+		case ch >= 'A' && ch <= 'Z', ch >= 'a' && ch <= 'z', ch >= '0' && ch <= '9':
+		case ch == '-', ch == '.', ch == '_', ch == '~':
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// GetPKCEAuthURL returns the authorization URL for the PKCE-enhanced
+// Authorization Code Grant Flow, carrying pkce.Challenge. Public and
+// confidential clients can both use it.
+func (c *AuthClient) GetPKCEAuthURL(pkce *PKCE) (string, error) {
+	if pkce == nil || pkce.Challenge == "" {
+		return "", ErrMissingCodeChallenge
+	}
+	params, err := c.authorizationParams("code")
+	if err != nil {
+		return "", err
+	}
+	params.Set("code_challenge", pkce.Challenge)
+	params.Set("code_challenge_method", PKCEChallengeMethodS256)
+	return AuthorizeEndpoint + "?" + params.Encode(), nil
+}
+
+// ExchangeCodeWithPKCE exchanges an authorization code from GetPKCEAuthURL for
+// an access token, proving the request with the PKCE verifier. A confidential
+// client also sends its client secret; a public client never does.
+// The authorization code expires after 10 minutes.
+func (c *AuthClient) ExchangeCodeWithPKCE(ctx context.Context, code, verifier string) (*Token, error) {
+	if c.config.ClientID == "" {
+		return nil, ErrMissingClientID
+	}
+	if c.config.ClientType == ConfidentialClient && c.config.ClientSecret == "" {
+		return nil, ErrMissingClientSecret
+	}
+	if c.config.RedirectURI == "" {
+		return nil, ErrMissingRedirectURI
+	}
+	if code == "" {
+		return nil, ErrMissingCode
+	}
+	if !validCodeVerifier(verifier) {
+		return nil, ErrInvalidCodeVerifier
+	}
+
+	data := url.Values{
+		"client_id":     {c.config.ClientID},
+		"code":          {code},
+		"code_verifier": {verifier},
+		"grant_type":    {"authorization_code"},
+		"redirect_uri":  {c.config.RedirectURI},
+	}
+	if c.config.ClientType == ConfidentialClient {
+		data.Set("client_secret", c.config.ClientSecret)
 	}
 
 	return c.requestToken(ctx, data)
