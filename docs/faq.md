@@ -33,7 +33,8 @@ Kappopher requires Go 1.21 or later. We use generics and other modern Go feature
 | Server-side app | Authorization Code |
 | CLI tool | Device Code |
 | Server-to-server (no user) | Client Credentials |
-| Client-side/SPA | Implicit (least secure) |
+| Desktop, mobile or client-side app | PKCE Authorization Code |
+| Client-side/SPA (legacy) | Implicit (least secure) |
 
 ### How do I get a Client ID and Secret?
 

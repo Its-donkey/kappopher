@@ -14,8 +14,8 @@ This document lists all Twitch API endpoints and indicates whether they are supp
 | Supported | Category | Endpoint Name | Method | Path | Last Updated | Twitch Note |
 |:---------:|----------|---------------|--------|------|--------------|-------------|
 | Yes | Auth | OpenID Configuration | GET | `https://id.twitch.tv/oauth2/.well-known/openid-configuration` | 2025-12-10 | |
-| Yes | Auth | Authorize | GET | `https://id.twitch.tv/oauth2/authorize` | 2025-12-10 | |
-| Yes | Auth | Token | POST | `https://id.twitch.tv/oauth2/token` | 2025-12-10 | |
+| Yes | Auth | Authorize | GET | `https://id.twitch.tv/oauth2/authorize` | 2026-11-25 | PKCE |
+| Yes | Auth | Token | POST | `https://id.twitch.tv/oauth2/token` | 2026-11-25 | PKCE |
 | Yes | Auth | Validate Token | GET | `https://id.twitch.tv/oauth2/validate` | 2025-12-10 | |
 | Yes | Auth | Revoke Token | POST | `https://id.twitch.tv/oauth2/revoke` | 2025-12-10 | |
 | Yes | Auth | Device Code | POST | `https://id.twitch.tv/oauth2/device` | 2025-12-10 | |

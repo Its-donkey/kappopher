@@ -17,7 +17,7 @@ A comprehensive Twitch API toolkit for Go.
 
 ## Features
 
-- **Complete OAuth Support**: All four Twitch OAuth flows (Implicit, Authorization Code, Client Credentials, Device Code)
+- **Complete OAuth Support**: Every Twitch OAuth flow (Implicit, Authorization Code, PKCE Authorization Code, Client Credentials, Device Code)
 - **Token Management**: Automatic token refresh, validation, and revocation
 - **Comprehensive API Coverage**: 147+ Helix API endpoints supported
 - **IRC/TMI Chat**: Full IRC chat client for building chat bots with message parsing, subs, raids, and moderation events

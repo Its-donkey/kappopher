@@ -8,8 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- PKCE-enhanced Authorization Code Grant Flow, from Twitch's 2026-11-25 docs changelog ([#111](https://github.com/Its-donkey/kappopher/issues/111)): `NewPKCE` and `NewPKCEFromVerifier` build an S256 code verifier and challenge, `AuthClient.GetPKCEAuthURL` builds the authorization URL and `AuthClient.ExchangeCodeWithPKCE` swaps the code and verifier for tokens. Public clients can use it without a client secret; confidential clients send theirs. New errors `ErrMissingCodeChallenge` and `ErrInvalidCodeVerifier`, and the `PKCEChallengeMethodS256` constant
 
 ### Changed
+- Public clients can now use the PKCE Authorization Code Flow as well as the Device Code Flow; the `PublicClient` docs and the `ErrPublicClientFlowNotSupported` message say so
 
 ### Fixed
 

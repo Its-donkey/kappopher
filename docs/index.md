@@ -29,7 +29,7 @@ Practical code examples and recipes for common use cases.
 ## Features
 
 - **Full Helix API Coverage** - All endpoints implemented with typed responses
-- **Multiple Auth Flows** - Client Credentials, Authorization Code, Device Code, Implicit
+- **Multiple Auth Flows** - Client Credentials, Authorization Code (with or without PKCE), Device Code, Implicit
 - **EventSub Support** - WebSocket and Webhook handlers for real-time events
 - **IRC Client** - Built-in chat client for bot development
 - **Batch Operations** - Concurrent requests with rate limiting

@@ -9,7 +9,7 @@ Comprehensive code examples covering all kappopher features.
 
 ## Authentication
 
-- [Authentication](authentication.md) - All OAuth 2.0 flows (client credentials, authorization code, device code, implicit, token refresh, OIDC)
+- [Authentication](authentication.md) - All OAuth 2.0 flows (client credentials, authorization code, PKCE, device code, implicit, token refresh, OIDC)
 
 ## Chat & Real-Time
 
