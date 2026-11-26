@@ -12,6 +12,7 @@ Twitch uses OAuth 2.0 for authentication. The flow you choose depends on your ap
 |------|----------|------------------|------------|
 | **Client Credentials** | Server-side apps, public data | None | App Access Token |
 | **Authorization Code** | Web apps with backend | Browser redirect | User Access Token |
+| **PKCE Authorization Code** | Desktop, mobile and client-side apps (public clients) | Browser redirect | User Access Token |
 | **Device Code** | CLIs, TVs, IoT devices | Code on separate device | User Access Token |
 | **Implicit Grant** | Single-page apps (SPAs) | Browser redirect | User Access Token |
 
@@ -202,7 +203,7 @@ For client-side JavaScript applications (SPAs) where the client secret cannot be
 **Important limitations**:
 - No refresh tokens - user must re-authorize when token expires
 - Token is exposed in browser history and potentially to JavaScript on the page
-- Consider using Authorization Code Flow with PKCE for better security
+- Prefer the PKCE Authorization Code Flow ([`GetPKCEAuthURL` / `ExchangeCodeWithPKCE`](../auth.md#pkce-authorization-code-flow)), which works without a client secret and returns refresh tokens
 
 **When to use**: Legacy SPAs or simple browser extensions where you can't use a backend server.
 
