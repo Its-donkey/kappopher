@@ -353,3 +353,4 @@ https://dev.twitch.tv/docs/changelog/#2026-10-01
 https://dev.twitch.tv/docs/changelog/#2026-11-04
 https://dev.twitch.tv/docs/changelog/#2026-11-10
 https://dev.twitch.tv/docs/changelog/#2026-11-24
+https://dev.twitch.tv/docs/changelog/#2026-11-25
